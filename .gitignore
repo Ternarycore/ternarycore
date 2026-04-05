@@ -1,0 +1,15 @@
+# Vivado generated
+*.jou
+*.log
+*.str
+*.mcs
+*.prm
+.Xil/
+vivado*/
+
+# Simulation
+sim/sim_*
+sim/*.vcd
+
+# OS
+.DS_Store
