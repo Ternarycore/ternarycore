@@ -52,7 +52,7 @@ All RTL will be open-sourced under the MIT licence from the first commit.
 
 A 2-bit weight drives a 3-way mux: pass activation unchanged (+1), negate it (-1), or zero it (0). No multiplier instantiated — ever.
 
-### Key Design Parameters (configurable via parameters)
+### Key Design Parameters (configurable)
 
 | Parameter       | Default | Description                              |
 |-----------------|---------|------------------------------------------|
@@ -68,6 +68,8 @@ A 2-bit weight drives a 3-way mux: pass activation unchanged (+1), negate it (-1
 ```
 ternarycore/
 ├── build.md                    ← you are here
+├── SIMULATION_GUIDE.md         ← start here if running sim for first time
+├── CONTRIBUTING.md
 ├── rtl/
 │   ├── ternary_mac.v           ← single multiply-accumulate cell
 │   ├── ternary_dot.v           ← vector dot product (VECTOR_LEN cells)
@@ -79,7 +81,8 @@ ternarycore/
 │   └── tb_ternary_gemm.v
 ├── sim/
 │   ├── Makefile                ← `make sim` runs full sim suite
-│   └── run_icarus.sh
+│   └── verify/
+│       └── verify_mac.py       ← Python reference checker
 ├── constraints/
 │   └── arty_a7_100t.xdc        ← pin constraints for Arty A7-100T
 ├── scripts/
@@ -92,77 +95,27 @@ ternarycore/
 
 ## Phase 1: Simulation on Mac (Start Here)
 
-### Tools — no Vivado needed, all free, all run natively on macOS
+> See **SIMULATION_GUIDE.md** for the full step-by-step walkthrough.
+
+Three tools, all free, all native on macOS:
 
 ```bash
 brew install icarus-verilog verilator gtkwave
 ```
 
-| Tool         | What it does                                         |
-|--------------|------------------------------------------------------|
-| `iverilog`   | Compiles and simulates Verilog — simplest path       |
-| `verilator`  | Compiles Verilog to C++, 10-100x faster simulation   |
-| `gtkwave`    | Views waveform `.vcd` files — your oscilloscope      |
+| Tool         | What it does                                       |
+|--------------|----------------------------------------------------|
+| `iverilog`   | Compiles and simulates Verilog — simplest path     |
+| `verilator`  | Compiles Verilog to C++, 10–100× faster simulation |
+| `gtkwave`    | Views waveform `.vcd` files — your oscilloscope    |
 
-**Vivado** (Xilinx's synthesis tool) is Linux/Windows only and is NOT needed for simulation. You only need it when you're ready to program a real FPGA board. At that point you run it in a Linux VM (UTM is excellent on Apple Silicon) or Docker.
-
-### Simulation workflow
-
-```bash
-# Compile and simulate ternary_mac unit
-cd sim
-make tb_ternary_mac
-# Opens GTKWave with waveform automatically
-```
-
-### First RTL to write: `ternary_mac.v`
-
-This is the atomic unit — one ternary multiply-accumulate cell. It's ~20 lines of Verilog. Start here.
-
-```verilog
-// ternary_mac.v — single ternary MAC cell
-// weight_enc: 2-bit encoded ternary {00=0, 01=+1, 10=-1}
-module ternary_mac #(
-    parameter DATA_WIDTH = 8,
-    parameter ACC_WIDTH  = 32
-) (
-    input  wire                  clk,
-    input  wire                  rst_n,
-    input  wire                  valid_in,
-    input  wire [DATA_WIDTH-1:0] activation,
-    input  wire [1:0]            weight_enc,
-    input  wire [ACC_WIDTH-1:0]  acc_in,
-    output reg  [ACC_WIDTH-1:0]  acc_out,
-    output reg                   valid_out
-);
-
-    // Ternary multiply: no multiplier, just mux
-    wire signed [DATA_WIDTH-1:0] weighted;
-    assign weighted = (weight_enc == 2'b00) ? {DATA_WIDTH{1'b0}} :       // 0
-                      (weight_enc == 2'b01) ? activation :                 // +1
-                                              (~activation + 1'b1);        // -1
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            acc_out   <= '0;
-            valid_out <= 1'b0;
-        end else if (valid_in) begin
-            acc_out   <= acc_in + {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
-            valid_out <= 1'b1;
-        end
-    end
-endmodule
-```
-
-This is your prototype. Once you have a testbench proving correct output, you have what Crowd Supply needs to approve your campaign.
+**Vivado** (Xilinx's synthesis tool) is Linux/Windows only and is NOT needed for simulation. You only need it when programming a real FPGA board.
 
 ---
 
 ## Phase 2: First Real Hardware — Arty A7-100T
 
-### What to buy
-
-**Digilent Arty A7-100T** — this is the recommended first board.
+**Digilent Arty A7-100T** — recommended first board.
 
 | | |
 |-|-|
@@ -172,24 +125,22 @@ This is your prototype. Once you have a testbench proving correct output, you ha
 | DSP slices | 240 |
 | Price (new) | ~$179 at digilent.com |
 | Price (used) | ~$80–120 on eBay |
-| Vivado support | Free WebPACK tier (no licence needed) |
+| Vivado tier | Free WebPACK (no licence needed) |
 
 **Where to buy:**
 - New: [digilent.com](https://digilent.com) — official, ships fast
-- Used: eBay — search "Arty A7 100T" or "Xilinx Artix 7 dev board"
-- Also available: Mouser, Digi-Key (same price as Digilent)
+- Used: eBay — search `Arty A7 100T` or `Xilinx Artix 7 dev board`
+- Also: Mouser, Digi-Key
 
-> ⚠️ Avoid AliExpress clones of Xilinx boards — the FPGA chips are often counterfeit and Vivado will reject them during device programming.
+> ⚠️ Avoid AliExpress clones — FPGA chips are often counterfeit and Vivado will refuse to program them.
 
-**Why not the 35T (smaller/cheaper)?** The 100T has 3x the logic and fits more accumulation lanes — worth the extra $80 for this project.
+**Why not the 35T?** The 100T has 3× the logic cells and fits more parallel accumulation lanes — worth the extra $80.
 
-### Vivado setup for Arty A7
-
-Vivado WebPACK (free, no licence) fully supports Artix-7:
-1. Download from [xilinx.com/support/download](https://www.xilinx.com/support/download)
-2. Install on Linux (Ubuntu 22.04 in a VM via UTM on your Mac Mini, or native Linux machine)
-3. Artix-7 devices are in the WebPACK free tier — no licence needed
-4. Use `scripts/synth_arty.tcl` (in this repo) to automate synthesis
+### Vivado setup
+1. Download WebPACK (free) from [xilinx.com/support/download](https://www.xilinx.com/support/download)
+2. Install on Ubuntu 22.04 — run in UTM (free VM app, excellent on Apple Silicon Mac)
+3. Artix-7 is in the free WebPACK tier — no licence file needed
+4. Use `scripts/synth_arty.tcl` in this repo to automate synthesis
 
 ---
 
@@ -197,66 +148,46 @@ Vivado WebPACK (free, no licence) fully supports Artix-7:
 
 This is what the Crowd Supply campaign funds.
 
-| Card | LUTs | HBM / DDR | PCIe | Used price (eBay) |
-|------|------|-----------|------|-------------------|
+| Card | LUTs | Memory | PCIe | Used price (eBay) |
+|------|------|--------|------|-------------------|
 | Alveo U50 | 872K | 8GB HBM2 | Gen4 x16 | ~$800–1,500 |
 | Alveo U250 | 1.7M | 64GB DDR4 | Gen3 x16 | ~$1,500–3,000 |
 | Alveo U280 | 1.1M | 8GB HBM2 + 32GB DDR4 | Gen4 x16 | ~$1,200–2,500 |
 
-**Recommended: Alveo U50** — HBM2 is critical for memory bandwidth, and the U50 is the most affordable entry point. Buy used on eBay.
+**Recommended: Alveo U50** — HBM2 bandwidth is critical; U50 is the most affordable entry point. Buy used on eBay.
 
-The Alveo cards require a host machine with a PCIe x16 slot and a Linux driver stack (Xilinx Runtime, XRT). Your Phase 2 AI lab machine (see separate spec) will host this.
+Alveo requires: PCIe x16 host slot + Linux + Xilinx Runtime (XRT) driver. The Phase 2 AI lab machine handles this.
 
 ---
 
-## Implementation Phases
+## Implementation Checklist
 
-### Phase 1 — Simulation (Mac Mini, no hardware cost)
-- [ ] Implement `ternary_mac.v` — single MAC cell
-- [ ] Testbench: verify +1, -1, 0 weight paths produce correct accumulation
-- [ ] Implement `ternary_dot.v` — 64-element vector dot product
-- [ ] Testbench: random vector correctness vs Python reference
-- [ ] Implement `ternary_gemm.v` — tiled matrix multiply
-- [ ] End-to-end test: run a small BitNet weight matrix through the design
-- [ ] Screenshot testbench output → submit Crowd Supply application
+### Phase 1 — Simulation (Mac Mini, zero hardware cost)
+- [ ] Run `tb_ternary_mac` — all 8 test vectors pass
+- [ ] Implement `ternary_dot.v` + testbench — dot product matches Python reference
+- [ ] Implement `ternary_gemm.v` + testbench — matrix multiply matches NumPy reference
+- [ ] Screenshot passing testbench output → submit Crowd Supply application
 
-### Phase 2 — Arty A7 Bringup (~$100–180 hardware)
-- [ ] Synthesise `ternary_gemm` for Artix-7 with Vivado
-- [ ] Meet timing at 100MHz
+### Phase 2 — Arty A7 Bringup (~$100–180)
+- [ ] Synthesise `ternary_gemm` for Artix-7 in Vivado
+- [ ] Meet timing at 100 MHz
 - [ ] Program board, verify output over UART
-- [ ] Measure power consumption (Artix-7 has onboard current sensing)
+- [ ] Measure power consumption
 - [ ] Publish first real-hardware numbers
 
 ### Phase 3 — Alveo Benchmark (Crowd Supply funded)
-- [ ] Port design to Alveo U50 (HLS or straight RTL)
+- [ ] Port design to Alveo U50
 - [ ] Integrate with XRT host driver
-- [ ] Run BitNet 1B inference benchmark vs GPU baseline
-- [ ] Publish tokens/sec and tokens/watt comparison
+- [ ] Run BitNet 1B inference vs GPU baseline
+- [ ] Publish tokens/sec and tokens/watt
 - [ ] Release final open-source RTL + benchmark scripts
-
----
-
-## AI-Assisted Development
-
-The [ralph loop](https://github.com/shepherdscientific/mr-wiggum) (AI agent → commit → review → repeat) is designed for software and is not directly portable to HDL — synthesis tools, timing closure, and hardware simulation require domain-specific steps that a general bash loop can't manage.
-
-However, AI assistance is still highly valuable here in a manual-loop pattern:
-
-1. **Write a testbench first** (what output do you expect?)
-2. **Ask Claude / Copilot to implement the RTL** to pass that testbench
-3. **Run simulation** — `make sim`
-4. **Paste failing waveform / error back** into the AI chat
-5. **Iterate** until testbench passes
-6. **Only then** move to synthesis
-
-This is essentially a TDD (test-driven) loop for hardware. The testbench is your spec. Simulation is your unit test runner.
 
 ---
 
 ## Reference Links
 
-- Benchmark repo that motivated this project: [github.com/shepherdscientific/llama-server-tuning](https://github.com/shepherdscientific/llama-server-tuning)
+- Motivating benchmarks: [github.com/shepherdscientific/llama-server-tuning](https://github.com/shepherdscientific/llama-server-tuning)
 - BitNet paper: [arxiv.org/abs/2402.17764](https://arxiv.org/abs/2402.17764)
 - Digilent Arty A7 docs: [digilent.com/reference/programmable-logic/arty-a7/start](https://digilent.com/reference/programmable-logic/arty-a7/start)
-- Vivado WebPACK download: [xilinx.com/support/download](https://www.xilinx.com/support/download)
+- Vivado WebPACK: [xilinx.com/support/download](https://www.xilinx.com/support/download)
 - Crowd Supply pre-launch: *(add link when live)*
