@@ -33,8 +33,6 @@ module ternary_dot #(
     output reg                   valid_out
 );
 
-    localparam CNT_BITS = $clog2(VECTOR_LEN + 1);
-
     // Ternary multiply: mux only, no DSP block consumed
     wire signed [DATA_WIDTH-1:0] weighted;
     assign weighted = (weight_enc == 2'b00) ? {DATA_WIDTH{1'b0}}  :
@@ -46,8 +44,9 @@ module ternary_dot #(
     assign weighted_ext = {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
 
     // Internal running accumulator and element counter
+    // Use a 16-bit counter — supports VECTOR_LEN up to 65535, avoids $clog2
     reg [ACC_WIDTH-1:0]  acc;
-    reg [CNT_BITS-1:0]   count;
+    reg [15:0]           count;
 
     wire [ACC_WIDTH-1:0] next_acc;
     assign next_acc = acc + weighted_ext;
@@ -55,7 +54,7 @@ module ternary_dot #(
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             acc       <= {ACC_WIDTH{1'b0}};
-            count     <= {CNT_BITS{1'b0}};
+            count     <= 16'b0;
             acc_out   <= {ACC_WIDTH{1'b0}};
             valid_out <= 1'b0;
         end else begin
@@ -66,10 +65,10 @@ module ternary_dot #(
                     acc_out   <= next_acc;
                     valid_out <= 1'b1;
                     acc       <= {ACC_WIDTH{1'b0}};
-                    count     <= {CNT_BITS{1'b0}};
+                    count     <= 16'b0;
                 end else begin
                     acc   <= next_acc;
-                    count <= count + 1'b1;
+                    count <= count + 16'b1;
                 end
             end
         end
