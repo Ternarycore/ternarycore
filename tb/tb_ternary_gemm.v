@@ -131,9 +131,8 @@ module tb_ternary_gemm;
                 @(posedge clk); #1;
             end
             valid_in = 0;
-
-            // valid_out fires on the same edge as the last element is processed
-            // (ternary_dot latches on count==DEPTH-1)
+            // Wait for negedge to ensure NBA from the last posedge has settled
+            @(negedge clk);
             if (!valid_out) begin
                 $display("ERROR: valid_out did not assert for row %0d", row);
                 errors = errors + 1;

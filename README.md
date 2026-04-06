@@ -31,13 +31,34 @@ BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix mu
 
 ## Architecture
 
-```
-activation (int8) ──┐
-                    ├── ternary_mac ──┐
-weight_enc (2-bit) ─┘                │
-                                     ├─ × VECTOR_LEN ──► ternary_dot ──┐
-                                     │                                  │
-                                                                        ├─ × COLS ──► ternary_gemm
+```mermaid
+graph TD
+    subgraph inputs["Inputs (per cycle)"]
+        A["activation\n(int8)"]
+        W["weight_enc\n(2-bit: 00=0, 01=+1, 10=−1)"]
+    end
+
+    subgraph mac["ternary_mac — atomic cell"]
+        MUX["2:1 mux\n(add / sub / zero)"]
+        REG1["acc register"]
+        A --> MUX
+        W --> MUX
+        MUX --> REG1
+    end
+
+    subgraph dot["ternary_dot — streaming dot product"]
+        LOOP["× VECTOR_LEN\nmac cells in series"]
+        VREG["result register\n(valid_out pulse)"]
+        REG1 --> LOOP
+        LOOP --> VREG
+    end
+
+    subgraph gemm["ternary_gemm — matrix multiply"]
+        PAR["× COLS\nparallel dot units"]
+        OUT["output row\n(int32 × COLS)"]
+        VREG --> PAR
+        PAR --> OUT
+    end
 ```
 
 Three layers, each building on the last:

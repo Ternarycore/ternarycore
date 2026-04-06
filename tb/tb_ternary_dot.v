@@ -59,9 +59,11 @@ module tb_ternary_dot;
                 valid_in   = 1;
                 @(posedge clk); #1;
             end
-            // valid_out is latched on the same edge as the last element.
-            // Check NOW — before the next clock deasserts it.
+            // valid_out is a registered NBA in the DUT. Wait for negedge clk
+            // (5 ns past posedge) so the NBA is guaranteed to have settled
+            // before we sample, regardless of simulator scheduling.
             valid_in = 0;
+            @(negedge clk);
             if (!valid_out) begin
                 $display("FAIL: valid_out did not assert after vector");
                 errors = errors + 1;
@@ -71,7 +73,7 @@ module tb_ternary_dot;
             end else begin
                 $display("PASS: dot product = %0d", $signed(acc_out));
             end
-            @(posedge clk); #1;   // let valid_out deassert before next vector
+            @(posedge clk); #1;  // let valid_out deassert before next vector
         end
     endtask
 
