@@ -130,9 +130,9 @@ module tb_ternary_gemm;
                 valid_in   = 1;
                 @(posedge clk); #1;
             end
+            // valid_out holds high when valid_in=0. Sample at next posedge+#1.
             valid_in = 0;
-            // Wait for negedge to ensure NBA from the last posedge has settled
-            @(negedge clk);
+            @(posedge clk); #1;
             if (!valid_out) begin
                 $display("ERROR: valid_out did not assert for row %0d", row);
                 errors = errors + 1;

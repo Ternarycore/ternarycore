@@ -57,21 +57,21 @@ module ternary_dot #(
             count     <= 16'b0;
             acc_out   <= {ACC_WIDTH{1'b0}};
             valid_out <= 1'b0;
-        end else begin
-            valid_out <= 1'b0;
-            if (valid_in) begin
-                if (count == VECTOR_LEN - 1) begin
-                    // Last element: latch result, reset for next vector
-                    acc_out   <= next_acc;
-                    valid_out <= 1'b1;
-                    acc       <= {ACC_WIDTH{1'b0}};
-                    count     <= 16'b0;
-                end else begin
-                    acc   <= next_acc;
-                    count <= count + 16'b1;
-                end
+        end else if (valid_in) begin
+            if (count == VECTOR_LEN - 1) begin
+                // Last element: latch result, reset counter for next vector
+                acc_out   <= next_acc;
+                valid_out <= 1'b1;
+                acc       <= {ACC_WIDTH{1'b0}};
+                count     <= 16'b0;
+            end else begin
+                // Mid-vector: accumulate, clear valid_out
+                valid_out <= 1'b0;
+                acc       <= next_acc;
+                count     <= count + 16'b1;
             end
         end
+        // valid_in=0: all registers hold — valid_out stays high between vectors
     end
 
 endmodule
