@@ -13,3 +13,4 @@ sim/*.vcd
 
 # OS
 .DS_Store
+.docs
