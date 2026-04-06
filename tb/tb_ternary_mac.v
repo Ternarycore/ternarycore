@@ -38,7 +38,7 @@ module tb_ternary_mac;
 
     // Waveform dump
     initial begin
-        $dumpfile("sim/tb_ternary_mac.vcd");
+        $dumpfile("tb_ternary_mac.vcd");
         $dumpvars(0, tb_ternary_mac);
     end
 
