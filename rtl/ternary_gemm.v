@@ -34,63 +34,38 @@ module ternary_gemm #(
     parameter ROWS       = 4,
     parameter COLS       = 4,
     parameter DEPTH      = 4
-) (
-    input  wire                      clk,
-    input  wire                      rst_n,
-    input  wire                      valid_in,
-    input  wire [DATA_WIDTH-1:0]     activation,
-    input  wire [2*COLS-1:0]         weight_enc,
-    output wire [ACC_WIDTH*COLS-1:0] acc_out,
-    output wire                      valid_out
+)(
+    input  wire                       clk,
+    input  wire                       rst_n,
+    input  wire                       valid_in,
+    input  wire [DATA_WIDTH-1:0]      activation,
+    input  wire [2*COLS-1:0]          weight_enc,
+    output wire [ACC_WIDTH*COLS-1:0]  acc_out,
+    output wire                       valid_out
 );
 
-    wire valid_col0, valid_col1, valid_col2, valid_col3;
+    wire [COLS-1:0] col_valids;
+    
+    // The GEMM output is valid when the underlying dot products are ready
+    assign valid_out = col_valids[0];
 
-    // Column 0 — weight_enc[1:0], result in acc_out[31:0]
-    ternary_dot #(
-        .DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH), .VECTOR_LEN(DEPTH)
-    ) u_dot0 (
-        .clk(clk), .rst_n(rst_n), .valid_in(valid_in),
-        .activation(activation),
-        .weight_enc(weight_enc[1:0]),
-        .acc_out(acc_out[ACC_WIDTH*1-1:ACC_WIDTH*0]),
-        .valid_out(valid_col0)
-    );
-
-    // Column 1 — weight_enc[3:2], result in acc_out[63:32]
-    ternary_dot #(
-        .DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH), .VECTOR_LEN(DEPTH)
-    ) u_dot1 (
-        .clk(clk), .rst_n(rst_n), .valid_in(valid_in),
-        .activation(activation),
-        .weight_enc(weight_enc[3:2]),
-        .acc_out(acc_out[ACC_WIDTH*2-1:ACC_WIDTH*1]),
-        .valid_out(valid_col1)
-    );
-
-    // Column 2 — weight_enc[5:4], result in acc_out[95:64]
-    ternary_dot #(
-        .DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH), .VECTOR_LEN(DEPTH)
-    ) u_dot2 (
-        .clk(clk), .rst_n(rst_n), .valid_in(valid_in),
-        .activation(activation),
-        .weight_enc(weight_enc[5:4]),
-        .acc_out(acc_out[ACC_WIDTH*3-1:ACC_WIDTH*2]),
-        .valid_out(valid_col2)
-    );
-
-    // Column 3 — weight_enc[7:6], result in acc_out[127:96]
-    ternary_dot #(
-        .DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH), .VECTOR_LEN(DEPTH)
-    ) u_dot3 (
-        .clk(clk), .rst_n(rst_n), .valid_in(valid_in),
-        .activation(activation),
-        .weight_enc(weight_enc[7:6]),
-        .acc_out(acc_out[ACC_WIDTH*4-1:ACC_WIDTH*3]),
-        .valid_out(valid_col3)
-    );
-
-    // All columns complete in lock-step; col0 is the shared valid flag
-    assign valid_out = valid_col0;
+    genvar i;
+    generate
+        for (i = 0; i < COLS; i = i + 1) begin : gen_cols
+            ternary_dot #(
+                .DATA_WIDTH(DATA_WIDTH),
+                .ACC_WIDTH(ACC_WIDTH),
+                .VECTOR_LEN(DEPTH)
+            ) dot_inst (
+                .clk(clk),
+                .rst_n(rst_n),
+                .valid_in(valid_in),
+                .activation(activation),
+                .weight_enc(weight_enc[2*i +: 2]),
+                .acc_out(acc_out[ACC_WIDTH*i +: ACC_WIDTH]),
+                .valid_out(col_valids[i])
+            );
+        end
+    endgenerate
 
 endmodule
