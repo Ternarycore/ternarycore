@@ -57,7 +57,8 @@ module tb_ternary_dot;
                 activation = act;
                 weight_enc = wenc;
                 valid_in   = 1;
-                @(posedge clk); #1;
+                #10;  // Allow continuous assignments to propagate before posedge
+                @(posedge clk);
             end
             // valid_out holds high when valid_in=0 (no new vector started).
             // Sample at the NEXT posedge+#1 — identical timing to ternary_mac,
