@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" style="background:#1e1e2e;font-family:monospace;">
+
+  <!-- Title -->
+  <text x="480" y="22" fill="#cdd6f4" font-size="13" text-anchor="middle" font-weight="bold">ternary_gemm — Simulation Waveform (4×4 Matrix Multiply, All Rows Passing)</text>
+
+  <!-- Signal labels -->
+  <text x="90" y="55"  fill="#89b4fa" font-size="11" text-anchor="end">clk</text>
+  <text x="90" y="90"  fill="#89b4fa" font-size="11" text-anchor="end">valid_in</text>
+  <text x="90" y="128" fill="#a6e3a1" font-size="11" text-anchor="end">activation</text>
+  <text x="90" y="168" fill="#a6e3a1" font-size="11" text-anchor="end">weight_enc</text>
+  <text x="90" y="210" fill="#f9e2af" font-size="11" text-anchor="end">col_0</text>
+  <text x="90" y="250" fill="#f9e2af" font-size="11" text-anchor="end">col_1</text>
+  <text x="90" y="290" fill="#f9e2af" font-size="11" text-anchor="end">col_2</text>
+  <text x="90" y="330" fill="#f9e2af" font-size="11" text-anchor="end">col_3</text>
+  <text x="90" y="368" fill="#89b4fa" font-size="11" text-anchor="end">valid_out</text>
+
+  <!-- Divider line -->
+  <line x1="95" y1="30" x2="95" y2="390" stroke="#45475a" stroke-width="1"/>
+
+  <!--
+    Layout: 2 reset cycles + 4 data cycles + 1 result cycle = 7 cycles
+    Each cycle = 120px. Start x=100, end x=100+7*120=940.
+    CLK half-period = 60px.
+    C[i] = 100 + 120*i
+    C0=100, C1=220, C2=340, C3=460, C4=580, C5=700, C6=820, END=940
+    Time: each cycle = 10ns
+    Row 0 shown: A=[1,2,3,4], W_rows=[19h,64h,92h,49h]
+    Expected: col_0=2, col_1=-3, col_2=2, col_3=3
+  -->
+
+  <!-- CLK -->
+  <polyline points="
+    100,63 100,44 160,44 160,63 220,63
+    220,44 280,44 280,63 340,63
+    340,44 400,44 400,63 460,63
+    460,44 520,44 520,63 580,63
+    580,44 640,44 640,63 700,63
+    700,44 760,44 760,63 820,63
+    820,44 880,44 880,63 940,63
+  " fill="none" stroke="#89b4fa" stroke-width="1.5"/>
+
+  <!-- VALID_IN: high C2(340) to C5(700), low otherwise -->
+  <polyline points="
+    100,98 340,98
+    340,80 700,80
+    700,98 940,98
+  " fill="none" stroke="#89b4fa" stroke-width="1.5"/>
+
+  <!-- ACTIVATION bus: 00 reset, then 01/02/03/04 for k=0..3 -->
+  <g fill="none" stroke="#a6e3a1" stroke-width="1.5">
+    <line x1="340" y1="118" x2="340" y2="138"/>
+    <line x1="460" y1="118" x2="460" y2="138"/>
+    <line x1="580" y1="118" x2="580" y2="138"/>
+    <line x1="700" y1="118" x2="700" y2="138"/>
+    <line x1="100" y1="118" x2="340" y2="118"/> <line x1="100" y1="138" x2="340" y2="138"/>
+    <line x1="340" y1="118" x2="460" y2="118"/> <line x1="340" y1="138" x2="460" y2="138"/>
+    <line x1="460" y1="118" x2="580" y2="118"/> <line x1="460" y1="138" x2="580" y2="138"/>
+    <line x1="580" y1="118" x2="700" y2="118"/> <line x1="580" y1="138" x2="700" y2="138"/>
+    <line x1="700" y1="118" x2="940" y2="118"/> <line x1="700" y1="138" x2="940" y2="138"/>
+  </g>
+  <text x="220" y="132" fill="#a6e3a1" font-size="9"  text-anchor="middle">00</text>
+  <text x="400" y="132" fill="#a6e3a1" font-size="11" text-anchor="middle">01</text>
+  <text x="520" y="132" fill="#a6e3a1" font-size="11" text-anchor="middle">02</text>
+  <text x="640" y="132" fill="#a6e3a1" font-size="11" text-anchor="middle">03</text>
+  <text x="760" y="132" fill="#a6e3a1" font-size="11" text-anchor="middle">04</text>
+
+  <!-- WEIGHT_ENC bus: 00 reset, then packed 2-bit encodings for each k -->
+  <!-- k=0: 19h (+1,-1,+1,0)  k=1: 64h (0,+1,-1,+1)  k=2: 92h (-1,0,+1,-1)  k=3: 49h (+1,-1,0,+1) -->
+  <g fill="none" stroke="#a6e3a1" stroke-width="1.5">
+    <line x1="340" y1="158" x2="340" y2="178"/>
+    <line x1="460" y1="158" x2="460" y2="178"/>
+    <line x1="580" y1="158" x2="580" y2="178"/>
+    <line x1="700" y1="158" x2="700" y2="178"/>
+    <line x1="100" y1="158" x2="340" y2="158"/> <line x1="100" y1="178" x2="340" y2="178"/>
+    <line x1="340" y1="158" x2="460" y2="158"/> <line x1="340" y1="178" x2="460" y2="178"/>
+    <line x1="460" y1="158" x2="580" y2="158"/> <line x1="460" y1="178" x2="580" y2="178"/>
+    <line x1="580" y1="158" x2="700" y2="158"/> <line x1="580" y1="178" x2="700" y2="178"/>
+    <line x1="700" y1="158" x2="940" y2="158"/> <line x1="700" y1="178" x2="940" y2="178"/>
+  </g>
+  <text x="220" y="172" fill="#a6e3a1" font-size="9"  text-anchor="middle">00</text>
+  <text x="400" y="172" fill="#a6e3a1" font-size="10" text-anchor="middle">19h (+1−1+10)</text>
+  <text x="520" y="172" fill="#a6e3a1" font-size="10" text-anchor="middle">64h (0+1−1+1)</text>
+  <text x="640" y="172" fill="#a6e3a1" font-size="10" text-anchor="middle">92h (−10+1−1)</text>
+  <text x="760" y="172" fill="#a6e3a1" font-size="10" text-anchor="middle">49h (+1−10+1)</text>
+
+  <!-- COL_0 (yellow): 0 until C6(820), then 2 -->
+  <g fill="none" stroke="#f9e2af" stroke-width="1.5">
+    <line x1="820" y1="200" x2="820" y2="220"/>
+    <line x1="100" y1="200" x2="820" y2="200"/> <line x1="100" y1="220" x2="820" y2="220"/>
+    <line x1="820" y1="200" x2="940" y2="200"/> <line x1="820" y1="220" x2="940" y2="220"/>
+  </g>
+  <text x="460" y="214" fill="#f9e2af" font-size="10" text-anchor="middle">0</text>
+  <text x="880" y="214" fill="#f9e2af" font-size="11" text-anchor="middle" font-weight="bold">2 ✓</text>
+
+  <!-- COL_1 (yellow): 0 until C6(820), then -3 -->
+  <g fill="none" stroke="#f9e2af" stroke-width="1.5">
+    <line x1="820" y1="240" x2="820" y2="260"/>
+    <line x1="100" y1="240" x2="820" y2="240"/> <line x1="100" y1="260" x2="820" y2="260"/>
+    <line x1="820" y1="240" x2="940" y2="240"/> <line x1="820" y1="260" x2="940" y2="260"/>
+  </g>
+  <text x="460" y="254" fill="#f9e2af" font-size="10" text-anchor="middle">0</text>
+  <text x="880" y="254" fill="#f9e2af" font-size="11" text-anchor="middle" font-weight="bold">−3 ✓</text>
+
+  <!-- COL_2 (yellow): 0 until C6(820), then 2 -->
+  <g fill="none" stroke="#f9e2af" stroke-width="1.5">
+    <line x1="820" y1="280" x2="820" y2="300"/>
+    <line x1="100" y1="280" x2="820" y2="280"/> <line x1="100" y1="300" x2="820" y2="300"/>
+    <line x1="820" y1="280" x2="940" y2="280"/> <line x1="820" y1="300" x2="940" y2="300"/>
+  </g>
+  <text x="460" y="294" fill="#f9e2af" font-size="10" text-anchor="middle">0</text>
+  <text x="880" y="294" fill="#f9e2af" font-size="11" text-anchor="middle" font-weight="bold">2 ✓</text>
+
+  <!-- COL_3 (yellow): 0 until C6(820), then 3 -->
+  <g fill="none" stroke="#f9e2af" stroke-width="1.5">
+    <line x1="820" y1="320" x2="820" y2="340"/>
+    <line x1="100" y1="320" x2="820" y2="320"/> <line x1="100" y1="340" x2="820" y2="340"/>
+    <line x1="820" y1="320" x2="940" y2="320"/> <line x1="820" y1="340" x2="940" y2="340"/>
+  </g>
+  <text x="460" y="334" fill="#f9e2af" font-size="10" text-anchor="middle">0</text>
+  <text x="880" y="334" fill="#f9e2af" font-size="11" text-anchor="middle" font-weight="bold">3 ✓</text>
+
+  <!-- VALID_OUT: pulses high at C6(820) -->
+  <polyline points="100,376 820,376 820,358 940,358" fill="none" stroke="#89b4fa" stroke-width="1.5"/>
+
+  <!-- Vertical result line -->
+  <line x1="820" y1="108" x2="820" y2="380" stroke="#f9e2af" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
+  <text x="880" y="110" fill="#f9e2af" font-size="9" text-anchor="middle">row result</text>
+
+  <!-- Annotation: data window -->
+  <line x1="340" y1="390" x2="700" y2="390" stroke="#6c7086" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="520" y="402" fill="#6c7086" font-size="9" text-anchor="middle">← 4 elements (DEPTH=4), 1 per clock →</text>
+
+  <!-- PASS badge -->
+  <rect x="822" y="6" width="128" height="20" rx="4" fill="#a6e3a1" opacity="0.2"/>
+  <text x="886" y="20" fill="#a6e3a1" font-size="11" text-anchor="middle" font-weight="bold">16/16 PASS ✓</text>
+
+  <!-- Time axis -->
+  <line x1="100" y1="408" x2="940" y2="408" stroke="#45475a" stroke-width="1"/>
+  <text x="100" y="418" fill="#6c7086" font-size="9" text-anchor="middle">0ns</text>
+  <text x="340" y="418" fill="#6c7086" font-size="9" text-anchor="middle">20ns</text>
+  <text x="580" y="418" fill="#6c7086" font-size="9" text-anchor="middle">40ns</text>
+  <text x="820" y="418" fill="#6c7086" font-size="9" text-anchor="middle">60ns</text>
+
+</svg>

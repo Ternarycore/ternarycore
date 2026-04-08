@@ -1,10 +1,16 @@
 // ternary_mac.v
+// SPDX-License-Identifier: CERN-OHL-S-2.0
+// Copyright (C) 2026 Ifedayo Oladapo
+// TernaryCore — Open-Source FPGA Accelerator for BitNet Inference
+// Source: https://github.com/shepherdscientific/ternarycore
+//
+// This source describes Hardware and is licensed under the CERN-OHL-S v2.
+// You may redistribute and modify this source and make products using it
+// under the terms of the CERN-OHL-S v2 (https://ohwr.org/cern_ohl_s_v2.txt).
+//
 // Single ternary multiply-accumulate cell.
 // Weight encoding: 2-bit {00=zero, 01=+1, 10=-1}
 // No multiplier instantiated — only adders and mux logic.
-//
-// Part of the TernaryCore project.
-// MIT Licence — github.com/shepherdscientific/ternarycore
 
 `timescale 1ns / 1ps
 
@@ -37,8 +43,6 @@ module ternary_mac #(
             valid_out <= valid_in;
             if (valid_in)
                 acc_out <= acc_in + {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
-            else
-                acc_out <= acc_in;
         end
     end
 

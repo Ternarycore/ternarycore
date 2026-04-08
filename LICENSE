@@ -1,0 +1,65 @@
+CERN Open Hardware Licence Version 2 - Strongly Reciprocal
+
+CERN-OHL-S v2
+
+Copyright (C) 2026 Ifedayo Oladapo
+
+This source describes Hardware and is licensed under the CERN-OHL-S v2.
+
+You may redistribute and modify this source and make products using it
+under the terms of the CERN-OHL-S v2
+(https://ohwr.org/cern_ohl_s_v2.txt).
+
+This source is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY,
+INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR A
+PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+conditions.
+
+Source location: https://github.com/shepherdscientific/ternarycore
+
+As per CERN-OHL-S v2 section 4, should you make hardware using this
+source, and distribute it to others, you must:
+  - Make the source available under this licence
+  - Clearly mark any modifications you have made
+  - Preserve this copyright notice
+
+                      CERN-OHL-S v2 FULL TEXT
+                      ========================
+
+Preamble
+
+CERN has developed this licence to promote collaboration among
+hardware designers and to provide a legal tool which supports the
+freedoms to use, study, modify, copy and distribute hardware designs
+and products based on those designs. Version 2 of the CERN Open
+Hardware Licence comes in three variants: CERN-OHL-P (permissive);
+and two reciprocal licences: this licence, CERN-OHL-S, which is
+strongly reciprocal; and CERN-OHL-W, which is weakly reciprocal.
+
+The full text of CERN-OHL-S v2 is available at:
+https://ohwr.org/cern_ohl_s_v2.txt
+
+Software tools, scripts, and verification code in this repository
+(files under sim/verify/ and any .py files) are licensed under the
+MIT License:
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
