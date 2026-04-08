@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" style="background:#1e1e2e;font-family:monospace;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" style="font-family:monospace;">
+  <rect width="960" height="420" fill="#1e1e2e"/>
 
   <!-- Title -->
   <text x="480" y="22" fill="#cdd6f4" font-size="13" text-anchor="middle" font-weight="bold">ternary_gemm — Simulation Waveform (4×4 Matrix Multiply, All Rows Passing)</text>
