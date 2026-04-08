@@ -14,3 +14,8 @@ sim/*.vcd
 # OS
 .DS_Store
 .docs
+.claude
+opencode.json
+.env.*
+AGENTS.md
+

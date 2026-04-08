@@ -55,21 +55,14 @@ module ternary_dot #(
              acc_out    <= {ACC_WIDTH{1'b0}};
              vector_done <= 1'b0;
              vector_done_delayed <= 1'b0;
-             result_latch <= {ACC_WIDTH{1'b0}};
-             $display("DBG[%0d] RESET: VECTOR_LEN=%0d count_init=%0d", DOT_ID, VECTOR_LEN, VECTOR_LEN);
-         end else begin
-             // Compute weighted value from current inputs
-             weighted = (weight_enc == 2'b00) ?  {DATA_WIDTH{1'b0}} :
-                        (weight_enc == 2'b01) ?  $signed(activation) :
-                                                 -$signed(activation);
-             weighted_ext = {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
-             next_acc = acc + weighted_ext;
-             
-             // Debug
-             if (valid_in) begin
-                 $display("DBG[%0d]: activation=%0d weight_enc=%02b weighted=%0d acc=%0d next_acc=%0d count=%0d vec_done=%0d time=%0t", 
-                          DOT_ID, $signed(activation), weight_enc, $signed(weighted), $signed(acc), $signed(next_acc), count, vector_done, $time);
-             end
+              result_latch <= {ACC_WIDTH{1'b0}};
+          end else begin
+              // Compute weighted value from current inputs
+              weighted = (weight_enc == 2'b00) ?  {DATA_WIDTH{1'b0}} :
+                         (weight_enc == 2'b01) ?  $signed(activation) :
+                                                  -$signed(activation);
+              weighted_ext = {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
+              next_acc = acc + weighted_ext;
 
              // ── Accumulation + counter stage ──────────────────────────────
              // Accumulate when valid_in is high and we're not done (or we're starting new vector)
@@ -101,12 +94,6 @@ module ternary_dot #(
             vector_done_delayed <= 1'b0;
         end else begin
             vector_done_delayed <= vector_done;
-            
-            // Debug timing
-            if (vector_done) begin
-                $display("DBG[%0d] TIMING: vector_done=1 valid_in=%0d vector_done_delayed=%0d", 
-                         DOT_ID, valid_in, vector_done_delayed);
-            end
         end
     end
     
