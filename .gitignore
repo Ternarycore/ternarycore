@@ -7,9 +7,40 @@
 .Xil/
 vivado*/
 
-# Simulation
+# Simulation outputs
 sim/sim_*
 sim/*.vcd
+sim/*.vvp
+
+# Temporary test files
+test_*.v
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # OS
 .DS_Store
+.docs
+.claude
+opencode.json
+AGENTS.md
+.env.*
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.o
+*.a
+*.so
+
+# Documentation build files
+*.log
+*.aux
+*.toc
+
