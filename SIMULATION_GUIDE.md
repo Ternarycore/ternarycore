@@ -8,6 +8,24 @@ Everything you need to run TernaryCore simulations on your Mac. No FPGA hardware
 
 This project uses **Verilog** (specifically SystemVerilog-compatible Verilog). VHDL and Verilog are both hardware description languages — same job, completely different syntax. Verilog is C-like and is the dominant language in the FPGA/ASIC industry. VHDL is Ada-like and is common in European aerospace. The tools and commands in this guide are all Verilog-specific.
 
+If you learned VHDL first — from a book whose accompanying CD-ROM has been lost to entropy, say — the mental model transfers directly even though the syntax looks unrecognisable. Both languages describe concurrent hardware behaviour, both have a simulation/synthesis split, and both will let you write things that simulate perfectly and then behave unexpectedly on a real device.
+
+### Simulation ≠ synthesis: the gap that bites everyone
+
+This is worth stating plainly before you run a single test:
+
+**A design that passes every simulation does not necessarily work on hardware.** The simulator is a software model of what your HDL *means*. The synthesiser is a compiler that maps that HDL onto physical LUTs, flip-flops, carry chains, and block RAM. These are different jobs, and the gap between them has specific failure modes:
+
+| Issue | In simulation | On FPGA |
+|---|---|---|
+| Unintended latch | Often masked — simulator just holds the value | Synthesises a real latch; prone to timing violations |
+| X/Z propagation | Simulator faithfully propagates unknowns | No such thing — hardware is always 0 or 1 |
+| Non-blocking assignment races | May be hidden by simulator delta-cycle ordering | Can cause hold-time violations or metastability |
+| Timing (setup/hold) | Simulator ignores propagation delay by default | Violating setup/hold corrupts flip-flop state |
+| Initialisation | `initial` blocks run in simulation | `initial` blocks are ignored by most synthesisers |
+
+The Arty A7 is the next step precisely to expose this gap. Passing `make all` cleanly is the simulation gate. Timing closure in Vivado — and a working UART readback — is the hardware gate. Both matter.
+
 ---
 
 ## 1. Install the Tools (one-time)

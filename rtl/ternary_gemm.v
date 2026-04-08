@@ -54,7 +54,8 @@ module ternary_gemm #(
     ternary_dot #(
         .DATA_WIDTH(DATA_WIDTH),
         .ACC_WIDTH(ACC_WIDTH),
-        .VECTOR_LEN(DEPTH)
+        .VECTOR_LEN(DEPTH),
+        .DOT_ID(0)
     ) dot_0 (
         .clk(clk),
         .rst_n(rst_n),
@@ -68,7 +69,8 @@ module ternary_gemm #(
     ternary_dot #(
         .DATA_WIDTH(DATA_WIDTH),
         .ACC_WIDTH(ACC_WIDTH),
-        .VECTOR_LEN(DEPTH)
+        .VECTOR_LEN(DEPTH),
+        .DOT_ID(1)
     ) dot_1 (
         .clk(clk),
         .rst_n(rst_n),
@@ -82,7 +84,8 @@ module ternary_gemm #(
     ternary_dot #(
         .DATA_WIDTH(DATA_WIDTH),
         .ACC_WIDTH(ACC_WIDTH),
-        .VECTOR_LEN(DEPTH)
+        .VECTOR_LEN(DEPTH),
+        .DOT_ID(2)
     ) dot_2 (
         .clk(clk),
         .rst_n(rst_n),
@@ -96,7 +99,8 @@ module ternary_gemm #(
     ternary_dot #(
         .DATA_WIDTH(DATA_WIDTH),
         .ACC_WIDTH(ACC_WIDTH),
-        .VECTOR_LEN(DEPTH)
+        .VECTOR_LEN(DEPTH),
+        .DOT_ID(3)
     ) dot_3 (
         .clk(clk),
         .rst_n(rst_n),

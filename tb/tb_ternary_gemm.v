@@ -119,33 +119,44 @@ module tb_ternary_gemm;
         @(posedge clk); @(posedge clk);
         rst_n = 1;
         @(posedge clk);
+        @(posedge clk); // Extra cycle after reset
 
         $display("--- TernaryCore GEMM Testbench (4x4) ---");
 
         // Feed all ROWS groups of DEPTH activation elements
         for (row = 0; row < ROWS; row = row + 1) begin
             for (k = 0; k < DEPTH; k = k + 1) begin
+                // Set signals with small delay before clock edge
+                #1;
                 activation = A_row[row][k];
                 weight_enc = W_row[k];
                 valid_in   = 1;
-                @(posedge clk); #1;
+                $display("TB: Setting row %0d k=%0d: activation=%0d weight_enc=%02x (binary %08b) at time %0t", 
+                         row, k, A_row[row][k], W_row[k], W_row[k], $time);
+                @(posedge clk);
+                #1;
             end
-            // valid_out holds high when valid_in=0. Sample at next posedge+#1.
-            valid_in = 0;
-            @(posedge clk); #1;
-            if (!valid_out) begin
-                $display("ERROR: valid_out did not assert for row %0d", row);
-                errors = errors + 1;
-            end else begin
-                check_row(row);
-                $display("PASS row %0d: [%0d, %0d, %0d, %0d]",
-                    row,
-                    $signed(acc_out[ACC_WIDTH*1-1 -: ACC_WIDTH]),
-                    $signed(acc_out[ACC_WIDTH*2-1 -: ACC_WIDTH]),
-                    $signed(acc_out[ACC_WIDTH*3-1 -: ACC_WIDTH]),
-                    $signed(acc_out[ACC_WIDTH*4-1 -: ACC_WIDTH]));
-            end
-            @(posedge clk); #1;
+             // valid_out pulses one cycle after last element. 
+              // Set valid_in=0 before clock edge, then check valid_out
+              #1;
+              valid_in = 0;
+              @(posedge clk);
+              #1;
+              if (!valid_out) begin
+                  $display("ERROR: valid_out did not assert for row %0d", row);
+                  errors = errors + 1;
+              end else begin
+                  check_row(row);
+                  $display("PASS row %0d: [%0d, %0d, %0d, %0d]",
+                      row,
+                      $signed(acc_out[ACC_WIDTH*1-1 -: ACC_WIDTH]),
+                      $signed(acc_out[ACC_WIDTH*2-1 -: ACC_WIDTH]),
+                      $signed(acc_out[ACC_WIDTH*3-1 -: ACC_WIDTH]),
+                      $signed(acc_out[ACC_WIDTH*4-1 -: ACC_WIDTH]));
+              end
+              #1;
+              @(posedge clk);
+              #1;
         end
 
         $display("--- %0d error(s) ---", errors);

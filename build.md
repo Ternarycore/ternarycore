@@ -115,6 +115,8 @@ brew install icarus-verilog verilator gtkwave
 
 ## Phase 2: First Real Hardware — Arty A7-100T
 
+> **Status: board ordered.** The Arty A7-100T is in transit. Phase 2 begins on arrival.
+
 **Digilent Arty A7-100T** — recommended first board.
 
 | | |
@@ -141,6 +143,15 @@ brew install icarus-verilog verilator gtkwave
 2. Install on Ubuntu 22.04 — run in UTM (free VM app, excellent on Apple Silicon Mac)
 3. Artix-7 is in the free WebPACK tier — no licence file needed
 4. Use `scripts/synth_arty.tcl` in this repo to automate synthesis
+
+### Simulation vs hardware — what to expect
+
+Passing `make all` in Icarus Verilog is a necessary but not sufficient condition for correct hardware behaviour. Specific things to verify in Vivado before claiming Phase 2 complete:
+
+- **Timing report** — every path must meet setup and hold at target clock frequency (start at 50 MHz, push to 100 MHz). A timing violation in simulation is invisible; on the FPGA it corrupts state silently.
+- **Latch inference** — check the synthesis log for any unintended latches. These arise from incomplete `if`/`case` branches and simulate fine but are hazardous in hardware.
+- **Reset behaviour** — `initial` blocks (used in testbenches) are not synthesisable. All reset state must come from the `rst_n` logic, which is already how this RTL is written. Verify in implementation.
+- **UART readback** — the only way to trust a result is to read it back from the device. The acceptance criterion for Phase 2 is a dot product result over UART that matches the simulation output, not just "it programs and the LED blinks".
 
 ---
 
@@ -169,6 +180,8 @@ Alveo requires: PCIe x16 host slot + Linux + Xilinx Runtime (XRT) driver. The Ph
 - [ ] Screenshot passing testbench output → submit Crowd Supply application
 
 ### Phase 2 — Arty A7 Bringup (~$100–180)
+- [x] Order Arty A7-100T board — **ordered**
+- [ ] Resolve remaining `ternary_dot` simulation failures before hardware bringup
 - [ ] Synthesise `ternary_gemm` for Artix-7 in Vivado
 - [ ] Meet timing at 100 MHz
 - [ ] Program board, verify output over UART

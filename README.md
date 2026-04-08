@@ -5,7 +5,7 @@
 BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix multiplication — the core operation of every transformer layer — into additions, subtractions, and conditional skips. No multiplies. TernaryCore is hardware built to match that arithmetic natively.
 
 [![License: CERN-OHL-S v2](https://img.shields.io/badge/License-CERN--OHL--S%20v2-blue)](https://ohwr.org/cern_ohl_s_v2.txt)
-[![Simulation: Passing](https://img.shields.io/badge/Simulation-8%2F8%20Passing-brightgreen)]()
+[![Simulation: In Progress](https://img.shields.io/badge/Simulation-18%2F22%20Passing-yellow)]()
 
 ---
 
@@ -14,8 +14,10 @@ BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix mu
 | Module | Tests | Status |
 |--------|-------|--------|
 | `ternary_mac` | 8/8 | ✅ All passing |
-| `ternary_dot` | 7/7 | ✅ All passing |
+| `ternary_dot` | 4/8 | 🔧 4 failures under investigation |
 | `ternary_gemm` | 16/16 (4×4) | ✅ All passing |
+
+> **Known issue:** `ternary_dot` test 1 (all +1 weights, ascending activations) returns 28 instead of 36 — the final element is not accumulated on the first vector after reset. Tests 2–4 (all −1, all zero, mixed) pass. Root cause is being traced; likely a reset-to-first-valid handshake edge case in the down-counter. All `ternary_mac` and `ternary_gemm` tests pass cleanly.
 
 ---
 
@@ -141,9 +143,10 @@ ternarycore/
 ## Roadmap
 
 - [x] `ternary_mac` — single cell, all tests passing
-- [x] `ternary_dot` — 64-element vector dot product
+- [x] `ternary_dot` — 64-element vector dot product (4 failures under investigation)
 - [x] `ternary_gemm` — 4×4 matrix multiply
-- [ ] Deploy to Xilinx Artix A7 (Arty A7-100T)
+- [ ] Fix remaining `ternary_dot` edge cases — reset-to-first-valid handshake
+- [ ] Deploy to Xilinx Artix-7 (Arty A7-100T) — **board ordered**
 - [ ] `ternary_dot` at 64-element depth on real silicon
 - [ ] Timing closure and resource utilisation report
 - [ ] Head-to-head benchmark: tokens/sec and W vs CPU/GPU baseline
