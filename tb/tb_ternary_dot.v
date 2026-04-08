@@ -51,14 +51,14 @@ module tb_ternary_dot;
         reg [1:0] wenc;
         integer j;
         begin
-            for (j = 0; j < VLEN; j = j + 1) begin
+          for (j = 0; j < VLEN; j = j + 1) begin
                 act  = acts_packed[DATA_WIDTH*(VLEN-1-j) +: DATA_WIDTH];
                 wenc = wencs_packed[2*(VLEN-1-j) +: 2];
-                activation = act;
-                weight_enc = wenc;
-                valid_in   = 1;
-                #10;  // Allow continuous assignments to propagate before posedge
-                @(posedge clk);
+                #1;  // Small delay to ensure DUT sees new values
+                activation <= act;
+                weight_enc <= wenc;
+                valid_in   <= 1;
+                @(posedge clk); #1;
             end
             // valid_out holds high when valid_in=0 (no new vector started).
             // Sample at the NEXT posedge+#1 — identical timing to ternary_mac,

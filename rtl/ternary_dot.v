@@ -38,15 +38,12 @@ module ternary_dot #(
     reg signed [DATA_WIDTH-1:0] weighted;
     reg [ACC_WIDTH-1:0] weighted_ext;
 
-     reg [ACC_WIDTH-1:0] acc;
+    reg [ACC_WIDTH-1:0] acc;
     reg [15:0]          count;       // down-counter, no $clog2 required
     reg                 vector_done; // pulses 1 cycle when last element processed
     reg [ACC_WIDTH-1:0] result_latch; // latches the result for output
-    reg                 valid_out_latched; // latches valid_out for testbench sampling
-    reg                 just_done;     // pulses 1 cycle when vector completes
 
-    wire [ACC_WIDTH-1:0] next_acc;
-    assign next_acc = acc + weighted_ext;
+    reg [ACC_WIDTH-1:0] next_acc;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -54,7 +51,6 @@ module ternary_dot #(
             count      <= VECTOR_LEN - 1;    // load down-counter
             acc_out    <= {ACC_WIDTH{1'b0}};
             valid_out  <= 1'b0;
-            valid_out_latched <= 1'b0;
             vector_done <= 1'b0;
             result_latch <= {ACC_WIDTH{1'b0}};
             $display("DBG RESET: VECTOR_LEN=%0d count_init=%0d", VECTOR_LEN, VECTOR_LEN-1);
@@ -66,43 +62,19 @@ module ternary_dot #(
                        (weight_enc == 2'b01) ?  $signed(activation) :
                                                 -$signed(activation);
             weighted_ext = {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
-
-            $display("DBG CLK: vi=%b vd=%b count=%0d acc=%0d vo=%b act=%0d wenc=%b w=%0d",
-                     valid_in, vector_done, count, $signed(acc), valid_out,
-                     $signed(activation), weight_enc, $signed(weighted));
-
-            // ── Output stage ─────────────────────────────────────────────
-            // valid_out pulses high for one cycle when vector completes.
-            // It stays high for one cycle after vector_done is cleared, giving
-            // the testbench time to sample it.
-            if (just_done) begin
-                acc_out   <= result_latch;
-                valid_out <= 1'b1;
-                valid_out_latched <= 1'b1;
-            end else if (valid_out_latched) begin
-                valid_out <= 1'b1;
-                valid_out_latched <= 1'b0;
-            end else begin
-                valid_out <= 1'b0;
-            end
+            next_acc = acc + weighted_ext;
 
             // ── Accumulation + counter stage ──────────────────────────────
-            just_done <= 1'b0;  // default: not done
-
             if (!vector_done) begin
                 if (valid_in) begin
                     if (count == 16'b0) begin
                         // Last element — latch result, set done flag, reload counter
                         result_latch <= next_acc;
                         vector_done <= 1'b1;
-                        just_done   <= 1'b1;   // signal that vector just completed
                         acc        <= {ACC_WIDTH{1'b0}};   // reset for next vector
                         count      <= VECTOR_LEN - 1;
-                        $display("DBG  --> count==0 HIT: vector_done<=1, result=%0d", $signed(next_acc));
                     end else begin
                         vector_done <= 1'b0;
-                        $display("DBG  --> acc=%0d + weighted=%0d (act=%0d, wenc=%b) = next_acc=%0d",
-                   $signed(acc), $signed(weighted), $signed(activation), weight_enc, $signed(next_acc));
                         acc        <= next_acc;
                         count      <= count - 16'b1;
                     end
@@ -114,6 +86,16 @@ module ternary_dot #(
                 if (!valid_in) begin
                     vector_done <= 1'b0;
                 end
+            end
+
+            // ── Output stage ─────────────────────────────────────────────
+            // valid_out pulses high when vector_done is set and valid_in is low.
+            // This happens on the cycle after the last element is processed.
+            if (vector_done) begin
+                acc_out   <= result_latch;
+                valid_out <= 1'b1;
+            end else begin
+                valid_out <= 1'b0;
             end
 
         end
