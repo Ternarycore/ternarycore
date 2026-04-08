@@ -227,9 +227,9 @@ See [LICENSE](LICENSE) for full terms.
 
 **The spark:** A [comment by @Xcc313r4n7](https://github.com/ggml-org/llama.cpp/discussions/20969#discussioncomment-16349981) on the llama.cpp thread arguing that biological neurons are themselves ternary — selected by evolution for exactly the same reason we're building this. Contested by the community, but it lodged.
 
-**Family & background:** Mr Niyi Olowoyo, Mr Fisayo Bejide, My Uncle Tayo Oladapo, my mother, my wife, and my Children — each of whom contributed something, knowingly or not, to making this possible.
+**Family & background:** Mr Niyi Olowoyo, Mr Fisayo Bejide, and my family have, knowingly or not in some way played a part in making this possible.
 
-*Full credits in the [launch article](https://www.linkedin.com/in/ifedayooladapo).*
+*Full credits in the [launch article](https://www.linkedin.com/feed/update/urn:li:activity:7447697075221229568/).*
 
 ---
 
