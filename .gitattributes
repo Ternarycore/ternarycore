@@ -1,0 +1,32 @@
+# .gitattributes - TernaryCore generated file handling
+# Generated files should not be committed to the repository
+
+# Simulation outputs (binary, large, platform-specific)
+sim/*.vcd -diff -merge linguist-generated
+sim/sim_* -diff -merge linguist-generated
+sim/*.vvp -diff -merge linguist-generated
+
+# Temporary test files (debugging only)
+test_*.v -diff -merge linguist-generated
+
+# Python cache files
+__pycache__/ -diff -merge linguist-generated
+*.pyc -diff -merge linguist-generated
+*.pyo -diff -merge linguist-generated
+*.pyd -diff -merge linguist-generated
+
+# Editor temporary files
+*.swp -diff -merge linguist-generated
+*.swo -diff -merge linguist-generated
+*~ -diff -merge linguist-generated
+.DS_Store -diff -merge linguist-generated
+
+# Build artifacts
+*.o -diff -merge linguist-generated
+*.a -diff -merge linguist-generated
+*.so -diff -merge linguist-generated
+
+# Documentation
+*.log -diff -merge linguist-generated
+*.aux -diff -merge linguist-generated
+*.toc -diff -merge linguist-generated

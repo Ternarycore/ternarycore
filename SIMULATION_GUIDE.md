@@ -1,6 +1,6 @@
-# Simulation Guide — Mac Mini
+# Simulation Guide
 
-Everything you need to run TernaryCore simulations on your Mac. No FPGA hardware required.
+Everything you need to run TernaryCore simulations on your local machine. No FPGA hardware required.
 
 ---
 
@@ -30,23 +30,35 @@ The Arty A7 is the next step precisely to expose this gap. Passing `make all` cl
 
 ## 1. Install the Tools (one-time)
 
-Open Terminal on your Mac Mini and run:
+You need two tools: **Icarus Verilog** (`iverilog`) for simulation and **GTKWave** for viewing waveforms.
+
+### macOS
 
 ```bash
 brew install icarus-verilog gtkwave
 ```
 
-That installs two tools:
-
-| Tool | Command | What it does |
-|------|---------|-------------|
-| Icarus Verilog | `iverilog` | Compiles your Verilog into a simulation executable |
-| GTKWave | `gtkwave` | Opens waveform files so you can see signals over time |
-
-Verify both installed correctly:
+### Ubuntu / Debian Linux
 
 ```bash
-iverilog -V   # should print: Icarus Verilog version 12.x
+sudo apt-get update
+sudo apt-get install iverilog gtkwave
+```
+
+### Fedora / RHEL / CentOS
+
+```bash
+sudo dnf install iverilog gtkwave
+```
+
+### Windows
+
+Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux) and follow the Ubuntu instructions above. Alternatively, download pre-built binaries from the [Icarus Verilog project page](https://bleyer.org/icarus/) and [GTKWave releases](https://gtkwave.sourceforge.net/).
+
+### Verify installation
+
+```bash
+iverilog -V   # should print: Icarus Verilog version 12.x or later
 gtkwave --version
 ```
 
@@ -234,16 +246,21 @@ for trial in range(10):
 ## 7. Troubleshooting
 
 ### `iverilog: command not found`
+
+Install via your package manager (see Section 1). On macOS:
 ```bash
 brew install icarus-verilog
-# If brew itself is missing:
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+On Ubuntu/Debian:
+```bash
+sudo apt-get install iverilog
 ```
 
 ### `gtkwave: command not found` or GTKWave won't launch
+
+Install via your package manager (see Section 1). On macOS, if the Homebrew formula doesn't install the GUI app:
 ```bash
 brew install --cask gtkwave
-# Note: --cask for the GUI app version on newer macOS
 ```
 
 ### `make tb_ternary_mac` says "No rule to make target"
@@ -268,8 +285,11 @@ The `$dumpfile` and `$dumpvars` lines in the testbench must run before any simul
 ## 8. Quick Reference Card
 
 ```bash
-# Install tools (one-time)
+# Install tools (one-time) — macOS
 brew install icarus-verilog gtkwave
+
+# Install tools (one-time) — Ubuntu/Debian
+sudo apt-get install iverilog gtkwave
 
 # Clone
 git clone https://github.com/shepherdscientific/ternarycore && cd ternarycore
@@ -283,7 +303,7 @@ make waves_mac
 # Cross-verify with Python
 python3 verify/verify_mac.py
 
-# Run all simulations (once more modules exist)
+# Run all simulations
 make all
 ```
 
