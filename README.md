@@ -223,13 +223,11 @@ See [LICENSE](LICENSE) for full terms.
 
 ## Acknowledgements
 
-**Hardware:** Uncle Tayo Oladapo funded the Arty A7-100T that takes this from simulation to silicon.
-
 **Concept:** David Adebiyi and Abu Mohammed — the conversations that sharpened the idea.
 
 **The spark:** A [comment by @Xcc313r4n7](https://github.com/ggml-org/llama.cpp/discussions/20969#discussioncomment-16349981) on the llama.cpp thread arguing that biological neurons are themselves ternary — selected by evolution for exactly the same reason we're building this. Contested by the community, but it lodged.
 
-**Family & background:** Mr Niyi Olowoyo, Mr Fisayo Bejide, Akinwale Oladapo, my mother, my wife, and my daughters — each of whom contributed something, knowingly or not, to making this possible.
+**Family & background:** Mr Niyi Olowoyo, Mr Fisayo Bejide, My Uncle Tayo Oladapo, my mother, my wife, and my daughters — each of whom contributed something, knowingly or not, to making this possible.
 
 *Full credits in the [launch article](https://www.linkedin.com/in/ifedayooladapo).*
 
