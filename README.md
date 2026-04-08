@@ -37,13 +37,25 @@ BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix mu
 
 ---
 
-## Waveform
+## Waveforms
 
-`ternary_mac` simulation — all 8 test vectors verified in Icarus Verilog:
+`ternary_mac` — 8 test vectors, all passing:
 
 ![ternary_mac waveform](docs/waveform_mac.svg)
 
-`acc_out` updates exactly one clock after each `valid_in` pulse. Sign extension and two's-complement negation are handled in RTL with no DSP blocks — adders and mux logic only.
+`acc_out` updates exactly one clock after each `valid_in` pulse. Sign extension and two's-complement negation handled with no DSP blocks — adders and mux logic only.
+
+`ternary_dot` — streaming dot product, 7/7 tests passing (VLEN=8 shown):
+
+![ternary_dot waveform](docs/waveform_dot.svg)
+
+Eight activations stream in one per clock with weight=+1. `acc_out` holds zero while the MAC cell accumulates internally, then the final result (36) appears in the same cycle `valid_out` pulses.
+
+`ternary_gemm` — 4×4 matrix multiply, 16/16 tests passing:
+
+![ternary_gemm waveform](docs/waveform_gemm.svg)
+
+Four parallel `ternary_dot` instances (col_0–col_3) receive the same activation broadcast per clock, each with its own weight encoding. One result row lands simultaneously across all four columns when `valid_out` pulses.
 
 ---
 
