@@ -43,4 +43,4 @@ AGENTS.md
 *.log
 *.aux
 *.toc
-
+check_lint.sh
