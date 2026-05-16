@@ -1,3 +1,13 @@
+
+# Ignore all Vivado runs and log files
+*.runs/
+*.log
+*.jou
+*.pb
+*.vds
+*.rpt
+*.dcp
+
 # Vivado generated
 *.jou
 *.log
