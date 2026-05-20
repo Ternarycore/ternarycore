@@ -54,3 +54,25 @@ AGENTS.md
 *.aux
 *.toc
 
+# Vivado / Xilinx generated temporary and working assets
+# Project/work directories, caches, IP build and hardware files
+*.xpr
+*.hw/
+*/hw/
+*.cache/
+*/.Xil/
+*.sim/
+*/sim/
+*.ip_user_files/
+*/ip_user_files/
+*.runs/
+*/runs/
+# bitstream/build intermediates
+*.dcp
+*.bit
+*.bin
+*.backup
+*_backup*
+*.pb
+
+
