@@ -48,6 +48,18 @@ jobs:
         make tb_ternary_gemm
         echo "GEMM tests completed"
         
+    - name: Run AXI GEMM wrapper tests
+      run: |
+        cd sim
+        make tb_axi_gemm_wrapper
+        echo "AXI GEMM wrapper tests completed"
+        
+    - name: Run BRAM weight cache tests
+      run: |
+        cd sim
+        make tb_weight_bram
+        echo "BRAM weight cache tests completed"
+        
     - name: Run Python verification
       run: |
         cd sim
@@ -86,6 +98,12 @@ jobs:
         
         # Lint ternary_gemm.v
         verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_gemm.v || echo "Warning: Lint issues in ternary_gemm.v"
+        
+        # Lint axi_gemm_wrapper.v
+        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/axi_gemm_wrapper.v || echo "Warning: Lint issues in axi_gemm_wrapper.v"
+        
+        # Lint weight_bram.v
+        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/weight_bram.v || echo "Warning: Lint issues in weight_bram.v"
         
         echo "Linting completed"
         
@@ -181,7 +199,9 @@ jobs:
         echo "- MAC: 8 tests" >> $GITHUB_STEP_SUMMARY
         echo "- Dot Product: 7 tests" >> $GITHUB_STEP_SUMMARY
         echo "- GEMM: 16 tests (4×4 matrix)" >> $GITHUB_STEP_SUMMARY
-        echo "- **Total: 31 tests**" >> $GITHUB_STEP_SUMMARY
+        echo "- AXI GEMM Wrapper: 47 tests" >> $GITHUB_STEP_SUMMARY
+        echo "- BRAM Weight Cache: 8 tests" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total: 86 tests**" >> $GITHUB_STEP_SUMMARY
         
   # Note: Code coverage is not applicable for RTL in the traditional sense.
   # Hardware verification uses functional coverage (test cases) rather than
