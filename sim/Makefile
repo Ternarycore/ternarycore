@@ -21,9 +21,19 @@ tb_ternary_dot: ../tb/tb_ternary_dot.v ../rtl/ternary_dot.v
 	$(VVP) $(SIMDIR)/sim_dot
 
 # ── Matrix multiply ───────────────────────────────────────────────────────────
-tb_ternary_gemm: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
-	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_gemm $^
-	$(VVP) $(SIMDIR)/sim_gemm
+tb_ternary_gemm: tb_ternary_gemm_depth4 tb_ternary_gemm_depth16 tb_ternary_gemm_depth64
+
+tb_ternary_gemm_depth4: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=4 -o $(SIMDIR)/sim_gemm_d4 $^
+	$(VVP) $(SIMDIR)/sim_gemm_d4
+
+tb_ternary_gemm_depth16: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=16 -o $(SIMDIR)/sim_gemm_d16 $^
+	$(VVP) $(SIMDIR)/sim_gemm_d16
+
+tb_ternary_gemm_depth64: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=64 -o $(SIMDIR)/sim_gemm_d64 $^
+	$(VVP) $(SIMDIR)/sim_gemm_d64
 
 # ── Python reference verification ─────────────────────────────────────────────
 verify:
