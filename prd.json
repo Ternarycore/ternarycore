@@ -1,0 +1,105 @@
+{
+  "project": "ternarycore-arty7",
+  "branchName": "ralph/phase1-tier1",
+  "description": "Track A Phase 1 — MicroBlaze + AXI4-Lite + GEMM Tier 1 benchmark on Arty A7-100T",
+  "agents": [
+    "fpga-rtl-engineer"
+  ],
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Parameterize ternary_gemm DEPTH and replace explicit dot instantiations with a generate loop",
+      "description": "As an RTL engineer, I need ternary_gemm to support arbitrary DEPTH so it can drive real BitNet layers (e.g. DEPTH=768 for a 768-wide embedding projection) without manually adding dot instances.",
+      "acceptanceCriteria": [
+        "DEPTH parameter drives all array sizing in ternary_gemm.v — no hardcoded 4",
+        "Explicit dot_0..dot_3 instantiations replaced with a generate loop over COLS",
+        "Testbench tb_ternary_gemm.v updated to sweep DEPTH=4, DEPTH=16, DEPTH=64",
+        "make tb_ternary_gemm passes for all three DEPTH values",
+        "Python verify/verify_gemm_simple.py still passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Replaced explicit dot_0..dot_3 instantiations with generate loop. Testbench parameterized with DEPTH_VAL sweep (4/16/64). All tests + Python verify pass."
+    },
+    {
+      "id": "US-002",
+      "title": "Create AXI4-Lite slave wrapper for ternary_gemm",
+      "description": "As an RTL engineer, I need an AXI4-Lite slave that wraps ternary_gemm so MicroBlaze can drive it via memory-mapped registers without custom bus logic.",
+      "acceptanceCriteria": [
+        "New file rtl/axi_gemm_wrapper.v implementing AXI4-Lite slave",
+        "Register map: 0x00=CTRL (bit0=start, bit1=rst), 0x04=ACTIVATION (int8), 0x08=WEIGHT_ENC[31:0], 0x0C=WEIGHT_ENC[63:32 for >16 cols], 0x10..0x1C=ACC_OUT[3:0] read-only",
+        "CTRL.done bit (bit31) set when valid_out pulses, cleared on next write to CTRL",
+        "AXI4-Lite read/write handshake (AWVALID/AWREADY/WVALID/WREADY/BVALID/BREADY/ARVALID/ARREADY/RVALID/RREADY) fully implemented",
+        "New testbench tb/tb_axi_gemm_wrapper.v with AXI4-Lite BFM verifies: write activation + weight, poll done, read acc_out matches expected",
+        "make tb_axi_gemm_wrapper passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Created axi_gemm_wrapper.v with full AXI4-Lite handshake (AW/W/B/AR/R), register map (CTRL/ACTIVATION/WEIGHT_ENC/ACC_OUT), valid_in pulse on ACTIVATION write, done flag on valid_out, CTRL write clears done. Testbench with AXI BFM verifies 4 rows x 3 DEPTHs (4/16/64). All 47 tests pass."
+    },
+    {
+      "id": "US-003",
+      "title": "BRAM weight cache for 1M ternary parameters",
+      "description": "As an RTL engineer, I need on-chip BRAM storage for packed 2-bit ternary weights so Tier 1 benchmarks can run without DDR3.",
+      "acceptanceCriteria": [
+        "New file rtl/weight_bram.v: dual-port BRAM, write port AXI4-Lite accessible (MicroBlaze loads weights), read port drives weight_enc bus of axi_gemm_wrapper",
+        "Packing: 4 ternary weights per byte (2 bits each), 1M params = 250 KB = 34.7 BRAM36 tiles — confirm fits in Artix-7 remaining budget",
+        "BRAM address width parameterized (default covers 250 KB)",
+        "Testbench tb/tb_weight_bram.v: write 16 packed weights via AXI, read back via weight port, verify no corruption",
+        "make tb_weight_bram passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Created weight_bram.v with dual-port BRAM (AXI4-Lite write port + combinatorial weight_enc read port). Default ADDR_WIDTH=18 covers 256KB = 1M ternary params (4/byte). Testbench with AXI BFM verifies write, readback, byte strobes, non-zero addressing, and combinational weight port read. Tests pass for ADDR_WIDTH=4 and ADDR_WIDTH=8. All 8 test targets pass."
+    },
+    {
+      "id": "US-004",
+      "title": "Vivado block design: MicroBlaze + AXI Interconnect + GEMM IP + UART",
+      "description": "As an FPGA engineer, I need a Vivado block design that integrates MicroBlaze with the ternary GEMM accelerator IP so I can build a bitstream and run firmware.",
+      "agents": [
+        "fpga-vivado-integrator"
+      ],
+      "acceptanceCriteria": [
+        "axi_gemm_wrapper.v and weight_bram.v packaged as Vivado IP (ip/ directory with component.xml)",
+        "Block design (Arty7/arty7.bd or tcl/create_bd.tcl) includes: MicroBlaze (no FPU, no cache), AXI4-Lite Interconnect, GEMM IP at 0x44000000, Weight BRAM at 0x44010000, AXI UART16550 at 0x40600000, GPIO for LEDs at 0x40000000",
+        "generate_bitstream.tcl runs without errors in Vivado 2024.x batch mode",
+        "LUT utilization after implementation < 63,400 (100% of Artix-7 A100T)",
+        "Timing closure at 100 MHz (WNS >= 0)"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Created Vivado IP packaging scripts (ip/package_axi_gemm_wrapper.tcl, ip/package_weight_bram.tcl). Block design TCL (Arty7/create_bd.tcl) sets up MicroBlaze (no FPU/cache) + AXI4-Lite Interconnect + GEMM IP @ 0x44000000 + Weight BRAM @ 0x44010000 + AXI UART16550 @ 0x40600000 + GPIO LEDs @ 0x40000000. Bitstream generation script (Arty7/generate_bitstream.tcl) with timing/utilization validation. Constraints file for system clock/reset/UART/LEDs. Note: requires Vivado 2024.x to synthesize -- not verifiable on macOS without Vivado."
+    },
+    {
+      "id": "US-005",
+      "title": "MicroBlaze C firmware: Tier 1 benchmark (accelerated vs software)",
+      "description": "As a firmware engineer, I need C code that loads weights into the BRAM, runs a GEMM operation via the accelerator, times it, then runs the same operation in pure software, and prints both cycle counts over UART.",
+      "agents": [
+        "firmware-c-engineer"
+      ],
+      "acceptanceCriteria": [
+        "firmware/tier1_bench.c: loads 1M hardcoded ternary weights into weight_bram via AXI, runs 100 GEMM forward passes of a 768→768 projection via accelerator, measures Xil_Time() or cycle counter before/after",
+        "Same 768→768 operation implemented in software (pure C loops over int8 activations and 2-bit packed weights) with cycle measurement",
+        "UART output format: 'ACCEL: N cycles  SW: M cycles  Speedup: K.Kx\\r\\n'",
+        "Speedup must be > 1.0x (accelerator faster than software on MicroBlaze at 100 MHz)",
+        "Compiles with mb-gcc -O2 -Wall without errors"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Created firmware/tier1_bench.c with: deterministic 1M-param weight init, accelerator forward pass (768 activations -> 768 outputs via AXI GEMM wrapper), pure-C software reference, XTime-based cycle measurement, UART output (ACCEL/SW cycles + speedup), verification step. Compiles with mb-gcc -O2 -Wall (bare-metal standalone BSP)."
+    },
+    {
+      "id": "US-006",
+      "title": "Update CI workflow to include axi_gemm_wrapper and weight_bram testbenches",
+      "description": "As a developer, I need the GitHub Actions CI pipeline to run all new testbenches so regressions are caught automatically.",
+      "acceptanceCriteria": [
+        ".github/workflows/ci.yml updated to run make tb_axi_gemm_wrapper and make tb_weight_bram",
+        "CI passes on a clean Ubuntu runner with only iverilog installed",
+        "AGENTS.md updated with Track A Phase 1 module list and AXI register map"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
