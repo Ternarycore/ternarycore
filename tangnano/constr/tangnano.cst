@@ -1,0 +1,27 @@
+// Tang Nano 9k (GW1NR-LV9QN88PC6/I5) physical constraints
+// Cross-verified against Sipeed TangNano-9K-example repository
+// https://github.com/sipeed/TangNano-9K-example
+
+// 27 MHz onboard oscillator
+IO_LOC "clk_27M" 52;
+IO_PORT "clk_27M" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// Dedicated reset button (active low, pulled up)
+IO_LOC "sys_rst_n" 4;
+IO_PORT "sys_rst_n" PULL_MODE=UP;
+
+// User Button B (trigger MAC test, active low when pressed)
+IO_LOC "btn_trigger" 14;
+IO_PORT "btn_trigger" PULL_MODE=UP;
+
+// LED4 — pass (red)
+IO_LOC "led_r" 15;
+IO_PORT "led_r" PULL_MODE=UP DRIVE=8;
+
+// LED5 — fail (green)
+IO_LOC "led_g" 16;
+IO_PORT "led_g" PULL_MODE=UP DRIVE=8;
+
+// LED1 — heartbeat (blue)
+IO_LOC "led_b" 11;
+IO_PORT "led_b" PULL_MODE=UP DRIVE=8;
