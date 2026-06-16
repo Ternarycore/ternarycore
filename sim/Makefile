@@ -65,7 +65,6 @@ formal:
 		cd ../formal && bash run_all.sh; \
 	else \
 		echo "Formal verification not available (formal/ directory missing)."; \
-		echo "This target requires the formal verification PR to be merged first."; \
 	fi
 
 # ── Waveform viewer (auto-detect) ────────────────────────────────────────────

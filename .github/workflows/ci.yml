@@ -133,7 +133,7 @@ jobs:
           exit 1
         fi
 
-        # Check if formal/ directory exists (added in separate PR)
+        # Check if formal/ directory exists with sby tasks
         if [ -d "formal" ]; then
           echo "✓ formal/ directory exists"
         else
