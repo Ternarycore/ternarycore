@@ -17,8 +17,8 @@ if command -v surfer &>/dev/null; then
     exec surfer "$VCD_FILE"
 fi
 
-# 2. WaveTrace — macOS native app
-if [ "$(uname)" = "Darwin" ] && [ -d "/Applications/WaveTrace.app" ]; then
+# 2. WaveTrace — macOS native app (via LaunchServices)
+if [ "$(uname)" = "Darwin" ] && [ -d "$(osascript -e 'POSIX path of (path to application "WaveTrace")' 2>/dev/null || echo '/nonexistent')" ] 2>/dev/null; then
     echo "Opening $VCD_FILE with WaveTrace..."
     exec open -a WaveTrace "$VCD_FILE"
 fi

@@ -60,8 +60,7 @@ make view-gemm   # Open GEMM waveform
 ```bash
 iverilog -V   # should print: Icarus Verilog version 12.x or later
 surfer --version || gtkwave --version || echo "Install a waveform viewer (see above)"
-
----
+```
 
 ## 2. Clone the Repo
 
