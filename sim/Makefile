@@ -41,6 +41,9 @@ verify-simple:
 	python3 verify/verify_dot.py
 	python3 verify/verify_gemm_simple.py
 
+# Run both numpy and no-numpy verification paths
+verify-all: verify verify-simple
+
 # ── Verilator lint ────────────────────────────────────────────────────────────
 # Lints each RTL module independently with its source directory on the
 # include path so cross-module references resolve correctly.
