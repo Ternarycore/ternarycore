@@ -43,13 +43,10 @@ verify-simple:
 	python3 verify/verify_dot.py
 	python3 verify/verify_gemm_simple.py
 
-<<<<<<< HEAD
-=======
 # Run both numpy and no-numpy verification paths (no redundant mac/dot runs)
 verify-all: verify
 	python3 verify/verify_gemm_simple.py
 
->>>>>>> 4d2ca4d (address review feedback: .vlt, reset sequence, .PHONY, robustness)
 # ── Verilator lint ────────────────────────────────────────────────────────────
 # Lints each RTL module independently with its source directory on the
 # include path so cross-module references resolve correctly.
@@ -64,16 +61,13 @@ lint:
 
 # ── Formal verification (SymbiYosys) ─────────────────────────────────────────
 formal:
-	$(YOSYS) -Q -c ../formal/run_all.tcl
-	@echo ""
-	@echo "─── Formal verification results ───"
-	@for f in mac dot gemm; do \
-	    if [ -f formal_$$f/results.txt ]; then \
-	        result=$$(head -1 formal_$$f/results.txt); \
-	        echo "  $$f: $$result"; \
-	    fi; \
-	done
+	@if [ -d ../formal ]; then \
+		cd ../formal && bash run_all.sh; \
+	else \
+		echo "Formal verification not available (formal/ directory missing)."; \
+		echo "This target requires the formal verification PR to be merged first."; \
+	fi
 
 clean:
 	rm -f $(SIMDIR)/sim_* $(SIMDIR)/*.vcd
-	rm -rf formal_mac formal_dot formal_gemm
+	rm -rf ../formal/ternary_mac ../formal/ternary_dot ../formal/ternary_gemm
