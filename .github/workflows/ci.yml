@@ -125,15 +125,15 @@ jobs:
           exit 1
         fi
 
-        # Check if .verilator_config exists
-        if [ -f ".verilator_config" ]; then
-          echo "✓ .verilator_config exists"
+        # Check if .vlt config exists
+        if [ -f "ternarycore.vlt" ]; then
+          echo "✓ ternarycore.vlt exists"
         else
-          echo "✗ .verilator_config missing"
+          echo "✗ ternarycore.vlt missing"
           exit 1
         fi
 
-        # Check if formal/ directory exists
+        # Check if formal/ directory exists (added in separate PR)
         if [ -d "formal" ]; then
           echo "✓ formal/ directory exists"
         else

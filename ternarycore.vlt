@@ -1,0 +1,8 @@
+`verilator_config
+
+lint_off  -rule BLKSEQ       -file "*ternary_dot.v"
+lint_off  -rule UNUSEDPARAM  -file "*ternary_dot.v"
+lint_off  -rule UNUSEDSIGNAL -file "*ternary_dot.v"
+lint_off  -rule PINMISSING   -file "*ternary_gemm.v"
+lint_off  -rule UNUSEDPARAM  -file "*ternary_gemm.v"
+lint_off  -rule UNUSEDSIGNAL -file "*ternary_gemm.v"
