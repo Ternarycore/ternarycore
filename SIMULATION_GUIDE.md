@@ -30,39 +30,37 @@ The Arty A7 is the next step precisely to expose this gap. Passing `make all` cl
 
 ## 1. Install the Tools (one-time)
 
-You need two tools: **Icarus Verilog** (`iverilog`) for simulation and **GTKWave** for viewing waveforms.
+You need two tools: **Icarus Verilog** (`iverilog`) for simulation and a **waveform viewer** for debugging.
 
-### macOS
+### Simulator: Icarus Verilog
+
+**macOS:** `brew install icarus-verilog`
+**Ubuntu/Debian:** `sudo apt-get install iverilog`
+**Fedora/RHEL:** `sudo dnf install iverilog`
+**Windows:** Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and follow Ubuntu instructions.
+
+### Waveform Viewer (pick one)
+
+| Viewer | Install | Notes |
+|--------|---------|-------|
+| **[Surfer](https://surfer-project.org)** (recommended) | `cargo install surfer` | Modern, fast, cross-platform. TUI + GUI. Best general choice. |
+| **WaveTrace** | `brew install --cask wavetrace` | macOS native, clean UI |
+| **GTKWave** | `brew install gtkwave` | Legacy, cross-platform. Widely available but dated. |
+
+The Makefile auto-detects which viewer is installed (surfer → WaveTrace → GTKWave priority) and opens with:
 
 ```bash
-brew install icarus-verilog gtkwave
+make view-mac    # Open MAC simulation waveform
+make view-dot    # Open dot product waveform
+make view-gemm   # Open GEMM waveform
 ```
-
-### Ubuntu / Debian Linux
-
-```bash
-sudo apt-get update
-sudo apt-get install iverilog gtkwave
-```
-
-### Fedora / RHEL / CentOS
-
-```bash
-sudo dnf install iverilog gtkwave
-```
-
-### Windows
-
-Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux) and follow the Ubuntu instructions above. Alternatively, download pre-built binaries from the [Icarus Verilog project page](https://bleyer.org/icarus/) and [GTKWave releases](https://gtkwave.sourceforge.net/).
 
 ### Verify installation
 
 ```bash
 iverilog -V   # should print: Icarus Verilog version 12.x or later
-gtkwave --version
+surfer --version || gtkwave --version || echo "Install a waveform viewer (see above)"
 ```
-
----
 
 ## 2. Clone the Repo
 
@@ -113,25 +111,36 @@ ALL TESTS PASSED
 
 ---
 
-## 4. View the Waveform in GTKWave
+## 4. View the Waveform
 
-The simulation writes a `.vcd` waveform file. To open it:
+The simulation writes a `.vcd` waveform file. To open it with the best available viewer:
 
 ```bash
-make waves_mac
+make view-mac
 ```
 
-GTKWave opens. To view signals:
+This auto-detects Surfer, WaveTrace, or GTKWave (in priority order). Alternatively, open the file directly:
 
-1. In the left panel ("SST"), expand `tb_ternary_mac`
-2. Double-click signals to add them to the wave view: `clk`, `valid_in`, `activation`, `weight_enc`, `acc_in`, `acc_out`
-3. Press **Ctrl+Shift+F** (or zoom buttons) to fit all signals in view
+```bash
+surfer tb_ternary_mac.vcd         # modern, recommended
+open -a WaveTrace tb_ternary_mac.vcd   # macOS
+gtkwave tb_ternary_mac.vcd            # legacy
+```
+
+To view signals (all viewers support similar interaction):
+
+1. In the signal panel, expand `tb_ternary_mac`
+2. Add signals to the waveform view: `clk`, `valid_in`, `activation`, `weight_enc`, `acc_in`, `acc_out`
+3. Zoom to fit (Surfer: `f`, GTKWave: `Ctrl+Shift+F`)
 
 What you should see:
-- `clk` — regular square wave (clock, 10ns period)
-- `valid_in` — pulses high once per test case
-- `acc_out` — steps up/down one clock after each valid pulse
-- `valid_out` — follows `valid_in` by one clock cycle (pipeline register delay)
+
+| Signal | Pattern |
+|--------|---------|
+| `clk` | Regular square wave (100 MHz, 10ns period) |
+| `valid_in` | Pulses high once per test case |
+| `acc_out` | Steps up/down one clock after each valid pulse |
+| `valid_out` | Follows `valid_in` by one clock cycle |
 
 If `acc_out` ever stays flat when you expect it to change, or jumps to an unexpected value, that points to the line in the RTL to investigate.
 
@@ -210,7 +219,7 @@ Once `ternary_mac` passes, the next module to implement is `ternary_dot` — a 6
 - Run `make tb_ternary_dot`
 - Zero errors in the terminal output
 - Python reference (`verify_dot.py`) computes the same dot product as the simulation for 10 random test vectors
-- GTKWave waveform shows `acc_out` reaching the correct final value after exactly 64 clock cycles (one per element)
+- `make view-dot` — opens dot product waveform
 
 ### Template for `verify_dot.py`
 
@@ -256,11 +265,22 @@ On Ubuntu/Debian:
 sudo apt-get install iverilog
 ```
 
-### `gtkwave: command not found` or GTKWave won't launch
+### No waveform viewer available
 
-Install via your package manager (see Section 1). On macOS, if the Homebrew formula doesn't install the GUI app:
 ```bash
-brew install --cask gtkwave
+# Install surfer (recommended):
+cargo install surfer
+
+# Or for macOS:
+brew install --cask wavetrace
+
+# Or GTKWave (legacy):
+brew install gtkwave
+```
+
+Then run:
+```bash
+make view-mac
 ```
 
 ### `make tb_ternary_mac` says "No rule to make target"
@@ -286,10 +306,14 @@ The `$dumpfile` and `$dumpvars` lines in the testbench must run before any simul
 
 ```bash
 # Install tools (one-time) — macOS
-brew install icarus-verilog gtkwave
+brew install icarus-verilog
+cargo install surfer            # waveform viewer (recommended)
+# or: brew install --cask wavetrace
+# or: brew install gtkwave
 
 # Install tools (one-time) — Ubuntu/Debian
-sudo apt-get install iverilog gtkwave
+sudo apt-get install iverilog
+# See surfer-project.org for Linux install
 
 # Clone
 git clone https://github.com/shepherdscientific/ternarycore && cd ternarycore
@@ -298,7 +322,7 @@ git clone https://github.com/shepherdscientific/ternarycore && cd ternarycore
 cd sim && make tb_ternary_mac
 
 # Open waveform
-make waves_mac
+make view-mac
 
 # Cross-verify with Python
 python3 verify/verify_mac.py
@@ -318,7 +342,7 @@ Before moving to real hardware (Arty A7-100T), all of the following must be true
 - [ ] `tb_ternary_dot` — dot product correct for 10 random vectors
 - [ ] `verify_dot.py` — Python reference matches simulation
 - [ ] `tb_ternary_gemm` — 4×4 matrix multiply matches NumPy output
-- [ ] GTKWave waveforms reviewed — no unexpected glitches or X states
+- [ ] Waveforms reviewed — no unexpected glitches or X states
 - [ ] Screenshot of passing terminal output saved to `results/`
 
 When this checklist is complete: **you have your Crowd Supply prototype.**

@@ -1,6 +1,5 @@
 // Formal wrapper for ternary_dot — cover mode.
-// Checks reachability: can the FSM complete a full vector,
-// assert valid_out, and produce correct dot product patterns?
+// Enforces a 2-cycle reset to prevent vacuous passes.
 
 `timescale 1ns / 1ps
 
@@ -22,11 +21,24 @@ module ternary_dot_formal(
         .acc_out(acc_out), .valid_out(valid_out)
     );
 
-    // Cover points
+    // ── Explicit reset sequence ──────────────────────────────────
+    reg [1:0] reset_cnt;
     always @(posedge clk) begin
-        cover(valid_out);                              // vector complete
-        cover(valid_out && acc_out != 0);              // non-zero result
-        cover(valid_out && acc_out == 0);              // zero result (weights=0)
+        if (reset_cnt < 2) begin
+            assume(!rst_n);
+            reset_cnt <= reset_cnt + 1;
+        end else begin
+            assume(rst_n);
+        end
+    end
+
+    // ── Cover points ─────────────────────────────────────────────
+    always @(posedge clk) begin
+        if (reset_cnt == 2) begin
+            cover(valid_out);                              // vector complete
+            cover(valid_out && acc_out != 0);              // non-zero result
+            cover(valid_out && acc_out == 0);              // zero result (weights=0)
+        end
     end
 
 endmodule
