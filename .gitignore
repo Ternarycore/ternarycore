@@ -39,6 +39,13 @@ opencode.json
 AGENTS.md
 .env.*
 
+# Formal verification artifacts
+formal/*/
+!formal/*.v
+!formal/*.sby
+!formal/*.sh
+!formal/*.tcl
+
 # Editor temporary files
 *.swp
 *.swo

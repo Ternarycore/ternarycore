@@ -1,0 +1,16 @@
+[options]
+mode cover
+depth 20
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_dot.v
+read -formal ternary_dot_formal.v
+flatten
+prep -top ternary_dot_formal
+
+[files]
+../rtl/ternary_dot.v
+ternary_dot_formal.v
