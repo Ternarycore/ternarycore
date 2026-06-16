@@ -1,0 +1,19 @@
+[options]
+mode bmc
+depth 30
+
+[engines]
+smtbmc
+
+[script]
+read -formal activation_quant.v
+read -formal ternary_dot.v
+read -formal ternary_gemm.v
+read -formal ternary_scale.v
+prep -top ternary_gemm
+
+[files]
+../rtl/activation_quant.v
+../rtl/ternary_dot.v
+../rtl/ternary_gemm.v
+../rtl/ternary_scale.v

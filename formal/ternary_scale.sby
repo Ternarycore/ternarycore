@@ -1,0 +1,15 @@
+[options]
+mode cover
+depth 20
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_scale.v
+read -formal ternary_scale_formal.v
+prep -top ternary_scale_formal
+
+[files]
+../rtl/ternary_scale.v
+ternary_scale_formal.v
