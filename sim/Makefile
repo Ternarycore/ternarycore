@@ -13,6 +13,7 @@ VLT_CONFIG = ../ternarycore.vlt
 
 .PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm clean verify verify-simple verify-all lint formal
 .PHONY: view-mac view-dot view-gemm
+.PHONY: verilator-mac verilator-dot verilator-gemm verilator-all
 
 all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm
 
@@ -84,6 +85,33 @@ view-dot: tb_ternary_dot
 view-gemm: tb_ternary_gemm
 	@bash ./$(VIEWER_SCRIPT) tb_ternary_gemm.vcd
 
+# ── Verilator C++ simulation (fast) ──────────────────────────────────────────
+# Requirements: verilator (brew install verilator)
+# Builds a standalone C++ simulator. Typically 10-100x faster than Icarus.
+VERILATOR_SRCDIR = tests
+VERILATOR_FLAGS = -Wno-BLKSEQ -Wno-UNUSEDPARAM -Wno-UNUSEDSIGNAL -Wno-PINMISSING
+VERILATOR_FLAGS += -Wno-EOFNEWLINE -Wno-WIDTHTRUNC -Wno-UNOPTFLAT
+
+verilator-mac: $(VERILATOR_SRCDIR)/verilator_mac.cpp ../rtl/ternary_mac.v
+	$(VERILATOR) --cc --build --exe -j --top-module ternary_mac \
+		$(VERILATOR_FLAGS) ../rtl/ternary_mac.v $< -o sim_mac_verilator
+	./obj_dir/sim_mac_verilator
+
+verilator-dot: $(VERILATOR_SRCDIR)/verilator_dot.cpp ../rtl/ternary_dot.v
+	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
+		-GVECTOR_LEN=8 \
+		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_verilator
+	./obj_dir/sim_dot_verilator
+
+verilator-gemm: $(VERILATOR_SRCDIR)/verilator_gemm.cpp ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(VERILATOR) --cc --build --exe -j --top-module ternary_gemm \
+		-GDEPTH=4 -GCOLS=4 \
+		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v ../rtl/ternary_gemm.v $< -o sim_gemm_verilator
+	./obj_dir/sim_gemm_verilator
+
+verilator-all: verilator-mac verilator-dot verilator-gemm
+
 clean:
 	rm -f $(SIMDIR)/sim_* $(SIMDIR)/*.vcd
+	rm -rf obj_dir
 	rm -rf ../formal/ternary_mac ../formal/ternary_dot ../formal/ternary_gemm

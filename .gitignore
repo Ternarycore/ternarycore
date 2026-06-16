@@ -22,6 +22,10 @@ sim/sim_*
 sim/*.vcd
 sim/*.vvp
 
+# Verilator build artifacts
+sim/obj_dir/
+sim/tests/*.o
+
 # Temporary test files
 test_*.v
 
@@ -43,6 +47,7 @@ AGENTS.md
 formal/*/
 !formal/*.v
 !formal/*.sby
+!formal/*.prove.sby
 !formal/*.sh
 !formal/*.tcl
 

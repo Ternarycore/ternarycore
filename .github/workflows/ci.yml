@@ -2,9 +2,9 @@ name: CI - TernaryCore Verification
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main, dev, develop ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main, dev, develop ]
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -92,6 +92,52 @@ jobs:
         grep -r "reg.*;" rtl/ | grep -v "= " || true
 
         echo "Common issue check completed"
+
+  verilator-sim:
+    name: Verilator Simulation (fast C++)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Verilator
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y verilator build-essential
+
+    - name: Run Verilator MAC test
+      run: |
+        cd sim
+        make verilator-mac
+
+    - name: Run Verilator Dot test
+      run: |
+        cd sim
+        make verilator-dot
+
+    - name: Run Verilator GEMM test
+      run: |
+        cd sim
+        make verilator-gemm
+
+  formal-verification:
+    name: Formal Verification (SymbiYosys)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Yosys + SymbiYosys
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y yosys sby
+
+    - name: Run formal verification
+      run: |
+        cd sim
+        make formal
 
   check-documentation:
     name: Check Documentation
