@@ -60,16 +60,8 @@ lint:
 
 # ── Formal verification (SymbiYosys) ─────────────────────────────────────────
 formal:
-	$(YOSYS) -Q -c ../formal/run_all.tcl
-	@echo ""
-	@echo "─── Formal verification results ───"
-	@for f in mac dot gemm; do \
-	    if [ -f formal_$$f/results.txt ]; then \
-	        result=$$(head -1 formal_$$f/results.txt); \
-	        echo "  $$f: $$result"; \
-	    fi; \
-	done
+	cd ../formal && bash run_all.sh
 
 clean:
 	rm -f $(SIMDIR)/sim_* $(SIMDIR)/*.vcd
-	rm -rf formal_mac formal_dot formal_gemm
+	rm -rf ../formal/ternary_mac ../formal/ternary_dot ../formal/ternary_gemm

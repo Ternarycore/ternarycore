@@ -1,0 +1,15 @@
+[options]
+mode bmc
+depth 20
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_dot.v
+read -formal ternary_gemm.v
+prep -top ternary_gemm
+
+[files]
+../rtl/ternary_dot.v
+../rtl/ternary_gemm.v
