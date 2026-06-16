@@ -9,8 +9,10 @@ VVP      = vvp
 SIMDIR   = .
 VERILATOR = verilator
 YOSYS    = yosys
+VLT_CONFIG = ../ternarycore.vlt
 
-.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm clean verify lint formal
+.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm clean verify verify-simple verify-all lint formal
+.PHONY: view-mac view-dot view-gemm
 
 all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm
 
@@ -41,22 +43,24 @@ verify-simple:
 	python3 verify/verify_dot.py
 	python3 verify/verify_gemm_simple.py
 
+<<<<<<< HEAD
+=======
+# Run both numpy and no-numpy verification paths (no redundant mac/dot runs)
+verify-all: verify
+	python3 verify/verify_gemm_simple.py
+
+>>>>>>> 4d2ca4d (address review feedback: .vlt, reset sequence, .PHONY, robustness)
 # ── Verilator lint ────────────────────────────────────────────────────────────
 # Lints each RTL module independently with its source directory on the
 # include path so cross-module references resolve correctly.
 #
-# Warning suppressions (all intentional — see .verilator_config for rationale):
-#   BLKSEQ       — blocking assigns for intermediate combinational values
-#                  within a clocked always block (weighted, weighted_ext, next_acc)
-#   UNUSEDPARAM  — DOT_ID reserved for ILA debug identification
-#   UNUSEDSIGNAL — debug_*/debug_tap_* signals are ILA capture taps for FPGA
-#                  probing, marked (* keep, dont_touch *)
-LINT_FLAGS = -Wno-BLKSEQ -Wno-UNUSEDPARAM -Wno-UNUSEDSIGNAL -Wno-PINMISSING
+# Suppression rules live in ternarycore.vlt at the project root.
+LINT_FLAGS = -Wno-EOFNEWLINE
 
 lint:
-	$(VERILATOR) --lint-only -Wall $(LINT_FLAGS) --top-module ternary_mac    ../rtl/ternary_mac.v
-	$(VERILATOR) --lint-only -Wall $(LINT_FLAGS) --top-module ternary_dot    ../rtl/ternary_dot.v
-	$(VERILATOR) --lint-only -Wall $(LINT_FLAGS) --top-module ternary_gemm   -I../rtl ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(VERILATOR) --lint-only -Wall $(LINT_FLAGS) $(VLT_CONFIG) --top-module ternary_mac    ../rtl/ternary_mac.v
+	$(VERILATOR) --lint-only -Wall $(LINT_FLAGS) $(VLT_CONFIG) --top-module ternary_dot    ../rtl/ternary_dot.v
+	$(VERILATOR) --lint-only -Wall $(LINT_FLAGS) $(VLT_CONFIG) --top-module ternary_gemm   -I../rtl ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
 
 # ── Formal verification (SymbiYosys) ─────────────────────────────────────────
 formal:
