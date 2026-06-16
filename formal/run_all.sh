@@ -15,7 +15,7 @@ echo "─── Running formal verification ───"
 PASS=0
 FAIL=0
 
-for task in ternary_mac; do
+for task in ternary_mac ternary_dot ternary_gemm; do
     echo ""
     echo "── ${task} ──"
     logfile="${task}.log"
@@ -30,13 +30,6 @@ for task in ternary_mac; do
     fi
 done
 
-# ternary_dot and ternary_gemm have RTL-level multiple-always-block driver
-# conflicts that yosys formal does not support. See ternary_dot.v (blocks
-# driving acc_out and vector_done_delayed) and ternary_gemm.v (instances).
-echo ""
-echo "── skipped ──"
-echo "  ternary_dot   — multiple always blocks driving same reg (RTL constraint)"
-echo "  ternary_gemm  — inherits same constraint from ternary_dot instances"
 echo ""
 echo "─── Results: ${PASS} passed, ${FAIL} failed ───"
 if [ "$FAIL" -gt 0 ]; then exit 1; fi
