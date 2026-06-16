@@ -62,6 +62,23 @@ lint:
 formal:
 	cd ../formal && bash run_all.sh
 
+# ── Waveform viewer (auto-detect) ────────────────────────────────────────────
+# Supported viewers (in priority order):
+#   surfer    — cargo install surfer   (modern, cross-platform, TUI+GUI)
+#   WaveTrace — open -a WaveTrace     (macOS native app)
+#   gtkwave   — brew install gtkwave  (legacy, cross-platform)
+
+VIEWER_SCRIPT = open_vcd.sh
+
+view-mac: tb_ternary_mac
+	@bash ./$(VIEWER_SCRIPT) tb_ternary_mac.vcd
+
+view-dot: tb_ternary_dot
+	@bash ./$(VIEWER_SCRIPT) tb_ternary_dot.vcd
+
+view-gemm: tb_ternary_gemm
+	@bash ./$(VIEWER_SCRIPT) tb_ternary_gemm.vcd
+
 clean:
 	rm -f $(SIMDIR)/sim_* $(SIMDIR)/*.vcd
 	rm -rf ../formal/ternary_mac ../formal/ternary_dot ../formal/ternary_gemm

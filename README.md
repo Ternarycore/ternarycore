@@ -158,18 +158,22 @@ python3 verify/verify_gemm_simple.py  # No numpy dependency
 ### View waveforms
 
 **For debugging waveforms (.vcd files):**
-- **GTKWave** (cross-platform, open source)
-  - **macOS**: `brew install gtkwave`
-  - **Ubuntu/Debian**: `sudo apt-get install gtkwave`
-  - **Windows**: Available via [MSYS2](https://www.msys2.org/) or WSL
 
-- **Alternative options:**
-  - **WaveTrace** (macOS app, free) - Recommended for macOS users
-  - **Verilog HDL VSCode Extension** (VSCode plugin with waveform viewer)
-  - **Scansion** (macOS, paid)
-  - **ModelSim/QuestaSim** (commercial, university licenses available)
+The Makefile auto-detects the best available viewer:
 
-**Note for macOS users:** GTKWave may have issues on newer macOS versions. Consider WaveTrace or Verilog HDL VSCode Extension as alternatives.
+```bash
+make view-mac    # open MAC simulation waveform
+make view-dot    # open dot product waveform
+make view-gemm   # open GEMM waveform
+```
+
+Supported viewers (detected in priority order):
+
+| Viewer | Install | Notes |
+|--------|---------|-------|
+| **[Surfer](https://surfer-project.org)** | `cargo install surfer` | Modern, fast, cross-platform. TUI + GUI. |
+| **WaveTrace** | `brew install --cask wavetrace` | macOS native app, free |
+| **GTKWave** | `brew install gtkwave` | Legacy, cross-platform, widely available |
 
 ---
 
