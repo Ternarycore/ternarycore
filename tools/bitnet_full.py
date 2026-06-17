@@ -65,6 +65,56 @@ class BitNetConv2d(nn.Module):
         return F.conv2d(x, wt * alpha, self.bias, self.stride, self.padding)
 
 
+def fp8_encode(val):
+    """Encode float to FP8 E4M3 (1s,4e,bias7,3m). Range: ±448, precision: ~6%."""
+    if abs(val) < 1e-10: return 0
+    sgn = 1 if val < 0 else 0
+    v = abs(val)
+    e = min(max(int(math.floor(math.log2(v))) + 7, 0), 14)  # clamp exp
+    m = int(round((v / 2**(e-7) - 1) * 8)) if e > 0 else int(round(v / 2**(-6) * 8))
+    m = max(0, min(m, 7))
+    return (sgn << 7) | (e << 3) | m
+
+def fp8_decode(encoded):
+    """Decode FP8 E4M3 back to float."""
+    if encoded == 0: return 0.0
+    sgn = -1 if encoded >> 7 else 1
+    e = (encoded >> 3) & 0xF
+    m = encoded & 0x7
+    if e == 0:  # subnormal
+        return sgn * (m / 8) * 2**(-6)
+    return sgn * (1 + m/8) * 2**(e-7)
+
+class BitNetLayerNorm(nn.Module):
+    """LayerNorm with FP8 E4M3 quantization via STE.
+    Stores FP32 latents. Forward: quantizes to FP8, decodes back to FP32.
+    Gradient passes through (STE): no quantization in backward."""
+    def __init__(self, normalized_shape, eps=1e-5, elementwise_affine=True):
+        super().__init__()
+        self.normalized_shape = normalized_shape if isinstance(normalized_shape, tuple) else (normalized_shape,)
+        self.eps = eps
+        self.elementwise_affine = elementwise_affine
+        if elementwise_affine:
+            self.weight = nn.Parameter(torch.ones(*self.normalized_shape))
+            self.bias = nn.Parameter(torch.zeros(*self.normalized_shape))
+    
+    def _fp8_quant(self, x):
+        """FP8 E4M3 quantization with STE: q = decode(encode(x)) with gradient passthrough."""
+        q = torch.zeros_like(x)
+        flat = x.flatten()
+        for i in range(len(flat)):
+            q_i = fp8_decode(fp8_encode(float(flat[i])))
+            q.flatten()[i] = q_i
+        return x + (q - x).detach()
+    
+    def forward(self, x):
+        if self.elementwise_affine:
+            w = self._fp8_quant(self.weight)
+            b = self._fp8_quant(self.bias)
+        else:
+            w, b = None, None
+        return F.layer_norm(x, self.normalized_shape, w, b, self.eps)
+
 class BitNetEmbedding(nn.Module):
     """Embedding with INT4 or FP4 quantization.
     
@@ -136,6 +186,13 @@ def convert_module(module, qfmt="int4", prefix=""):
                 be.weight.copy_(child.weight)
             new_child = be
 
+        elif isinstance(child, nn.LayerNorm):
+            new_child = BitNetLayerNorm(child.normalized_shape, child.eps, child.elementwise_affine)
+            if child.elementwise_affine:
+                with torch.no_grad():
+                    new_child.weight.copy_(child.weight)
+                    new_child.bias.copy_(child.bias)
+
         if new_child is not None:
             setattr(module, name, new_child)
             print(f"  Converted {full_name}: {type(child).__name__} → {type(new_child).__name__}")
@@ -175,21 +232,21 @@ def build_full_bitnet_vlm(qfmt="int4"):
         total += count(name, mod)
     print(f"  Total: {total/1e6:.1f}M")
 
-    # Memory estimate
-    vis_p = sum(p.numel() for p in model.vision_model.parameters()) * 2  # FP16
-    conn_p = sum(p.numel() for p in model.connector.parameters()) * 2     # FP16
-    def _sum(mod, cls, bits):
-        t = 0
-        for _, m in mod.named_modules():
-            if isinstance(m, cls):
-                for pp in m.parameters(): t += pp.numel() * bits // 8
-        return t
-    txt_p = _sum(model.text_model, BitNetLinear, 2)
-    txt_fp = sum(pp.numel() for pp in model.text_model.parameters()) * 4 - txt_p * 4
-    embed_p = _sum(model, BitNetEmbedding, 4)
-
-    total_mb = (vis_p + conn_p + txt_p + txt_fp + embed_p) / 1024 / 1024
-    print(f"  Est memory: {total_mb:.0f}MB (vs {total*4/1024/1024:.0f}MB FP32)")
+    # Memory estimate (corrected)
+    def _bits(mod, cls, b):
+        return sum(p.numel()*b for _,m in mod.named_modules() if isinstance(m, cls) for p in m.parameters()) // 8
+    vis_b = _bits(model.vision_model, (BitNetLinear, BitNetConv2d), 2)
+    vis_ln = _bits(model.vision_model, BitNetLayerNorm, 8)
+    conn_b = _bits(model.connector, BitNetLinear, 2)
+    txt_b = _bits(model.text_model, BitNetLinear, 2)
+    txt_e = _bits(model, BitNetEmbedding, 4)
+    txt_ln = _bits(model.text_model, BitNetLayerNorm, 8)
+    total_mb = (vis_b + vis_ln + conn_b + txt_b + txt_e + txt_ln) / 1024 / 1024
+    fp32_mb = sum(p.numel()*32 for p in model.parameters()) // 8 / 1024 / 1024
+    print(f"  Memory: {total_mb:.0f}MB (ternary+INT4+FP8) vs {fp32_mb:.0f}MB FP32 = {fp32_mb/total_mb:.0f}x")
+    print(f"    Vision:  {vis_b/1024/1024:.0f}MB (ternary) + {vis_ln/1024/1024:.1f}MB (FP8 LN)")
+    print(f"    Connector: {conn_b/1024/1024:.0f}MB (ternary)")
+    print(f"    Text:   {txt_b/1024/1024:.0f}MB (ternary) + {txt_e/1024/1024:.0f}MB (INT4 embed) + {txt_ln/1024/1024:.1f}MB (FP8 LN)")
 
     return model
 
