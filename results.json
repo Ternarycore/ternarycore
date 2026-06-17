@@ -1,0 +1,30 @@
+[
+  {
+    "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+    "layer": 0,
+    "q_width": 2,
+    "cos": 0.8284,
+    "density": 0.549
+  },
+  {
+    "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+    "layer": 0,
+    "q_width": 3,
+    "cos": 0.8886,
+    "density": 0.549
+  },
+  {
+    "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+    "layer": 0,
+    "q_width": 4,
+    "cos": 0.8961,
+    "density": 0.549
+  },
+  {
+    "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+    "layer": 0,
+    "q_width": 8,
+    "cos": 0.8972,
+    "density": 0.549
+  }
+]
