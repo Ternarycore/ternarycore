@@ -1,0 +1,45 @@
+{
+  "format": "ternarycore_weight_enc_v1",
+  "weight_encoding": {
+    "00": 0,
+    "01": "+1",
+    "10": "-1",
+    "bits_per_weight": 2,
+    "weights_per_byte": 4,
+    "packing_order": "col0=bits[1:0], col1=bits[3:2], col2=bits[5:4], col3=bits[7:6]"
+  },
+  "alpha_format": {
+    "type": "Q15_unsigned",
+    "precision": 15,
+    "one_dot_zero": 32768,
+    "bits_per_alpha": 16
+  },
+  "pipeline_config": {
+    "cols": 4,
+    "depth": 576
+  },
+  "layers": {
+    "synthetic": {
+      "shape": [
+        4,
+        576
+      ],
+      "has_bias": false,
+      "nnz": 1187,
+      "sparsity": 0.4848090277777778,
+      "alphas_q15": [
+        37821,
+        32341,
+        42027,
+        37576
+      ],
+      "packed_bytes": 576,
+      "alphas_float": [
+        1.154205,
+        0.986966,
+        1.282571,
+        1.146726
+      ]
+    }
+  }
+}
