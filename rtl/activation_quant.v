@@ -42,10 +42,10 @@ module activation_quant #(
     end
 
     // Stage 2: shift, round, clip — valid_out fires 1 cycle after valid_in
-    wire [PRECISION-1:0] trunc_bits = product[PRECISION-1:0];
-    wire                 round_bit  = |trunc_bits;
-    wire signed [DATA_WIDTH+INV_WIDTH-1:0] shifted = product >>> PRECISION;
-    wire signed [DATA_WIDTH+INV_WIDTH-PRECISION:0] unclipped = shifted + round_bit;
+    wire signed [DATA_WIDTH+INV_WIDTH-1:0] round_amt = 1 << (PRECISION-1);
+    wire signed [DATA_WIDTH+INV_WIDTH-1:0] biased = product + round_amt;
+    wire signed [DATA_WIDTH+INV_WIDTH-1:0] shifted = biased >>> PRECISION;
+    wire signed [DATA_WIDTH+INV_WIDTH-PRECISION:0] unclipped = shifted;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

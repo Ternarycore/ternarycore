@@ -47,11 +47,17 @@ module ternary_pipeline #(
     // ── Stage 2: GEMM ────────────────────────────────────────────
     wire [COLS*ACC_WIDTH-1:0] gemm_result;
     wire                      gemm_valid;
+    reg [2*COLS-1:0]          weight_enc_d1;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) weight_enc_d1 <= 0;
+        else if (valid_in) weight_enc_d1 <= weight_enc;
+    end
 
     ternary_gemm #(.DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH),
                    .DEPTH(VECTOR_LEN), .COLS(COLS)) gemm (
         .clk(clk), .rst_n(rst_n),
-        .valid_in(q_valid), .activation($signed(q)), .weight_enc(weight_enc),
+        .valid_in(q_valid), .activation($signed(q)), .weight_enc(weight_enc_d1),
         .acc_out(gemm_result), .valid_out(gemm_valid)
     );
 
