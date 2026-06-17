@@ -88,3 +88,5 @@ formal/*/
 *.pb
 
 
+obj_dir/
+exported/obj_dir/
