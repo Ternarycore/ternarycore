@@ -95,3 +95,7 @@ vlm_eval/
 gvsoc/
 checkpoints/
 vlm_eval/
+exported/obj_dir/
+exported/*.o
+exported/layer0_test
+smolvlm_out/

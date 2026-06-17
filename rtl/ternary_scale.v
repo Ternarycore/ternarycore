@@ -56,6 +56,7 @@ module ternary_scale #(
         end
     end
 
+    /* verilator lint_off UNUSEDSIGNAL */
     function [ACC_WIDTH-1:0] scale_ch;
         input [ACC_WIDTH+PRECISION:0] p;  // 48 bits
         reg [PRECISION:0] trunc;
@@ -68,6 +69,7 @@ module ternary_scale #(
             scale_ch = shifted[ACC_WIDTH-1:0] + round;
         end
     endfunction
+    /* verilator lint_on UNUSEDSIGNAL */
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n)

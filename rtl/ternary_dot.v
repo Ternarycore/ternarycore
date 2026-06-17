@@ -13,11 +13,11 @@
 //   acc_out holds the result for that cycle. Both clear next cycle.
 //   Resets acc for the next vector during the same output cycle.
 //
-// Counter strategy: DOWN-counter from VECTOR_LEN-1 → 0.
-//   Terminal condition is (count == 16'b0) — a literal-zero comparison,
+// Counter strategy: DOWN-counter from VECTOR_LEN down to 1.
+//   Terminal condition is (count == 32'd1) — a literal-one comparison,
 //   not a parameter expression — which avoids Icarus Verilog elaboration-time
 //   bit-width inference bugs on (count == VECTOR_LEN-1).
-//   No $clog2 needed; plain reg [15:0] supports up to 65535 elements.
+//   reg [31:0] supports up to 2^32-1 elements, matching Verilog parameter width.
 
 `timescale 1ns / 1ps
 
@@ -46,7 +46,7 @@ module ternary_dot #(
     (* mark_debug = "true" *) reg [ACC_WIDTH-1:0] weighted_ext;
 
     (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [ACC_WIDTH-1:0] acc;
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [15:0]          count;       // down-counter, no $clog2 required
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [31:0]          count;       // down-counter (32-bit to match Verilog parameter width)
     (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                 vector_done; // pulses 1 cycle when last element processed
     (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [ACC_WIDTH-1:0] result_latch; // latches the result for output
     (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                 vector_done_delayed;
@@ -101,7 +101,7 @@ module ternary_dot #(
              // ── Accumulation + counter stage ──────────────────────────────
              // Accumulate when valid_in is high and we're not done (or we're starting new vector)
              if (valid_in && (!vector_done || vector_done_delayed)) begin
-                 if (count == 16'b1) begin
+                 if (count == 32'd1) begin
                      // Last element — latch result, set done flag, reload counter
                      result_latch <= next_acc;
                      vector_done <= 1'b1;
@@ -110,7 +110,7 @@ module ternary_dot #(
                  end else begin
                      vector_done <= 1'b0;
                      acc        <= next_acc;
-                     count      <= count - 16'b1;
+                     count      <= count - 32'd1;
                  end
              end else begin
                  // valid_in=0 or valid_in=1 but vector_done=1 and vector_done_delayed=0
