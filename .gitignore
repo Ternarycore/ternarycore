@@ -90,3 +90,8 @@ formal/*/
 
 obj_dir/
 exported/obj_dir/
+checkpoints/
+vlm_eval/
+gvsoc/
+checkpoints/
+vlm_eval/
