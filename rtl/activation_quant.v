@@ -1,34 +1,37 @@
 // SPDX-License-Identifier: CERN-OHL-S-2.0
-// BitNet b1.58 activation quantizer.
-// q = RoundClip(x * 127 / absmax, -127, 127)
-// Uses precomputed inv = round(2^PRECISION * 127 / absmax).
+// Configurable activation quantizer.
 //
-// Pipeline:
-//   Stage 1: product = x * inv (when valid_in)
-//   Stage 2: q = clip(product >> PRECISION), valid_out fires here
+// Supports INT8 (Q_WIDTH=8) and INT4 (Q_WIDTH=4) output formats.
+// q = RoundClip(x * Q_MAX / absmax, -Q_MAX, Q_MAX)
+// where Q_MAX = 2^(Q_WIDTH-1) - 1 (127 for INT8, 7 for INT4)
 //
-// valid_out aligns with q: both are valid at stage 2 output.
-// M consecutive valid_in cycles produce M consecutive valid_out cycles.
+// inv = round(2^PRECISION * Q_MAX / absmax), precomputed in software.
+// INV_WIDTH = PRECISION + Q_WIDTH (22 for INT8 Q15, 19 for INT4 Q15).
 
 `timescale 1ns / 1ps
 
 module activation_quant #(
-    parameter DATA_WIDTH = 8,
-    parameter PRECISION  = 15,
-    parameter INV_WIDTH  = 22
+    parameter DATA_WIDTH = 8,     // input activation width
+    parameter Q_WIDTH    = 8,     // quantized output width (4 or 8)
+    parameter PRECISION  = 15,    // reciprocal fixed-point shift
+    parameter INV_WIDTH  = 22     // PRECISION + Q_WIDTH
 )(
     input  wire                       clk,
     input  wire                       rst_n,
     input  wire                       valid_in,
     input  wire signed [DATA_WIDTH-1:0] x,
     input  wire [INV_WIDTH-1:0]       inv,
-    output reg  signed [DATA_WIDTH-1:0] q,
-    output reg                      valid_out
+    output reg  signed [Q_WIDTH-1:0]   q,
+    output reg                        valid_out
 );
 
-    // Stage 1: sample input product, track whether product is valid
+    // Clip bounds
+    localparam Q_MAX = (1 << (Q_WIDTH - 1)) - 1;
+    localparam Q_MIN = -(1 << (Q_WIDTH - 1)) + 1;  // -Q_MAX for signed
+
+    // Stage 1
     reg signed [DATA_WIDTH+INV_WIDTH-1:0] product;
-    reg                                  product_valid;
+    reg                                   product_valid;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -41,21 +44,20 @@ module activation_quant #(
         end
     end
 
-    // Stage 2: shift, round, clip — valid_out fires 1 cycle after valid_in
+    // Stage 2: shift, round, clip
     wire signed [DATA_WIDTH+INV_WIDTH-1:0] round_amt = 1 << (PRECISION-1);
     wire signed [DATA_WIDTH+INV_WIDTH-1:0] biased = product + round_amt;
     wire signed [DATA_WIDTH+INV_WIDTH-1:0] shifted = biased >>> PRECISION;
-    wire signed [DATA_WIDTH+INV_WIDTH-PRECISION:0] unclipped = shifted;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            q          <= 0;
-            valid_out  <= 0;
+            q         <= 0;
+            valid_out <= 0;
         end else begin
-            valid_out  <= product_valid;
+            valid_out <= product_valid;
             if (product_valid)
-                q <= (unclipped > 127) ? 127 :
-                     (unclipped < -127) ? -127 : unclipped;
+                q <= (shifted > Q_MAX) ? Q_MAX :
+                     (shifted < Q_MIN) ? Q_MIN : shifted[Q_WIDTH-1:0];
         end
     end
 
