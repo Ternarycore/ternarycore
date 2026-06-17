@@ -23,6 +23,7 @@ module ternary_dot_formal(
 
     // ── Explicit reset sequence ──────────────────────────────────
     reg [1:0] reset_cnt;
+    initial reset_cnt = 0;
     always @(posedge clk) begin
         if (reset_cnt < 2) begin
             assume(!rst_n);

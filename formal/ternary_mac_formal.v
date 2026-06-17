@@ -25,6 +25,7 @@ module ternary_mac_formal(
     // Forces rst_n low for 2 cycles then high forever. Prevents the
     // solver from starting with rst_n=1 and unconstrained registers.
     reg [1:0] reset_cnt;
+    initial reset_cnt = 0;
     always @(posedge clk) begin
         if (reset_cnt < 2) begin
             assume(!rst_n);

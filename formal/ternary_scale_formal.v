@@ -20,6 +20,7 @@ module ternary_scale_formal(
 
     // Reset sequence
     reg [1:0] reset_cnt;
+    initial reset_cnt = 0;
     always @(posedge clk) begin
         if (reset_cnt < 2) begin
             assume(!rst_n);
