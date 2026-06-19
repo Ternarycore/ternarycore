@@ -18,10 +18,14 @@ if ! command -v vivado >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "[1/2] Creating block design (MicroBlaze + AXI GEMM + UART + GPIO)..."
+echo "[1/3] Packaging custom IPs (axi_gemm_wrapper, weight_bram)..."
+vivado -mode batch -source "$HERE/../ip/package_axi_gemm_wrapper.tcl"
+vivado -mode batch -source "$HERE/../ip/package_weight_bram.tcl"
+
+echo "[2/3] Creating block design (MicroBlaze + AXI GEMM + UART + GPIO)..."
 vivado -mode batch -source "$HERE/create_bd.tcl"
 
-echo "[2/2] Synthesis + implementation + bitstream (timing-gated @ 100 MHz)..."
+echo "[3/3] Synthesis + implementation + bitstream (timing-gated @ 100 MHz)..."
 vivado -mode batch -source "$HERE/generate_bitstream.tcl"
 
 echo ""

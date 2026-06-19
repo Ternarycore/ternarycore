@@ -44,39 +44,69 @@ add_files -fileset constrs_1 [file join $repo_root constraints arty_a7_100t_mb.x
 # ── Create Block Design ───────────────────────────────────────────────────────
 create_bd_design $bd_name
 
+# ── Clock Wizard (100 MHz in → 100 MHz out) ───────────────────────────────────
+# Created explicitly; without board_part, MicroBlaze automation does not
+# auto-generate clock/reset infrastructure in Vivado 2025.2.
+create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0
+set_property -dict [list \
+    CONFIG.PRIM_IN_FREQ                  {100.000} \
+    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ    {100.000} \
+    CONFIG.USE_LOCKED                    {true} \
+    CONFIG.USE_RESET                     {false} \
+] [get_bd_cells clk_wiz_0]
+
+# External 100 MHz system clock port
+create_bd_port -dir I -type clk -freq_hz 100000000 sys_clk
+connect_bd_net [get_bd_ports sys_clk] [get_bd_pins clk_wiz_0/clk_in1]
+
+# ── Processor System Reset ────────────────────────────────────────────────────
+create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_clk_wiz_100M
+connect_bd_net [get_bd_pins clk_wiz_0/clk_out1] \
+               [get_bd_pins rst_clk_wiz_100M/slowest_sync_clk]
+connect_bd_net [get_bd_pins clk_wiz_0/locked] \
+               [get_bd_pins rst_clk_wiz_100M/dcm_locked]
+
+# Active-low reset from board button (BTN0 on Arty, mapped in XDC)
+create_bd_port -dir I -type rst sys_rst_n
+set_property CONFIG.POLARITY {ACTIVE_LOW} [get_bd_ports sys_rst_n]
+connect_bd_net [get_bd_ports sys_rst_n] \
+               [get_bd_pins rst_clk_wiz_100M/ext_reset_in]
+
 # ── MicroBlaze ────────────────────────────────────────────────────────────────
 create_bd_cell -type ip -vlnv xilinx.com:ip:microblaze:11.0 microblaze_0
-apply_bd_automation -rule xilinx.com:bd_rule:microblaze -config {
-    presets "Local Memory: 64KB"
-} [get_bd_cells microblaze_0]
 
-# Disable FPU and caches (minimal MicroBlaze)
+# Minimal config: no FPU, no caches, barrel/div/mul/debug enabled
 set_property -dict [list \
-    CONFIG.C_USE_FPU {0} \
-    CONFIG.C_USE_ICACHE {0} \
-    CONFIG.C_USE_DCACHE {0} \
-    CONFIG.C_USE_MSR_INSTR {1} \
+    CONFIG.C_USE_FPU      {0} \
+    CONFIG.C_USE_ICACHE   {0} \
+    CONFIG.C_USE_DCACHE   {0} \
+    CONFIG.C_USE_MSR_INSTR  {1} \
     CONFIG.C_USE_PCMP_INSTR {1} \
-    CONFIG.C_USE_BARREL {1} \
-    CONFIG.C_USE_DIV {1} \
-    CONFIG.C_USE_HW_MUL {1} \
+    CONFIG.C_USE_BARREL   {1} \
+    CONFIG.C_USE_DIV      {1} \
+    CONFIG.C_USE_HW_MUL   {1} \
     CONFIG.C_DEBUG_ENABLED {1} \
 ] [get_bd_cells microblaze_0]
 
-# ── Clock and Reset ───────────────────────────────────────────────────────────
-# MicroBlaze automation creates clk_wiz and rst_clk_wiz already.
-# Configure the clock wizard for 100 MHz from external 100 MHz clock.
-set_property -dict [list \
-    CONFIG.PRIM_IN_FREQ {100.000} \
-    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {100.000} \
-] [get_bd_cells clk_wiz_0]
+# Apply automation: creates 64 KB LMB BRAM, AXI peripheral interconnect,
+# and wires clock/reset. Uses pre-existing clk_wiz_0 and rst_clk_wiz_100M.
+apply_bd_automation -rule xilinx.com:bd_rule:microblaze -config {
+    local_mem    "64KB"
+    ecc          "None"
+    cache        "None"
+    debug_module "Debug Only"
+    axi_periph   "Enabled"
+    axi_intc     "0"
+    clk          "/clk_wiz_0/clk_out1 (100 MHz)"
+} [get_bd_cells microblaze_0]
 
 # ── AXI UART16550 ─────────────────────────────────────────────────────────────
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_uart16550:2.0 axi_uart16550_0
 set_property -dict [list \
     CONFIG.C_S_AXI_ACLK_FREQ_HZ {100000000} \
-    CONFIG.C_BAUDRATE {115200} \
 ] [get_bd_cells axi_uart16550_0]
+# Note: baud rate (115200) is set in firmware via the UART divisor registers,
+# not as an IP parameter on axi_uart16550.
 
 # ── AXI GPIO (LEDs) ───────────────────────────────────────────────────────────
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_0
@@ -104,36 +134,61 @@ set_property -dict [list \
     CONFIG.DATA_WIDTH {8} \
 ] [get_bd_cells weight_bram_0]
 
-# ── AXI Interconnect (1 master, 4 slaves) ─────────────────────────────────────
-# MicroBlaze automation creates microblaze_0_axi_periph (AXI4-Lite interconnect).
-# We need to add our peripherals as slaves on this interconnect.
-# The automation connects the MicroBlaze M_AXI_DP to the interconnect.
-# We connect the interconnect to each peripheral's S_AXI port.
+# ── AXI Peripheral Interconnect (1 master → 4 slaves) ────────────────────────
+# MicroBlaze automation may or may not create microblaze_0_axi_periph depending
+# on Vivado version and board_part availability.  We handle both cases explicitly.
+if {[llength [get_bd_cells -quiet microblaze_0_axi_periph]] == 0} {
+    create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 \
+        microblaze_0_axi_periph
+    # Connect MicroBlaze peripheral AXI master → interconnect slave port
+    connect_bd_intf_net [get_bd_intf_pins microblaze_0/M_AXI_DP] \
+        [get_bd_intf_pins microblaze_0_axi_periph/S00_AXI]
+    # Interconnect global clock/reset
+    connect_bd_net [get_bd_pins clk_wiz_0/clk_out1] \
+        [get_bd_pins microblaze_0_axi_periph/ACLK] \
+        [get_bd_pins microblaze_0_axi_periph/S00_ACLK]
+    connect_bd_net [get_bd_pins rst_clk_wiz_100M/interconnect_aresetn] \
+        [get_bd_pins microblaze_0_axi_periph/ARESETN]
+    connect_bd_net [get_bd_pins rst_clk_wiz_100M/peripheral_aresetn] \
+        [get_bd_pins microblaze_0_axi_periph/S00_ARESETN]
+}
 
-# ── Connect additional AXI slaves ─────────────────────────────────────────────
-# Connect axi_gemm_wrapper (slave) to the AXI interconnect
-apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {
-    Master "/microblaze_0 (Peripheral)"
-    Clk "/clk_wiz_0 (100 MHz)"
-} [get_bd_intf_pins axi_gemm_wrapper_0/s_axi]
+# Expand to 4 master ports
+set_property CONFIG.NUM_MI {4} [get_bd_cells microblaze_0_axi_periph]
 
-# Connect weight_bram (slave) to the AXI interconnect
-apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {
-    Master "/microblaze_0 (Peripheral)"
-    Clk "/clk_wiz_0 (100 MHz)"
-} [get_bd_intf_pins weight_bram_0/s_axi]
+# Wire master port clocks and resets
+connect_bd_net [get_bd_pins clk_wiz_0/clk_out1] \
+    [get_bd_pins microblaze_0_axi_periph/M00_ACLK] \
+    [get_bd_pins microblaze_0_axi_periph/M01_ACLK] \
+    [get_bd_pins microblaze_0_axi_periph/M02_ACLK] \
+    [get_bd_pins microblaze_0_axi_periph/M03_ACLK]
+connect_bd_net [get_bd_pins rst_clk_wiz_100M/peripheral_aresetn] \
+    [get_bd_pins microblaze_0_axi_periph/M00_ARESETN] \
+    [get_bd_pins microblaze_0_axi_periph/M01_ARESETN] \
+    [get_bd_pins microblaze_0_axi_periph/M02_ARESETN] \
+    [get_bd_pins microblaze_0_axi_periph/M03_ARESETN]
 
-# Connect UART (slave) to the AXI interconnect
-apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {
-    Master "/microblaze_0 (Peripheral)"
-    Clk "/clk_wiz_0 (100 MHz)"
-} [get_bd_intf_pins axi_uart16550_0/S_AXI]
+# ── Connect AXI slaves ────────────────────────────────────────────────────────
+connect_bd_intf_net [get_bd_intf_pins microblaze_0_axi_periph/M00_AXI] \
+    [get_bd_intf_pins axi_gpio_0/S_AXI]
+connect_bd_intf_net [get_bd_intf_pins microblaze_0_axi_periph/M01_AXI] \
+    [get_bd_intf_pins axi_uart16550_0/S_AXI]
+connect_bd_intf_net [get_bd_intf_pins microblaze_0_axi_periph/M02_AXI] \
+    [get_bd_intf_pins axi_gemm_wrapper_0/s_axi]
+connect_bd_intf_net [get_bd_intf_pins microblaze_0_axi_periph/M03_AXI] \
+    [get_bd_intf_pins weight_bram_0/s_axi]
 
-# Connect GPIO (slave) to the AXI interconnect
-apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {
-    Master "/microblaze_0 (Peripheral)"
-    Clk "/clk_wiz_0 (100 MHz)"
-} [get_bd_intf_pins axi_gpio_0/S_AXI]
+# ── Peripheral clocks and resets ──────────────────────────────────────────────
+connect_bd_net [get_bd_pins clk_wiz_0/clk_out1] \
+    [get_bd_pins axi_gpio_0/s_axi_aclk] \
+    [get_bd_pins axi_uart16550_0/s_axi_aclk] \
+    [get_bd_pins axi_gemm_wrapper_0/s_axi_aclk] \
+    [get_bd_pins weight_bram_0/clk]
+connect_bd_net [get_bd_pins rst_clk_wiz_100M/peripheral_aresetn] \
+    [get_bd_pins axi_gpio_0/s_axi_aresetn] \
+    [get_bd_pins axi_uart16550_0/s_axi_aresetn] \
+    [get_bd_pins axi_gemm_wrapper_0/s_axi_aresetn] \
+    [get_bd_pins weight_bram_0/rst_n]
 
 # ── Assign AXI Address Map ────────────────────────────────────────────────────
 # Default addresses are auto-assigned; reassign to the desired fixed map.
@@ -158,8 +213,8 @@ set_property range  64K        [get_bd_addr_segs {microblaze_0/Data/SEG_axi_uart
 set_property offset 0x44000000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_gemm_wrapper_0_reg0}]
 set_property range  64K        [get_bd_addr_segs {microblaze_0/Data/SEG_axi_gemm_wrapper_0_reg0}]
 
-set_property offset 0x44010000 [get_bd_addr_segs {microblaze_0/Data/SEG_weight_bram_0_reg0}]
-set_property range  1M         [get_bd_addr_segs {microblaze_0/Data/SEG_weight_bram_0_reg0}]
+set_property offset 0x44100000 [get_bd_addr_segs {microblaze_0/Data/SEG_weight_bram_0_reg0}]
+set_property range  256K       [get_bd_addr_segs {microblaze_0/Data/SEG_weight_bram_0_reg0}]
 
 # ── Connect weight_bram read port to axi_gemm_wrapper ─────────────────────────
 # weight_byte and weight_addr are exposed as simple ports.
@@ -186,6 +241,6 @@ puts "Address map:"
 puts "  GPIO (LEDs):      0x40000000"
 puts "  AXI UART16550:     0x40600000"
 puts "  GEMM Accelerator:  0x44000000"
-puts "  Weight BRAM:       0x44010000"
+puts "  Weight BRAM:       0x44100000  (256K, ADDR_WIDTH=18)"
 
 close_project

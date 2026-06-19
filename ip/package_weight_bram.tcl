@@ -41,32 +41,16 @@ set_property vendor_display_name "Shepherd Scientific" $core
 set_property company_url         "https://github.com/shepherdscientific/ternarycore" $core
 set_property supported_families { artix7 Production } $core
 
+# weight_bram uses clk/rst_n (not s_axi_aclk/aresetn).
+# Associate clk with the auto-inferred AXI bus interface and set FREQ_HZ.
 ipx::associate_bus_interfaces -clock clk -reset rst_n $core
 
-set bus [ipx::add_bus_interface s_axi $core]
-set_property abstraction_type_vlnv "xilinx.com:interface:aximm_rtl:1.0" $bus
-set_property bus_type_vlnv "xilinx.com:interface:aximm:1.0" $bus
-set_property interface_mode slave $bus
-
-ipx::add_port_map s_axi_awaddr  $bus
-ipx::add_port_map s_axi_awprot  $bus
-ipx::add_port_map s_axi_awvalid $bus
-ipx::add_port_map s_axi_awready $bus
-ipx::add_port_map s_axi_wdata   $bus
-ipx::add_port_map s_axi_wstrb   $bus
-ipx::add_port_map s_axi_wvalid  $bus
-ipx::add_port_map s_axi_wready  $bus
-ipx::add_port_map s_axi_bresp   $bus
-ipx::add_port_map s_axi_bvalid  $bus
-ipx::add_port_map s_axi_bready  $bus
-ipx::add_port_map s_axi_araddr  $bus
-ipx::add_port_map s_axi_arprot  $bus
-ipx::add_port_map s_axi_arvalid $bus
-ipx::add_port_map s_axi_arready $bus
-ipx::add_port_map s_axi_rdata   $bus
-ipx::add_port_map s_axi_rresp   $bus
-ipx::add_port_map s_axi_rvalid  $bus
-ipx::add_port_map s_axi_rready  $bus
+set clk_bus [ipx::get_bus_interfaces clk -of_objects $core]
+if {$clk_bus ne ""} {
+    ipx::add_bus_parameter FREQ_HZ $clk_bus
+    set_property value 100000000 \
+        [ipx::get_bus_parameters FREQ_HZ -of_objects $clk_bus]
+}
 
 foreach param {ADDR_WIDTH DATA_WIDTH} {
     set_property value_format long [ipx::get_user_parameters $param -of_objects $core]
@@ -75,10 +59,6 @@ foreach param {ADDR_WIDTH DATA_WIDTH} {
 
 set_property value 18 [ipx::get_user_parameters ADDR_WIDTH -of_objects $core]
 set_property value 8  [ipx::get_user_parameters DATA_WIDTH -of_objects $core]
-
-# Expose weight_addr and weight_byte as top-level ports (non-AXI)
-set_property value FALSE [ipx::add_bus_parameter FREQ_HZ $bus]
-set_property value 100000000 [ipx::get_bus_parameters FREQ_HZ -of_objects $bus]
 
 ipx::create_xgui_files $core
 ipx::update_checksums $core

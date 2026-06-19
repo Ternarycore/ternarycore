@@ -44,33 +44,16 @@ set_property company_url         "https://github.com/shepherdscientific/ternaryc
 set_property supported_families { artix7 Production } $core
 
 # Configure AXI4-Lite slave interface on the packaged core
+# ipx::package_project already infers the AXI4-Lite bus interface from s_axi_*
+# port names. Associate the inferred clock/reset and set FREQ_HZ.
 ipx::associate_bus_interfaces -clock s_axi_aclk -reset s_axi_aresetn $core
 
-
-set bus [ipx::add_bus_interface s_axi $core]
-set_property abstraction_type_vlnv "xilinx.com:interface:aximm_rtl:1.0" $bus
-set_property bus_type_vlnv "xilinx.com:interface:aximm:1.0" $bus
-set_property interface_mode slave $bus
-
-ipx::add_port_map s_axi_awaddr  $bus
-ipx::add_port_map s_axi_awprot  $bus
-ipx::add_port_map s_axi_awvalid $bus
-ipx::add_port_map s_axi_awready $bus
-ipx::add_port_map s_axi_wdata   $bus
-ipx::add_port_map s_axi_wstrb   $bus
-ipx::add_port_map s_axi_wvalid  $bus
-ipx::add_port_map s_axi_wready  $bus
-ipx::add_port_map s_axi_bresp   $bus
-ipx::add_port_map s_axi_bvalid  $bus
-ipx::add_port_map s_axi_bready  $bus
-ipx::add_port_map s_axi_araddr  $bus
-ipx::add_port_map s_axi_arprot  $bus
-ipx::add_port_map s_axi_arvalid $bus
-ipx::add_port_map s_axi_arready $bus
-ipx::add_port_map s_axi_rdata   $bus
-ipx::add_port_map s_axi_rresp   $bus
-ipx::add_port_map s_axi_rvalid  $bus
-ipx::add_port_map s_axi_rready  $bus
+set clk_bus [ipx::get_bus_interfaces s_axi_aclk -of_objects $core]
+if {$clk_bus ne ""} {
+    ipx::add_bus_parameter FREQ_HZ $clk_bus
+    set_property value 100000000 \
+        [ipx::get_bus_parameters FREQ_HZ -of_objects $clk_bus]
+}
 
 foreach param {DATA_WIDTH ACC_WIDTH ROWS COLS DEPTH} {
     set_property value_format long [ipx::get_user_parameters $param -of_objects $core]
@@ -82,10 +65,6 @@ set_property value 32 [ipx::get_user_parameters ACC_WIDTH  -of_objects $core]
 set_property value 4  [ipx::get_user_parameters ROWS       -of_objects $core]
 set_property value 4  [ipx::get_user_parameters COLS       -of_objects $core]
 set_property value 4  [ipx::get_user_parameters DEPTH      -of_objects $core]
-
-ipx::add_bus_parameter FREQ_HZ $bus
-
-set_property value 100000000 [ipx::get_bus_parameters FREQ_HZ -of_objects $bus]
 
 ipx::create_xgui_files $core
 ipx::update_checksums $core

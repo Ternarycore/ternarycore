@@ -33,25 +33,25 @@ module weight_bram #(
     input  wire [ADDR_WIDTH-1:0]    s_axi_awaddr,
     input  wire [2:0]               s_axi_awprot,
     input  wire                     s_axi_awvalid,
-    output reg                      s_axi_awready,
+    output wire                     s_axi_awready,
 
     input  wire [31:0]              s_axi_wdata,
     input  wire [3:0]               s_axi_wstrb,
     input  wire                     s_axi_wvalid,
-    output reg                      s_axi_wready,
+    output wire                     s_axi_wready,
 
-    output reg  [1:0]               s_axi_bresp,
-    output reg                      s_axi_bvalid,
+    output wire [1:0]               s_axi_bresp,
+    output wire                     s_axi_bvalid,
     input  wire                     s_axi_bready,
 
     input  wire [ADDR_WIDTH-1:0]    s_axi_araddr,
     input  wire [2:0]               s_axi_arprot,
     input  wire                     s_axi_arvalid,
-    output reg                      s_axi_arready,
+    output wire                     s_axi_arready,
 
     output reg  [31:0]              s_axi_rdata,
-    output reg  [1:0]               s_axi_rresp,
-    output reg                      s_axi_rvalid,
+    output wire [1:0]               s_axi_rresp,
+    output wire                     s_axi_rvalid,
     input  wire                     s_axi_rready,
 
     input  wire [ADDR_WIDTH-1:0]    weight_addr,
