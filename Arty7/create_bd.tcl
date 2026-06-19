@@ -20,7 +20,8 @@ set part "xc7a100tcsg324-1"
 set bd_name "arty_mb_gemm"
 
 create_project -force ${bd_name} ${bd_name} -part ${part}
-set_property board_part digilentinc.com:arty-a7-100:part0:1.0 [current_project]
+# board_part omitted: Digilent board files may not be installed in all Vivado setups.
+# Part (xc7a100tcsg324-1) is set above; pin assignments are in the XDC constraints file.
 
 # ── Source custom RTL IPs (packaged in ../ip/) ────────────────────────────────
 set repo_root [file normalize [file join [file dirname [file normalize [info script]]] ..]]
