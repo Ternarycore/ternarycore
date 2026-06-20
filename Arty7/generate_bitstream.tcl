@@ -81,12 +81,12 @@ if {${luts} > 63400} {
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
 
-set bitstream [file join [file dirname [get_files ${bd_name}.bd]] impl ${top}.bit]
+set bitstream [file join [get_property DIRECTORY [get_runs impl_1]] ${top}.bit]
 if {[file exists $bitstream]} {
-    puts "Bitstream generated: ${bitstream}"
-    puts "✅ SUCCESS: Timing closed at 100 MHz, LUTs within budget."
+    puts "Bitstream: ${bitstream}"
+    puts "SUCCESS: Timing closed at 100 MHz, LUTs within budget."
 } else {
-    puts "ERROR: Bitstream generation failed."
+    puts "ERROR: Bitstream not found at expected path: ${bitstream}"
     close_project
     exit 1
 }

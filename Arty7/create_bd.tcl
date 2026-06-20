@@ -222,8 +222,9 @@ set_property range  256K       [get_bd_addr_segs {microblaze_0/Data/SEG_weight_b
 # can be added in a future optimization phase.
 
 # ── Create external ports for board pins ──────────────────────────────────────
-# UART
+# UART: expose full interface; modem signals constrained to PMOD in XDC
 make_bd_intf_pins_external [get_bd_intf_pins axi_uart16550_0/UART]
+
 # GPIO LEDs
 make_bd_pins_external [get_bd_pins axi_gpio_0/gpio_io_o]
 

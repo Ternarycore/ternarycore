@@ -72,4 +72,7 @@ scripts/**
 .env*
 opencode.json
 .aider*
-prd.json
+prd.jsonarty_mb_gemm/
+ip/axi_gemm_wrapper/
+ip/weight_bram/
+arty_mb_gemm/
