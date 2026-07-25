@@ -192,20 +192,45 @@ ternarycore/
 │       ├── verify_dot.py
 │       └── verify_gemm.py
 ├── docs/
+│   ├── ROADMAP.md          # Track A/B system design (soft CPU + ternary accelerator)
 │   └── waveform_mac.svg
+├── DEVKIT.md               # build → flash → benchmark guide (Track A)
 └── LICENSE                 # CERN-OHL-S v2 (RTL) + MIT (scripts)
 ```
 
 ---
+
+## The Question This Project Answers
+
+Ternary compute is proven on silicon: a `ternary_mac` cell runs on the Arty
+A7-100T (and Tang Nano 9k) using **0 DSP slices** — LUTs and flip-flops only
+(see the [bring-up write-up](docs/article-02.md)). The next question is the
+one that matters:
+
+> **Put a soft CPU on the same fabric next to TernaryCore, and run BitNet
+> models both ways — pure CPU vs CPU + ternary offload — on identical
+> weights.** Same board, same clock, same model: the with/without-ternary A/B
+> is the proof that native ternary hardware earns its place.
+
+The system design for this is captured in [`docs/ROADMAP.md`](docs/ROADMAP.md)
+(Track A: MicroBlaze + AXI + ternary GEMM array on the Arty A7; Track B:
+PicoRV32 + ternary PQC accelerator on the Tang Nano), and the reproducible
+build/flash/benchmark path is in [`DEVKIT.md`](DEVKIT.md). The Tier 1
+benchmark firmware runs the same 768→768 projection through the accelerator
+and through pure C on the soft CPU, verifies element-by-element agreement,
+then reports cycles and speedup over UART.
 
 ## Roadmap
 
 - [x] `ternary_mac` — single cell, all tests passing
 - [x] `ternary_dot` — 64-element vector dot product, all tests passing
 - [x] `ternary_gemm` — 4×4 matrix multiply, all tests passing
-- [ ] Deploy to Xilinx Artix-7 (Arty A7-100T) — **board ordered**
-- [ ] `ternary_dot` at 64-element depth on real silicon
-- [ ] Timing closure and resource utilisation report
+- [x] Deploy to Xilinx Artix-7 (Arty A7-100T) — single MAC verified on silicon via ILA, 0 DSPs ([write-up](docs/article-02.md))
+- [x] Timing closure and resource utilisation report (single MAC: ~81 LUTs / 32 FFs)
+- [x] Track A system design: soft CPU (MicroBlaze) + AXI + GEMM array + weight BRAM + Tier 1 A/B benchmark firmware — passing simulation on [`feat/bitnet-accelerator`](https://github.com/Ternarycore/ternarycore/tree/feat/bitnet-accelerator)
+- [ ] **Tier 1 on hardware** — flash the Arty A7, confirm `Verification PASS`, capture real speedup: BitNet layer with vs without ternary offload
+- [ ] Host→board weight streaming (`LOADW`/`LOADA`/`RUN` UART protocol) — run *real* BitNet checkpoints, not synthetic weights
+- [ ] Scale GEMM columns toward the 40 GOPS target (Tier 2)
 - [ ] Head-to-head benchmark: tokens/sec and W vs CPU/GPU baseline
 - [ ] Full transformer layer pipeline
 
@@ -218,18 +243,6 @@ RTL source files (`rtl/`, `tb/`) are licensed under the **CERN Open Hardware Lic
 Software tools and verification scripts (`sim/verify/*.py`) are licensed under the **MIT License**.
 
 See [LICENSE](LICENSE) for full terms.
-
----
-
-## Acknowledgements
-
-**Concept:** David Adebiyi and Abu Mohammed — the conversations that sharpened the idea.
-
-**The spark:** A [comment by @Xcc313r4n7](https://github.com/ggml-org/llama.cpp/discussions/20969#discussioncomment-16349981) on the llama.cpp thread arguing that biological neurons are themselves ternary — selected by evolution for exactly the same reason we're building this. Contested by the community, but it lodged.
-
-**Family & background:** Mr Niyi Olowoyo, Mr Fisayo Bejide, My Uncle Tayo Oladapo, my mother, my wife, and my daughters — each of whom contributed something, knowingly or not, to making this possible.
-
-*Full credits in the [launch article](https://www.linkedin.com/in/ifedayooladapo).*
 
 ---
 
