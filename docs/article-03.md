@@ -41,20 +41,75 @@ our 86 simulation tests was green while it happened.
 
 ---
 
-## The system
+## What we actually put on the Arty
 
-The Tier 1 design (branch `feat/bitnet-accelerator`) is the full Track A
-stack from [ROADMAP.md](ROADMAP.md):
+The Tier 1 design (branch `feat/bitnet-accelerator`) is a small
+system-on-chip: a computer and its ternary co-processor, sharing one bus on
+one Artix-7. This is the full Track A stack from [ROADMAP.md](ROADMAP.md):
 
-- **MicroBlaze** soft CPU (no caches, no FPU) with 64 KB local BRAM
-- **AXI4-Lite interconnect** to UART16550, GPIO, and two custom IPs:
-- **`axi_gemm_wrapper`** — the ternary GEMM array (4 columns × depth 768)
-  behind memory-mapped registers: stream a weight byte + an activation per
-  element, poll `DONE`, read four accumulators
-- **`weight_bram`** — 256 KB of packed ternary weights, 4 per byte
+```mermaid
+graph LR
+    subgraph fpga["Artix-7 xc7a100t — one 100 MHz clock domain"]
+        MB["MicroBlaze soft CPU\n(no caches, no FPU)\n64 KB local BRAM\nruns tier1_bare.c"]
+        XBAR["AXI4-Lite\ninterconnect"]
+        GEMM["axi_gemm_wrapper\nternary GEMM array\n4 × ternary_dot, DEPTH=768\n0 DSP slices"]
+        WB["weight_bram\n256 KB packed ternary\n4 weights/byte"]
+        UART["AXI UART16550\n115200 8N1"]
+        GPIO["AXI GPIO\n4 status LEDs"]
+        MDM["MicroBlaze Debug\n(JTAG)"]
+        MB --- XBAR
+        XBAR -->|0x44000000| GEMM
+        XBAR -->|0x44100000| WB
+        XBAR -->|0x40600000| UART
+        XBAR -->|0x40000000| GPIO
+        MDM --- MB
+    end
+    HOST["Host PC\nxsdb (JTAG) · UART log"] --- MDM
+    UART --- HOST
+```
 
-Timing closed at 100 MHz with **0 DSP slices**. The multiplication in this
-machine is a 2-bit mux deciding add, subtract, or skip.
+The accelerator is deliberately *small* for Tier 1 — four `ternary_dot`
+columns, each a chain of the same 81-LUT MAC cell proven in
+[article-02](article-02.md). What Tier 1 adds is everything *around* the
+math: a CPU that owns the workload, a bus, a memory-mapped register
+interface, and a weight store. The GEMM wrapper exposes five registers:
+
+| Offset | Register | Role |
+|---|---|---|
+| `0x00` | `CTRL` | bit0 start (clears DONE), bit31 DONE (read-only) |
+| `0x04` | `ACTIVATION` | write one int8 activation — **each write pulses `valid_in`** |
+| `0x08` | `WEIGHT_ENC` | 2-bit ternary codes for the 4 columns |
+| `0x10–0x1C` | `ACC_OUT0–3` | int32 column accumulators, latched at vector end |
+
+One forward pass of the 768→768 projection works like this — the CPU
+chaperones every element across the bus:
+
+```mermaid
+sequenceDiagram
+    participant CPU as MicroBlaze
+    participant BRAM as weight_bram
+    participant GEMM as ternary GEMM (4 cols)
+    Note over CPU,GEMM: × 192 column groups per pass
+    CPU->>GEMM: CTRL = START (clear DONE)
+    loop 768 elements
+        CPU->>BRAM: read packed weight byte (AXI read)
+        CPU->>GEMM: write WEIGHT_ENC (4 × 2-bit codes)
+        CPU->>GEMM: write ACTIVATION (int8) → valid_in pulse
+        Note over GEMM: 4 MACs fire: acc ± activation or skip
+    end
+    GEMM-->>GEMM: 768th element → valid_out ↑, results latch
+    CPU->>GEMM: poll CTRL until DONE
+    CPU->>GEMM: read ACC_OUT0..3 (one output row of 4)
+```
+
+The software baseline is the *same loop with the math done in C*: read the
+same packed byte, decode the 2-bit weight, multiply-accumulate in a
+register. Same weights, same BRAM, same bus, same CPU — the only variable is
+who does the arithmetic. That symmetry is what makes the A/B honest.
+
+Timing closed at 100 MHz with **0 DSP slices** and worst-case slack of
++13.7 ns. The multiplication in this machine is a 2-bit mux deciding add,
+subtract, or skip.
 
 ## Run 1: all zeros
 
@@ -142,11 +197,17 @@ stop re-reading your C code and start reading synthesis warnings.
 
 Per pass, the accelerator path costs 5.32 M cycles. The ternary array's
 actual compute — 768 elements × 192 column groups, one element per cycle —
-needs only ~147 K of them. **97% of the accelerator's time is the soft CPU
-hand-feeding it**: every element takes one AXI read (weight byte) plus two
-AXI writes (weight code, activation), ≈12 cycles of bus overhead each, ~442 K
-AXI transactions per pass. The array sits at ~3% utilization and *still*
-beats the same CPU doing the math itself by 3.67×.
+needs only ~147 K of them:
+
+| Where the accelerator pass goes | Cycles | Share |
+|---|---|---|
+| Ternary array compute (589,824 MACs, 4/cycle) | ~147 K | **~3%** |
+| CPU feeding the array over AXI (~442 K bus transactions: 1 read + 2 writes per element, ≈12 cycles each) | ~5.17 M | **~97%** |
+| **Total measured** | **5.32 M** | |
+
+**97% of the accelerator's time is the soft CPU hand-feeding it.** The array
+sits at ~3% utilization and *still* beats the same CPU doing the math itself
+by 3.67×.
 
 That makes this measurement two proofs in one:
 
