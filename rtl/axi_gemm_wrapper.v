@@ -67,7 +67,7 @@ module axi_gemm_wrapper #(
     localparam ADDR_ACC_OUT2       = 8'h18;
     localparam ADDR_ACC_OUT3       = 8'h1C;
 
-    // ── Internal registers ─────────────────────────────────────────
+    // ── Internal registers ─────────────────────────────────
     reg         ctrl_start;
     reg         ctrl_rst_sw;
     reg         ctrl_done;
@@ -75,7 +75,7 @@ module axi_gemm_wrapper #(
     reg [31:0]  weight_enc_lo;
     reg [31:0]  weight_enc_hi;
 
-    // ── AXI write state machine ────────────────────────────────────
+    // ── AXI write state machine ──────────────────────────────
     // aw_accepted: AW handshake completed, awaiting W
     // w_accepted:   W handshake completed, awaiting AW
     // b_pending:   B response outbound
@@ -120,7 +120,7 @@ module axi_gemm_wrapper #(
     assign s_axi_bvalid  = b_pending;
     assign s_axi_bresp   = 2'b00;
 
-    // ── Register write logic ───────────────────────────────────────
+    // ── Register write logic ──────────────────────────────────
     always @(posedge s_axi_aclk or negedge s_axi_aresetn) begin
         if (!s_axi_aresetn) begin
             ctrl_start     <= 1'b0;
@@ -151,7 +151,7 @@ module axi_gemm_wrapper #(
         end
     end
 
-    // ── AXI read state machine ─────────────────────────────────────
+    // ── AXI read state machine ─────────────────────────────────
     reg         rd_active;
     reg [7:0]   rd_addr;
 
@@ -173,7 +173,7 @@ module axi_gemm_wrapper #(
     assign s_axi_rvalid  = rd_active;
     assign s_axi_rresp   = 2'b00;
 
-    // ── ternary_gemm instantiation ─────────────────────────────────
+    // ── ternary_gemm instantiation ─────────────────────────────
     wire                      gemm_rst_n;
     wire                      gemm_valid_in;
     wire [2*COLS-1:0]         weight_enc_int;
@@ -220,29 +220,54 @@ module axi_gemm_wrapper #(
         .valid_out (gemm_valid_out)
     );
 
-    // ── ACC_OUT latch ──────────────────────────────────────────────
+    // ── valid_out edge detect ──────────────────────────────────
+    // ternary_dot HOLDS vector_done (and therefore valid_out) high from the
+    // last element until the first element of the next vector is accepted.
+    // When a CPU feeds elements over AXI there are long idle gaps in which
+    // valid_out stays asserted, so a level-sensitive latch is rewritten every
+    // cycle and a level-sensitive done outprioritises the CTRL-write clear.
+    // Additionally, the dot registers its result onto acc_out one cycle AFTER
+    // valid_out first rises. Therefore: capture exactly one cycle after the
+    // rising edge of valid_out, when acc_out carries the settled result.
+    reg gemm_valid_out_d1;
+    reg gemm_valid_out_d2;
+
+    always @(posedge s_axi_aclk or negedge s_axi_aresetn) begin
+        if (!s_axi_aresetn) begin
+            gemm_valid_out_d1 <= 1'b0;
+            gemm_valid_out_d2 <= 1'b0;
+        end else begin
+            gemm_valid_out_d1 <= gemm_valid_out;
+            gemm_valid_out_d2 <= gemm_valid_out_d1;
+        end
+    end
+
+    // One-cycle pulse, one cycle after the rising edge of valid_out
+    wire gemm_result_pulse = gemm_valid_out_d1 && !gemm_valid_out_d2;
+
+    // ── ACC_OUT latch ──────────────────────────────────────────
     reg [ACC_WIDTH*COLS-1:0] acc_out_latch;
 
     always @(posedge s_axi_aclk or negedge s_axi_aresetn) begin
         if (!s_axi_aresetn) begin
             acc_out_latch <= {ACC_WIDTH*COLS{1'b0}};
-        end else if (gemm_valid_out) begin
+        end else if (gemm_result_pulse) begin
             acc_out_latch <= acc_out_wire;
         end
     end
 
-    // ── Done flag ──────────────────────────────────────────────────
+    // ── Done flag ──────────────────────────────────────────────
     always @(posedge s_axi_aclk or negedge s_axi_aresetn) begin
         if (!s_axi_aresetn) begin
             ctrl_done <= 1'b0;
-        end else if (gemm_valid_out) begin
+        end else if (gemm_result_pulse) begin
             ctrl_done <= 1'b1;
         end else if (wr_commit && (wr_addr == ADDR_CTRL)) begin
             ctrl_done <= 1'b0;
         end
     end
 
-    // ── Read data mux ──────────────────────────────────────────────
+    // ── Read data mux ──────────────────────────────────────────
     reg [31:0] rdata;
 
     function [31:0] get_acc_out;
