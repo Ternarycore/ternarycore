@@ -72,14 +72,18 @@ module ternary_dot #(
     assign debug_tap_weight_enc  = weight_enc;
     assign debug_tap_acc_out     = acc_out;
     assign debug_tap_valid_out   = valid_out;
-    // ── Main sequential logic ─────────────────────────────────────
+    // ── Main sequential logic ─────────────────────────────
     always @(posedge clk or negedge rst_n) begin
          if (!rst_n) begin
              acc        <= {ACC_WIDTH{1'b0}};
              count      <= VECTOR_LEN;    // load down-counter (counts VECTOR_LEN down to 1)
-             acc_out    <= {ACC_WIDTH{1'b0}};
+             // NOTE: acc_out and vector_done_delayed are reset in their own
+             // always blocks below. Resetting them here as well makes them
+             // MULTI-DRIVEN: simulators tolerate it, but Vivado synthesis
+             // (Synth 8-6858/8-6859) preserves the constant driver and ties
+             // acc_out to zero in silicon. This was the root cause of the
+             // all-zero accelerator reads on the Arty A7 (July 2026).
              vector_done <= 1'b0;
-             vector_done_delayed <= 1'b0;
               result_latch <= {ACC_WIDTH{1'b0}};
              debug_valid_in <= 1'b0;
               debug_activation <= {DATA_WIDTH{1'b0}};
@@ -100,7 +104,7 @@ module ternary_dot #(
               weighted_ext = {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
               next_acc = acc + weighted_ext;
 
-             // ── Accumulation + counter stage ──────────────────────────────
+             // ── Accumulation + counter stage ──────────────────────
              // Accumulate when valid_in is high and we're not done (or we're starting new vector)
              if (valid_in && (!vector_done || vector_done_delayed)) begin
                  if (count == 16'b1) begin
@@ -134,7 +138,7 @@ module ternary_dot #(
          end
     end
 
-    // ── Output stage ─────────────────────────────────────────────
+    // ── Output stage ─────────────────────────────────
     // valid_out pulses high ONE CYCLE after the last element is fed.
     // Combinatorial: valid_out is high when vector_done was true previous cycle
     always @(posedge clk or negedge rst_n) begin
