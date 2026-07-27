@@ -72,14 +72,47 @@ ternary conv pipeline should aim.
 | Zynq UltraScale+ | ~$1,300–3,000 | 4K60 (native GTH) | native — no PHY | native DP | 8K30/60 + DSC |
 | Versal / US+ GTY / Agilex | ~$3,000–10,000+ | 8K60 (native GTY) | native — no PHY | DP2.1 UHBR20 | 8K uncompressed |
 
-**Pick: Lattice CertusPro-NX eval.** It is the knee of the curve: native
-SERDES does 4K60 with **no external PHY**, DisplayPort HBR3, and an 8K path
-via DSC — at eval-board money, with a chip price (~$130–190) that survives
-into a real product BOM. Everything above it costs 3–10× for headroom the
-retro/FPV market doesn't need; everything below it needs an external HDMI TX
-IC to leave 1080p. The Tang Nano 20K stays the $30 demo/dev board — that
-price point *is* its feature. *Bootstrap alternate: ULX3S — fully open
-toolchain, 1080p60 today, community distribution built in.*
+### The resolution ladder has two useful rungs, not one
+
+The 20K is the $30 720p demo (keep it — that price *is* its feature). Above
+it, there are **two** distinct product targets, and they want different
+chips. Don't force one board to be both.
+
+#### Rung 1 — a cheap 1080p60 SKU (HD-source market / premium demo)
+
+Cheapest-chip-first, if the goal is 1080p60 while keeping the "cheap"
+story:
+
+| Option | Board / chip | ~Cost | Toolchain | Verdict |
+|---|---|---|---|---|
+| **Lattice ECP5-85F** ⭐ | Colorlight 5A-75B-class ~$15–25; ULX3S ~$115–155; chip ~$5–15 | open (Yosys/nextpnr) | **the sweet spot** — proven 1080p60 DVI on ULX3S/Colorlight, keeps the cheap+open story while gaining 1080p |
+| Bigger Gowin (GW5A / Tang Primer 25K) | ~$30–60 | Gowin (already known) | faster I/O, same toolchain we use on the 20K — worth a fit/timing check for 1080p60 |
+| Artix-7 (Nexys/Zybo) | chip ~$35–120 single-unit; board more | Vivado | only if **consolidating onto the Artix-7 we already run GEMM on** — three catches below |
+
+Artix-7 caveats worth stating plainly: the chip alone (~$35–60 for a 35T,
+~$70–120 for a 100T, single-unit — prices swing, verify) can cost more than
+a whole Tang Nano 20K; the Arty A7 has **no native HDMI connector** (you'd
+add a Pmod, itself ~720p-limited, or move to a Nexys/Zybo that has HDMI);
+and it's Vivado, not the open flow. It only makes sense as a
+*consolidation* play, not a cost play.
+
+The **Colorlight 5A-75B is the standout**: a ~$15–25 board that already does
+1080p video on the open toolchain. A $30 720p demo (20K) and a ~$20 1080p60
+board (ECP5) together cover the entire cheap-and-open story with room to
+spare.
+
+#### Rung 2 — the 4K / premium flagship
+
+**Lattice CertusPro-NX eval** (~$300–500). Native SERDES does 4K60 with
+**no external PHY**, DisplayPort HBR3, and an 8K path via DSC — at
+eval-board money, with a chip price (~$130–190) that survives into a
+product BOM. Everything above it costs 3–10× for headroom the retro/FPV
+market doesn't need. This is the premium SKU, not the volume one.
+
+**Net pick for the wishlist: buy the ECP5 board first (cheap, open, unlocks
+1080p60 for ~$20), keep CertusPro-NX as the 4K flagship for later.** The
+ECP5 also keeps the retro-upscaler entirely in the open-toolchain world the
+community expects.
 
 ---
 
@@ -89,11 +122,19 @@ toolchain, 1080p60 today, community distribution built in.*
 |---|---|---|---|---|
 | BitNet inference | **Alveo U50** (used) | $600–1,200 | Kria KV260 | $250–300 |
 | Ternary SDR | **bladeRF 2.0 micro xA9** | $680–780 | ADALM-Pluto | $230–260 |
-| Upscaling target | **CertusPro-NX eval** | $300–500 | ULX3S | $115–155 |
-| **Total** | | **~$1,600–2,500** | | **~$600–715** |
+| Upscaling — 1080p60 SKU | **ECP5 (Colorlight 5A-75B)** | $15–25 | ULX3S (ECP5) | $115–155 |
+| Upscaling — 4K flagship | CertusPro-NX eval *(later)* | $300–500 | — | — |
+| **Total (core buy)** | | **~$1,300–2,000** | | **~$500–715** |
+
+The upscaling pick changed: for a **cheap 1080p60** product the ECP5
+(Colorlight 5A-75B, ~$15–25, open toolchain) is the sweet spot and the
+first buy; CertusPro-NX drops to a *later* purchase for the 4K premium SKU
+only. That pulls the core buy down ~$300 and keeps the retro track fully
+open-source.
 
 Sequencing note: the U50 unblocks the flagship claim (real BitNet model,
 100+ tok/s territory) and is already narratively committed in the monthly
 report — it goes first. The bladeRF opens an entirely new content/product
-lane (ternary DSP + PQC radio) — second. The CertusPro-NX only matters once
-the 20K pipeline has learned weights worth showing at 4K — third.
+lane (ternary DSP + PQC radio) — second. The ECP5 is a ~$20 add whenever the
+20K pipeline has learned weights worth showing at 1080p; the CertusPro-NX
+4K flagship only matters after that.
