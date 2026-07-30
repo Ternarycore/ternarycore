@@ -6,9 +6,9 @@ IVERILOG = iverilog
 VVP      = vvp
 SIMDIR   = .
 
-.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm clean verify
+.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram clean verify
 
-all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm
+all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram
 
 # ── MAC unit ──────────────────────────────────────────────────────────────────
 tb_ternary_mac: ../tb/tb_ternary_mac.v ../rtl/ternary_mac.v
@@ -21,9 +21,45 @@ tb_ternary_dot: ../tb/tb_ternary_dot.v ../rtl/ternary_dot.v
 	$(VVP) $(SIMDIR)/sim_dot
 
 # ── Matrix multiply ───────────────────────────────────────────────────────────
-tb_ternary_gemm: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
-	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_gemm $^
-	$(VVP) $(SIMDIR)/sim_gemm
+tb_ternary_gemm: tb_ternary_gemm_depth4 tb_ternary_gemm_depth16 tb_ternary_gemm_depth64
+
+tb_ternary_gemm_depth4: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=4 -o $(SIMDIR)/sim_gemm_d4 $^
+	$(VVP) $(SIMDIR)/sim_gemm_d4
+
+tb_ternary_gemm_depth16: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=16 -o $(SIMDIR)/sim_gemm_d16 $^
+	$(VVP) $(SIMDIR)/sim_gemm_d16
+
+tb_ternary_gemm_depth64: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=64 -o $(SIMDIR)/sim_gemm_d64 $^
+	$(VVP) $(SIMDIR)/sim_gemm_d64
+
+# ── AXI4-Lite GEMM wrapper ────────────────────────────────────────────────────
+tb_axi_gemm_wrapper: tb_axi_gemm_wrapper_depth4 tb_axi_gemm_wrapper_depth16 tb_axi_gemm_wrapper_depth64
+
+tb_axi_gemm_wrapper_depth4: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=4 -o $(SIMDIR)/sim_axi_gemm_d4 $^
+	$(VVP) $(SIMDIR)/sim_axi_gemm_d4
+
+tb_axi_gemm_wrapper_depth16: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=16 -o $(SIMDIR)/sim_axi_gemm_d16 $^
+	$(VVP) $(SIMDIR)/sim_axi_gemm_d16
+
+tb_axi_gemm_wrapper_depth64: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+	$(IVERILOG) -g2012 -DDEPTH_VAL=64 -o $(SIMDIR)/sim_axi_gemm_d64 $^
+	$(VVP) $(SIMDIR)/sim_axi_gemm_d64
+
+# ── BRAM weight cache ────────────────────────────────────────────────────────
+tb_weight_bram: tb_weight_bram_d4 tb_weight_bram_d8
+
+tb_weight_bram_d4: ../tb/tb_weight_bram.v ../rtl/weight_bram.v
+	$(IVERILOG) -g2012 -DADDR_WIDTH_VAL=4 -o $(SIMDIR)/sim_weight_bram_d4 $^
+	$(VVP) $(SIMDIR)/sim_weight_bram_d4
+
+tb_weight_bram_d8: ../tb/tb_weight_bram.v ../rtl/weight_bram.v
+	$(IVERILOG) -g2012 -DADDR_WIDTH_VAL=8 -o $(SIMDIR)/sim_weight_bram_d8 $^
+	$(VVP) $(SIMDIR)/sim_weight_bram_d8
 
 # ── Python reference verification ─────────────────────────────────────────────
 verify:

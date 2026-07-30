@@ -1,13 +1,5 @@
 # BitNet Inference Developer Kit — Arty A7-100T (Track A)
 
-> **Where the code lives.** This document describes the Track A system whose
-> RTL (`axi_gemm_wrapper.v`, `weight_bram.v`), block-design scripts (`Arty7/`),
-> firmware (`firmware/tier1_bench.c`) and weight tooling (`tools/`) currently
-> live on the
-> [`feat/bitnet-accelerator`](https://github.com/Ternarycore/ternarycore/tree/feat/bitnet-accelerator)
-> branch. It is kept on `main` as the canonical statement of the plan; the
-> branch merges to `main` once the design is confirmed on real silicon.
-
 This is the developer-kit guide for the TernaryCore **Track A** BitNet b1.58
 inference accelerator on a Digilent **Arty A7-100T** (Xilinx Artix-7
 `xc7a100tcsg324-1`). It ties the RTL, the Vivado build flow, the MicroBlaze

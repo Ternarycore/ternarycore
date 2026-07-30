@@ -1,10 +1,5 @@
 # TernaryCore Roadmap: From Single MAC to Silicon Products
 
-> **Note.** The Track A implementation (AXI GEMM wrapper, weight BRAM,
-> MicroBlaze block design, Tier 1 benchmark firmware) lives on the
-> [`feat/bitnet-accelerator`](https://github.com/Ternarycore/ternarycore/tree/feat/bitnet-accelerator)
-> branch — see [`DEVKIT.md`](../DEVKIT.md) for the build-and-run guide.
-
 > **Current state**: `ternary_mac.v` (81 LUTs, 0 DSPs) passing on both Arty A7-100T (Artix-7) and Tang Nano 9k (GW1NR-9).  
 > **This document**: Two product tracks branching from the same RTL core.
 

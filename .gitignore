@@ -1,23 +1,37 @@
-
-# Ignore all Vivado runs and log files
+# Vivado project artifacts
+*.xpr
+*.hw/
+*.cache/
+*.sim/
+*.ip_user_files/
 *.runs/
+.Xil/
+
+# Vivado run outputs
 *.log
 *.jou
 *.pb
 *.vds
 *.rpt
 *.dcp
+*.backup
+*_backup*
 
 # Vivado generated
-*.jou
-*.log
 *.str
 *.mcs
 *.prm
-.Xil/
+*.bit
+*.bin
 vivado*/
 
-# Simulation outputs
+# Gowin EDA project artifacts
+impl/
+*.fs
+temp/
+*.cfg
+
+# Simulation outputs (protect root sim/ directory which holds CocotB infrastructure)
 sim/sim_*
 sim/*.vcd
 sim/*.vvp
@@ -50,29 +64,15 @@ AGENTS.md
 *.so
 
 # Documentation build files
-*.log
 *.aux
 *.toc
 
-# Vivado / Xilinx generated temporary and working assets
-# Project/work directories, caches, IP build and hardware files
-*.xpr
-*.hw/
-*/hw/
-*.cache/
-*/.Xil/
-*.sim/
-*/sim/
-*.ip_user_files/
-*/ip_user_files/
-*.runs/
-*/runs/
-# bitstream/build intermediates
-*.dcp
-*.bit
-*.bin
-*.backup
-*_backup*
-*.pb
-
-
+scripts/**
+!scripts/*
+.env*
+opencode.json
+.aider*
+prd.jsonarty_mb_gemm/
+ip/axi_gemm_wrapper/
+ip/weight_bram/
+arty_mb_gemm/

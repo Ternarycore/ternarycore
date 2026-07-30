@@ -1,0 +1,17 @@
+# TernaryCore Progress Log
+
+## 2026-05-26 - US-005: MicroBlaze C firmware for Tier 1 benchmark
+- Created firmware/tier1_bench.c (222 lines)
+- Loads 1M deterministic ternary weights into weight_bram (256 KB, 65536 AXI word writes)
+- Accelerator path: 192 column groups x 768 depth = one full 768->768 projection per pass
+- Software reference: pure C loops reading packed 2-bit weights from BRAM
+- Measurements: XTime-based cycle counter for 100-pass accelerator and software runs
+- UART output: "ACCEL: N cycles  SW: M cycles  Speedup: K.Kx\\r\\n"
+- Verification step checks accel vs sw output agreement before benchmark
+- Targets mb-gcc -O2 -Wall (MicroBlaze bare-metal standalone BSP)
+
+## 2026-05-26 - US-006: Update CI workflow for new testbenches
+- Added tb_axi_gemm_wrapper (47 tests over 3 DEPTHs) and tb_weight_bram (8 tests over 2 ADDR_WIDTHs) to CI simulation steps
+- Added verilator linting for axi_gemm_wrapper.v and weight_bram.v
+- Updated test summary counts from 31 to 86 total tests
+- AGENTS.md updated with Track A Phase 1 module list (5 modules) and AXI register map

@@ -265,3 +265,7 @@ The repository is open. The simulator is validated. The silicon works.
 
 * *Explore the hardware documentation and track our upcoming launch at **[ternarycore.io](https://ternarycore.io)**.*
 * *Review the simulation source code on GitHub at **[github.com/shepherdscientific/ternarycore](https://github.com/shepherdscientific/ternarycore)**.*
+
+---
+
+**Next**: Porting TernaryCore to the $15 Tang Nano 9k (Gowin GW1NR-9). The same fast ternary matrix math that accelerates BitNet inference has a natural second life in post-quantum cryptography, where lattice-based schemes spend their cycles on polynomial multiplication over rings — operations that collapse identically under a ternary weight regime. One RTL core, two very different threat models.
