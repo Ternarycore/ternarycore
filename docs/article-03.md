@@ -261,8 +261,10 @@ clearly than blur it.
 
 ## Next
 
-- **Tier 2**: DMA weight feed + wider result interface — turn 3% array
-  utilization into a headline number.
+- **Tier 2**: a hardware streaming feeder replacing the CPU's per-element
+  writes — already passing simulation at line rate (one element per clock,
+  64 columns wide, ~574× over the CPU-fed path). Bringing it to the board is
+  the next post.
 - **Activation quantization + per-channel scale**: an external contributor
   ([@vlordier](https://github.com/vlordier)) independently arrived with the
   quantizer and rescale RTL — and, remarkably, the *same* fix for the
