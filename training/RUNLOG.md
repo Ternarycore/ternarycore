@@ -3,31 +3,37 @@
 | When (UTC) | Run | Config | Result |
 |---|---|---|---|
 | 2026-07-31 ~22:45 | surgery.py | Qwen3-0.6B → SubLN+BitLinear | teacher 3.318 / student-FP 6.903 / ternary 14.238 eval loss — init saved |
-| 2026-07-31 ~22:47 | smoke_train 400st | seq1024 b2 a8 lr1e-4 | loss 13.89→3.6–4.0 by step 280 (4.6 M tok, ~5.9 k tok/s). Killed at ~step 285 by blackout #1. **D3 loop proven.** |
-| 2026-08-01 00:14 | warmup attempt 1 | naive tokenizer | stalled >1 h in single 500 MB-string tokenizer call. |
-| 2026-08-01 ~02:00 | warmup attempts 2–3 | — | ran stale code (pkill-footgun killed the deploy before git pull); one reached 58 GB RSS. Postmortems in this file's history. |
-| 2026-08-01 02:10–06:55 | warmup attempt 4 | batched tokenizer; 124.2 M-tok corpus; seq1024 b2 a8 lr2e-4 cos; resume smoke-last | ran to step ~4275; transient host-load spike (~36) slowed 2 h; **killed by blackout #2**; alternating ckpt @4250 survived (~7 min lost). |
-| 2026-08-01 07:06–07:31 | warmup attempt 5 (resume) | auto-resume warmup-a @4250 | ran 4250→6103 at 5.9 k tok/s. **DONE.** |
+| 2026-07-31 ~22:47 | smoke_train 400st | seq1024 b2 a8 lr1e-4 | 13.89→3.6–4.0 by step 280 (~5.9 k tok/s). Killed by blackout #1. **D3 loop proven.** |
+| 2026-08-01 00:14–02:00 | warmup attempts 1–3 | — | tokenizer stall + pkill-footgun postmortems (see file history). |
+| 2026-08-01 02:10–07:31 | warmup attempts 4–5 | 124.2 M-tok wikitext-103, resume across blackout #2 | **D3 COMPLETE: final eval loss 3.474** (teacher 3.318 / FP-SubLN 6.903 / pre-warm-up 14.238). ~4.5 h effective GPU. LR-schedule resume bug noted for next run. |
+| 2026-08-01 ~10:05–11:15 | **d4_sst2.py ft + distill** | teacher FT: 1 ep, lr 2e-5, 4209 steps @0.09 s/step. Distill: 2 ep, 8418 steps @0.16 s/step, CE+logit-KD T=2 α=0.5, ternary QUANT on | **D4 SST-2 COMPLETE — see below** |
 
-## D3 warm-up — FINAL RESULT (2026-08-01 07:31 UTC)
+## D4 SST-2 — FINAL RESULT (2026-08-01 ~11:15 UTC)
 
-| Model state | wikitext eval loss |
+| Model | SST-2 dev accuracy |
 |---|---|
-| FP teacher (Qwen3-0.6B) | 3.318 |
-| Student, FP after SubLN surgery (untrained) | 6.903 |
-| Student, ternary snap, pre-warm-up | 14.238 |
-| **Student, ternary, after 100 M-token warm-up** | **3.474** |
+| FP teacher, zero-shot | 75.57% |
+| FP teacher, task fine-tuned | 94.38% |
+| Ternary student (post-warm-up), pre-distill | 60.67% |
+| **Ternary student, post-distill** | **91.17%** |
 
-**The ternary student sits 0.16 nats above its FP teacher** after a 100 M-token
-warm-up (~4.5 h effective GPU on one RTX 5070 Ti, ~$0 marginal cost, two
-blackouts survived). 97.7% of the surgery+ternarization damage recovered.
-Checkpoint: `~/tc-ckpt/warmup-final.pt`.
+**Success bar (D1-decision.md): ≥95% of the fine-tuned teacher = ≥89.66%.**
+**Achieved: 91.17% = 96.6% of teacher — BAR MET on the first run**, logit-KD
+only (no attention-relation KD yet), ~70 min total GPU for both stages.
+Checkpoints: `teacher-sst2.pt`, `d4-student-sst2.pt`.
 
-*Known imperfection: the resume at step 4250 restarted the LR schedule, so
-the run ended at lr≈1.6e-4 instead of a decayed tail — the final number
-likely slightly understates achievable quality. Fix scheduler resume
-(offset by start_step) before any run whose numbers get published.*
+Upside still on the table for run 2 (optional): attention-relation KD,
+LR-schedule fix, longer distill, α/T sweep — target 92–93%.
 
-**Next: D4 task distillation** (SST-2 + MNLI, logit + attention-relation KD
-from the task-fine-tuned teacher, per D1-decision.md). Warm-up curves and
-this table are article-05 material.
+### The complete closed loop, measured in one 13-hour window
+
+Qwen3-0.6B (FP teacher) → SubLN surgery → 100 M-token QAT warm-up
+(eval loss 14.24→3.47) → SST-2 logit distillation → **596 M-param ternary
+{−1,0,+1} model at 91.2% SST-2**, produced entirely on one locally owned
+RTX 5070 Ti through two mains blackouts. Every weight in every projection
+is a trit — native food for the TernaryCore datapath.
+
+**Next:** (a) optional run 2 for +1–2 pts; (b) MNLI second task per D1;
+(c) D5 export path: `export_checkpoint.py` (extend prep_bitnet_layer.py to
+1024-dim layers) + DEPTH=1024 bitstream rebuild — converges with the
+Tier-2-on-silicon hardware milestone.
