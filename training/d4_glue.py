@@ -4,12 +4,9 @@ MiniLM-style attention-relation KD (last decoder layer).
 
   --task sst2|mnli  --stage ft|distill|promote  [--attn_kd] [--epochs N] [--lr X]
 
-ft      -> ~/tc-ckpt/teacher-<task>.pt
-distill -> ~/tc-ckpt/d4-student-<task><-r2 if attn_kd>.pt  (from warmup-final.pt)
-promote -> recover: teacher-<task>-ckpt.pt (periodic save) -> teacher-<task>.pt + eval
-
-Post-OOM fixes: eval uses B=4 for mnli + empty_cache; weights are saved
-BEFORE the final eval so an eval crash can never lose a trained model.
+Blackout-proof: periodic ckpts store {'step', 'sd'}; on restart every stage
+resumes at the saved step with the LR schedule fast-forwarded. Weights are
+saved BEFORE the final eval. Eval is memory-lean (B=4 for mnli).
 """
 import argparse, os, time
 import torch
@@ -28,7 +25,7 @@ TASKS = {
         prompt=lambda r: f"Review: {r['sentence'].strip()}\nSentiment:"),
     "mnli": dict(
         load=("glue", "mnli"), val="validation_matched", maxlen=192,
-        labels=[" yes", " maybe", " no"],   # entailment / neutral / contradiction
+        labels=[" yes", " maybe", " no"],
         prompt=lambda r: (f"Premise: {r['premise'].strip()}\n"
                           f"Hypothesis: {r['hypothesis'].strip()}\nAnswer:")),
 }
@@ -42,7 +39,8 @@ p.add_argument("--lr", type=float, default=0.0)
 p.add_argument("--batch", type=int, default=0)
 p.add_argument("--temp", type=float, default=2.0)
 p.add_argument("--alpha", type=float, default=0.5)
-p.add_argument("--beta", type=float, default=1.0)   # attn-KD weight
+p.add_argument("--beta", type=float, default=1.0)
+p.add_argument("--fresh", action="store_true", help="ignore existing ckpt")
 args = p.parse_args()
 T_ = TASKS[args.task]
 
@@ -51,6 +49,10 @@ if tok.pad_token is None:
     tok.pad_token = tok.eos_token
 LABEL_IDS = [tok(l, add_special_tokens=False).input_ids for l in T_["labels"]]
 ATTN_IMPL = "eager" if args.attn_kd else "sdpa"
+
+
+def sd_of(obj):
+    return obj["sd"] if isinstance(obj, dict) and "sd" in obj else obj
 
 
 def encode(row, label=None):
@@ -96,55 +98,72 @@ def accuracy(model):
     return correct / len(ds)
 
 
-def train_loop(model, teacher, epochs, lr, bsz, tag):
+def train_loop(model, teacher, epochs, lr, bsz, tag, start_step=0):
     import bitsandbytes as bnb
     ds = load_dataset(*T_["load"], split="train").shuffle(seed=0)
     data = [encode(r, r["label"]) for r in ds]
+    bpe = len(data) // bsz            # batches per epoch
+    steps = bpe * epochs
     opt = bnb.optim.AdamW8bit(model.parameters(), lr=lr, weight_decay=0.01)
-    steps = (len(data) // bsz) * epochs
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=steps)
-    t0, step = time.time(), 0
-    for ep in range(epochs):
-        for i in range(0, len(data) - bsz, bsz):
-            ids, lab, att = collate(data[i:i + bsz])
-            s_out = model(ids, attention_mask=att,
-                          output_attentions=args.attn_kd)
-            out = s_out.logits[:, :-1]
-            tgt = lab[:, 1:]
-            mask = tgt != -100
-            ce = F.cross_entropy(out[mask], tgt[mask])
-            loss = ce
-            if teacher is not None:
-                with torch.no_grad():
-                    t_out = teacher(ids, attention_mask=att,
-                                    output_attentions=args.attn_kd)
-                Tk = args.temp
-                kd = F.kl_div(F.log_softmax(out[mask] / Tk, -1),
-                              F.softmax(t_out.logits[:, :-1][mask] / Tk, -1),
-                              reduction="batchmean") * Tk * Tk
-                loss = args.alpha * ce + (1 - args.alpha) * kd
-                if args.attn_kd:
-                    sa = s_out.attentions[-1].clamp_min(1e-9)
-                    ta = t_out.attentions[-1].clamp_min(1e-9)
-                    rel = (ta * (ta.log() - sa.log())).sum(-1)   # [B,H,L]
-                    qm = att[:, None, :].float()
-                    loss = loss + args.beta * (rel * qm).sum() / qm.sum() / rel.size(1)
-            opt.zero_grad(set_to_none=True); loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            opt.step(); sched.step(); step += 1
-            if step % 200 == 0:
-                print(f"MARK {tag} ep{ep} step {step}/{steps} loss {loss.item():.4f} "
-                      f"({(time.time()-t0)/step:.2f}s/step)", flush=True)
-            if step % 2000 == 0:
-                torch.save(model.state_dict(), os.path.join(CKPT, f"{tag}-ckpt.pt"))
+    for _ in range(start_step):       # fast-forward LR to the resume point
+        sched.step()
+    ckpt_path = os.path.join(CKPT, f"{tag}-ckpt.pt")
+    t0 = time.time()
+    for gstep in range(start_step, steps):
+        i = (gstep % bpe) * bsz
+        ids, lab, att = collate(data[i:i + bsz])
+        s_out = model(ids, attention_mask=att, output_attentions=args.attn_kd)
+        out = s_out.logits[:, :-1]
+        tgt = lab[:, 1:]
+        mask = tgt != -100
+        ce = F.cross_entropy(out[mask], tgt[mask])
+        loss = ce
+        if teacher is not None:
+            with torch.no_grad():
+                t_out = teacher(ids, attention_mask=att,
+                                output_attentions=args.attn_kd)
+            Tk = args.temp
+            kd = F.kl_div(F.log_softmax(out[mask] / Tk, -1),
+                          F.softmax(t_out.logits[:, :-1][mask] / Tk, -1),
+                          reduction="batchmean") * Tk * Tk
+            loss = args.alpha * ce + (1 - args.alpha) * kd
+            if args.attn_kd:
+                sa = s_out.attentions[-1].clamp_min(1e-9)
+                ta = t_out.attentions[-1].clamp_min(1e-9)
+                rel = (ta * (ta.log() - sa.log())).sum(-1)
+                qm = att[:, None, :].float()
+                loss = loss + args.beta * (rel * qm).sum() / qm.sum() / rel.size(1)
+        opt.zero_grad(set_to_none=True); loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        opt.step(); sched.step()
+        done = gstep + 1
+        if done % 200 == 0:
+            print(f"MARK {tag} step {done}/{steps} loss {loss.item():.4f} "
+                  f"({(time.time()-t0)/max(done-start_step,1):.2f}s/step)", flush=True)
+        if done % 1000 == 0:
+            torch.save({"step": done, "sd": model.state_dict()}, ckpt_path)
+
+
+def load_resume(model, tag):
+    path = os.path.join(CKPT, f"{tag}-ckpt.pt")
+    if args.fresh or not os.path.exists(path):
+        return 0
+    d = torch.load(path, map_location="cuda")
+    model.load_state_dict(sd_of(d))
+    start = d.get("step", 0) if isinstance(d, dict) else 0
+    print(f"[resume] {tag} from step {start}", flush=True)
+    return start
 
 
 if args.stage == "ft":
     model = AutoModelForCausalLM.from_pretrained(
         TEACHER, dtype=torch.bfloat16, attn_implementation="sdpa").cuda()
-    print(f"[{args.task}-ft] teacher zero-shot: {accuracy(model):.4f}", flush=True)
+    start = load_resume(model, f"teacher-{args.task}")
+    if start == 0:
+        print(f"[{args.task}-ft] teacher zero-shot: {accuracy(model):.4f}", flush=True)
     train_loop(model, None, args.epochs or 1, args.lr or 2e-5,
-               args.batch or 16, f"teacher-{args.task}")
+               args.batch or 16, f"teacher-{args.task}", start)
     torch.save(model.state_dict(), os.path.join(CKPT, f"teacher-{args.task}.pt"))
     print(f"[{args.task}-ft] teacher fine-tuned: {accuracy(model):.4f}", flush=True)
     print(f"[{args.task}-ft] DONE", flush=True)
@@ -153,7 +172,7 @@ elif args.stage == "promote":
     model = AutoModelForCausalLM.from_pretrained(
         TEACHER, dtype=torch.bfloat16, attn_implementation="sdpa").cuda()
     src = os.path.join(CKPT, f"teacher-{args.task}-ckpt.pt")
-    model.load_state_dict(torch.load(src, map_location="cuda"))
+    model.load_state_dict(sd_of(torch.load(src, map_location="cuda")))
     torch.save(model.state_dict(), os.path.join(CKPT, f"teacher-{args.task}.pt"))
     print(f"[{args.task}-promote] recovered {src}", flush=True)
     print(f"[{args.task}-ft] teacher fine-tuned: {accuracy(model):.4f}", flush=True)
@@ -162,20 +181,24 @@ elif args.stage == "promote":
 else:
     teacher = AutoModelForCausalLM.from_pretrained(
         TEACHER, dtype=torch.bfloat16, attn_implementation=ATTN_IMPL).cuda()
-    teacher.load_state_dict(torch.load(
-        os.path.join(CKPT, f"teacher-{args.task}.pt"), map_location="cuda"))
+    teacher.load_state_dict(sd_of(torch.load(
+        os.path.join(CKPT, f"teacher-{args.task}.pt"), map_location="cuda")))
     teacher.eval()
     student = AutoModelForCausalLM.from_pretrained(
         TEACHER, dtype=torch.bfloat16, attn_implementation=ATTN_IMPL).cuda()
     student = build_student(student)
-    student.load_state_dict(torch.load(
-        os.path.join(CKPT, "warmup-final.pt"), map_location="cuda"))
+    suffix = "-r2" if args.attn_kd else ""
+    tag = f"d4-{args.task}{suffix}"
+    start = load_resume(student, tag)
+    if start == 0:
+        student.load_state_dict(sd_of(torch.load(
+            os.path.join(CKPT, "warmup-final.pt"), map_location="cuda")))
     bitlinear.QUANT["enabled"] = True
     student.gradient_checkpointing_enable()
-    print(f"[{args.task}] student PRE-distill: {accuracy(student):.4f}", flush=True)
-    suffix = "-r2" if args.attn_kd else ""
+    if start == 0:
+        print(f"[{args.task}] student PRE-distill: {accuracy(student):.4f}", flush=True)
     train_loop(student, teacher, args.epochs or 2, args.lr or 5e-5,
-               args.batch or (8 if args.attn_kd else 16), f"d4-{args.task}{suffix}")
+               args.batch or (8 if args.attn_kd else 16), tag, start)
     torch.save(student.state_dict(),
                os.path.join(CKPT, f"d4-student-{args.task}{suffix}.pt"))
     print(f"[{args.task}] student POST-distill{suffix}: {accuracy(student):.4f}", flush=True)
