@@ -41,8 +41,8 @@
 #define LSR_DR       0x01u
 #define LSR_THRE     0x20u
 
-#define DEPTH        768
-#define COLS_TOTAL   768
+#define DEPTH        1024
+#define COLS_TOTAL   1024
 #define GROUPS       (COLS_TOTAL / 4)
 #define WBYTES       (DEPTH * GROUPS)   /* 147,456 bytes for one 768x768 layer */
 
