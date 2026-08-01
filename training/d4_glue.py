@@ -2,10 +2,14 @@
 """D4 generalized: GLUE task distillation (SST-2, MNLI) with optional
 MiniLM-style attention-relation KD (last decoder layer).
 
-  --task sst2|mnli  --stage ft|distill  [--attn_kd] [--epochs N] [--lr X]
+  --task sst2|mnli  --stage ft|distill|promote  [--attn_kd] [--epochs N] [--lr X]
 
 ft      -> ~/tc-ckpt/teacher-<task>.pt
 distill -> ~/tc-ckpt/d4-student-<task><-r2 if attn_kd>.pt  (from warmup-final.pt)
+promote -> recover: teacher-<task>-ckpt.pt (periodic save) -> teacher-<task>.pt + eval
+
+Post-OOM fixes: eval uses B=4 for mnli + empty_cache; weights are saved
+BEFORE the final eval so an eval crash can never lose a trained model.
 """
 import argparse, os, time
 import torch
@@ -31,7 +35,7 @@ TASKS = {
 
 p = argparse.ArgumentParser()
 p.add_argument("--task", required=True, choices=list(TASKS))
-p.add_argument("--stage", required=True, choices=["ft", "distill"])
+p.add_argument("--stage", required=True, choices=["ft", "distill", "promote"])
 p.add_argument("--attn_kd", action="store_true")
 p.add_argument("--epochs", type=int, default=0)
 p.add_argument("--lr", type=float, default=0.0)
@@ -74,7 +78,8 @@ def collate(batch):
 def accuracy(model):
     ds = load_dataset(*T_["load"], split=T_["val"])
     model.eval(); correct = 0
-    B = 16
+    torch.cuda.empty_cache()
+    B = 4 if args.task == "mnli" else 16
     nl = len(T_["labels"])
     for i in range(0, len(ds), B):
         rows = ds.select(range(i, min(i + B, len(ds))))
@@ -140,9 +145,19 @@ if args.stage == "ft":
     print(f"[{args.task}-ft] teacher zero-shot: {accuracy(model):.4f}", flush=True)
     train_loop(model, None, args.epochs or 1, args.lr or 2e-5,
                args.batch or 16, f"teacher-{args.task}")
-    print(f"[{args.task}-ft] teacher fine-tuned: {accuracy(model):.4f}", flush=True)
     torch.save(model.state_dict(), os.path.join(CKPT, f"teacher-{args.task}.pt"))
+    print(f"[{args.task}-ft] teacher fine-tuned: {accuracy(model):.4f}", flush=True)
     print(f"[{args.task}-ft] DONE", flush=True)
+
+elif args.stage == "promote":
+    model = AutoModelForCausalLM.from_pretrained(
+        TEACHER, dtype=torch.bfloat16, attn_implementation="sdpa").cuda()
+    src = os.path.join(CKPT, f"teacher-{args.task}-ckpt.pt")
+    model.load_state_dict(torch.load(src, map_location="cuda"))
+    torch.save(model.state_dict(), os.path.join(CKPT, f"teacher-{args.task}.pt"))
+    print(f"[{args.task}-promote] recovered {src}", flush=True)
+    print(f"[{args.task}-ft] teacher fine-tuned: {accuracy(model):.4f}", flush=True)
+    print(f"[{args.task}-promote] DONE", flush=True)
 
 else:
     teacher = AutoModelForCausalLM.from_pretrained(
@@ -161,8 +176,7 @@ else:
     suffix = "-r2" if args.attn_kd else ""
     train_loop(student, teacher, args.epochs or 2, args.lr or 5e-5,
                args.batch or (8 if args.attn_kd else 16), f"d4-{args.task}{suffix}")
-    acc = accuracy(student)
-    print(f"[{args.task}] student POST-distill{suffix}: {acc:.4f}", flush=True)
     torch.save(student.state_dict(),
                os.path.join(CKPT, f"d4-student-{args.task}{suffix}.pt"))
+    print(f"[{args.task}] student POST-distill{suffix}: {accuracy(student):.4f}", flush=True)
     print(f"[{args.task}] DONE", flush=True)
