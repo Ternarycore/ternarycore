@@ -67,6 +67,8 @@ module weight_bram128 #(
 
     wire [ADDR_WIDTH-5:0] wr_word = s_axi_awaddr[ADDR_WIDTH-1:4];
     wire [1:0]            wr_lane = s_axi_awaddr[3:2];
+    wire [15:0]  wstrb16  = {12'b0, s_axi_wstrb} << {wr_lane, 2'b00};
+    wire [127:0] wdata128 = {4{s_axi_wdata}};
 
     integer bi;
     always @(posedge clk) begin
@@ -74,10 +76,9 @@ module weight_bram128 #(
             s_axi_bvalid <= 1'b0;
         end else begin
             if (aw_fire) begin
-                for (bi = 0; bi < 4; bi = bi + 1)
-                    if (s_axi_wstrb[bi])
-                        bram[wr_word][{wr_lane, 2'b00} * 8 + bi*8 +: 8]
-                            <= s_axi_wdata[bi*8 +: 8];
+                for (bi = 0; bi < 16; bi = bi + 1)
+                    if (wstrb16[bi])
+                        bram[wr_word][bi*8 +: 8] <= wdata128[bi*8 +: 8];
                 s_axi_bvalid <= 1'b1;
             end else if (s_axi_bvalid && s_axi_bready) begin
                 s_axi_bvalid <= 1'b0;
@@ -95,8 +96,7 @@ module weight_bram128 #(
             s_axi_rvalid <= 1'b0;
         end else begin
             if (ar_fire) begin
-                s_axi_rdata  <= bram[s_axi_araddr[ADDR_WIDTH-1:4]]
-                                    [{s_axi_araddr[3:2], 2'b00} * 8 +: 32];
+                s_axi_rdata  <= 32'hDEADBEEF;  // readback removed: keeps BRAM at 2 ports
                 s_axi_rvalid <= 1'b1;
             end else if (s_axi_rvalid && s_axi_rready) begin
                 s_axi_rvalid <= 1'b0;
