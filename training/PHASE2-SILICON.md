@@ -51,3 +51,38 @@ the COLS=64 array, bit-exact against the training-side reference.
 
 Phase 0 ✅ · Phase 1 ✅ (557×) · **Phase 2 core ✅** (DMA pager pending) ·
 Phase 3 Ethernet — unblocked (cached MicroBlaze exists) · Phase 4/5 next.
+
+## Phase 2.5 + 3 — CDMA pager and Ethernet first light (build 14, 2 Aug)
+
+Build 12 closed timing (WNS +0.988 ns) with zero errors and was
+**functionally dead**: every layer returned all-zeros. Two silent
+address-decode failures, caught only because the regression runs on every
+bitstream.
+
+- **Bug 1** — hanging the CDMA off `axi_smc` gave the CPU a second route to
+  `weight_bram`. Vivado bound the segment to `M_AXI_DC`, but MicroBlaze
+  issues non-cacheable addresses on `M_AXI_DP`, which had no decode: DECERR
+  on every weight write, and bare-metal firmware never checks `bresp`.
+- **Bug 2** — `assign_bd_address` auto-**excluded** `weight_bram` from the
+  CDMA's address space: wire present, decode absent. `CDMA SR 0x5042` =
+  DMADecErr. A `catch` had hidden the failure, so it shipped.
+
+Fixes: a private SmartConnect crossbar per master, an explicit
+`include_bd_addr_seg`, and build-time assertions on the address map — a
+bitstream can no longer reach silicon with a master that cannot reach its
+slave.
+
+Build 14 (WNS +1.049 ns, WHS +0.013 ns):
+
+| Measurement | Result |
+|---|---|
+| phase2_demo | 2/2 DDR-resident layers paged + computed EXACT |
+| PAGEDMA correctness | 2/2 EXACT |
+| PAGEDMA per 256 KB page | **4.750 ms** (n=64 and n=256 agree) |
+| CPU pager per page | 47.998 ms |
+| Speedup | **10.1x** |
+| ETHLINK | PHY 1, ID1 0x2000, BMSR 0x786d — **LINK UP** |
+
+4.750 ms is 55 MB/s against a 325 MB/s ceiling at 81.25 MHz (~5.9 cycles
+per 32-bit word): the CDMA is not bursting into the BRAM. Widening its
+data path is follow-up work, not a blocker.
