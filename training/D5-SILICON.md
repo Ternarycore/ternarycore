@@ -59,3 +59,18 @@ as training.
 
 **Next:** full forward pass via tiling — one real token, every MAC on
 silicon (needs the FP-parts export + NumPy ops shell); then MIG/DDR3.
+
+---
+
+## Note on the "Accel vs SW" column (added 2 Aug)
+
+The three-way check above — board accelerator vs board CPU vs host NumPy —
+was valid when recorded on 1 Aug. Commit `c7778d5` (2 Aug 06:00) removed the
+weight BRAM's third port, and with it AXI readback, to fix BRAM inference;
+`read_weight_byte()` now returns `0xDEADBEEF`, so the firmware's `RUN`
+self-verify computes on garbage and reports `VERIFY FAIL` regardless of
+correctness. All verification from that commit onward is two-way — board
+accelerator vs host reference — via `SLOAD`/`SRUN`, and `tier2_host.py`
+compares the board's full-vector `SCHK` checksum, not just the first 8
+outputs. Do not read `VERIFY FAIL` on a post-c7778d5 bitstream as a
+correctness failure.
