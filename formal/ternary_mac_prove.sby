@@ -1,0 +1,16 @@
+[options]
+mode bmc
+depth 10
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_mac.v
+read -formal ternary_mac_formal.v
+prep -top ternary_mac_formal
+
+[files]
+../rtl/ternary_mac.v
+../rtl/ternary_defines.vh
+ternary_mac_formal.v

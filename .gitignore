@@ -36,6 +36,17 @@ sim/sim_*
 sim/*.vcd
 sim/*.vvp
 
+# Verilator build artifacts
+obj_dir/
+sim/obj_dir*
+sim/tests/*.o
+
+# Formal verification artifacts
+formal/*/
+!formal/*.v
+!formal/*.sby
+!formal/*.sh
+
 # Temporary test files
 test_*.v
 
@@ -76,3 +87,6 @@ prd.jsonarty_mb_gemm/
 ip/axi_gemm_wrapper/
 ip/weight_bram/
 arty_mb_gemm/
+# Mutation testing artifacts
+*.bak
+*.mutated
