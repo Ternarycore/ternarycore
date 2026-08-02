@@ -1,5 +1,8 @@
-## arty_ddr.xdc — Phase-2 constraints: UART + LEDs only.
-## Clock, reset, and all DDR3 pins are constrained by the board files / MIG.
+## arty_ddr.xdc — Phase-2 constraints. DDR3 pins come from the MIG core
+## (mig.prj); this file covers the fabric-side board pins.
+set_property -dict {PACKAGE_PIN E3 IOSTANDARD LVCMOS33} [get_ports sys_clk]
+create_clock -period 10.000 -name sys_clk_pin -waveform {0.000 5.000} [get_ports sys_clk]
+set_property -dict {PACKAGE_PIN C2 IOSTANDARD LVCMOS33} [get_ports sys_rst_n]
 set_property -dict {PACKAGE_PIN D10 IOSTANDARD LVCMOS33} [get_ports UART_0_txd]
 set_property -dict {PACKAGE_PIN A9  IOSTANDARD LVCMOS33} [get_ports UART_0_rxd]
 set_property -dict {PACKAGE_PIN G13 IOSTANDARD LVCMOS33} [get_ports UART_0_rtsn]
