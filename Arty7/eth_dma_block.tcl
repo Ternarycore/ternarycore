@@ -9,7 +9,7 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
 
 # ── grow the fabrics ─────────────────────────────────────────────
-set_property CONFIG.NUM_SI {3} [get_bd_cells axi_smc]
+set_property -dict [list CONFIG.NUM_SI {3} CONFIG.NUM_MI {2}] [get_bd_cells axi_smc]
 set_property CONFIG.NUM_MI {6} [get_bd_cells periph]
 connect_bd_net $UICLK [get_bd_pins periph/M04_ACLK] [get_bd_pins periph/M05_ACLK]
 connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] \
@@ -22,19 +22,15 @@ connect_bd_intf_net [get_bd_intf_pins periph/M04_AXI] [get_bd_intf_pins axi_cdma
 connect_bd_net $UICLK [get_bd_pins axi_cdma_0/s_axi_lite_aclk] [get_bd_pins axi_cdma_0/m_axi_aclk]
 connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] [get_bd_pins axi_cdma_0/s_axi_lite_aresetn]
 
-create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 cdma_ic
-set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {2}] [get_bd_cells cdma_ic]
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 bram_ic
 set_property -dict [list CONFIG.NUM_SI {2} CONFIG.NUM_MI {1}] [get_bd_cells bram_ic]
 
 foreach {cell pins} {
-    cdma_ic {ACLK S00_ACLK M00_ACLK M01_ACLK}
     bram_ic {ACLK S00_ACLK S01_ACLK M00_ACLK}
 } {
     foreach p $pins { connect_bd_net $UICLK [get_bd_pins $cell/$p] }
 }
 foreach {cell pins} {
-    cdma_ic {ARESETN S00_ARESETN M00_ARESETN M01_ARESETN}
     bram_ic {ARESETN S00_ARESETN S01_ARESETN M00_ARESETN}
 } {
     foreach p $pins { connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] [get_bd_pins $cell/$p] }
@@ -45,9 +41,8 @@ delete_bd_objs [get_bd_intf_nets -of [get_bd_intf_pins weight_bram_0/s_axi]]
 connect_bd_intf_net [get_bd_intf_pins periph/M02_AXI] [get_bd_intf_pins bram_ic/S00_AXI]
 connect_bd_intf_net [get_bd_intf_pins bram_ic/M00_AXI] [get_bd_intf_pins weight_bram_0/s_axi]
 
-connect_bd_intf_net [get_bd_intf_pins axi_cdma_0/M_AXI] [get_bd_intf_pins cdma_ic/S00_AXI]
-connect_bd_intf_net [get_bd_intf_pins cdma_ic/M00_AXI] [get_bd_intf_pins axi_smc/S02_AXI]
-connect_bd_intf_net [get_bd_intf_pins cdma_ic/M01_AXI] [get_bd_intf_pins bram_ic/S01_AXI]
+connect_bd_intf_net [get_bd_intf_pins axi_cdma_0/M_AXI] [get_bd_intf_pins axi_smc/S02_AXI]
+connect_bd_intf_net [get_bd_intf_pins axi_smc/M01_AXI] [get_bd_intf_pins bram_ic/S01_AXI]
 
 # ── EthernetLite (MII to the DP83848) ─────────────────────────────────
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_ethernetlite:3.0 axi_ethernetlite_0

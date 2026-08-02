@@ -162,8 +162,12 @@ set_property offset 0x00000000 [get_bd_addr_segs {microblaze_0/Instruction/SEG_i
 set_property range  64K        [get_bd_addr_segs {microblaze_0/Instruction/SEG_ilmb_cntlr_Mem}]
 catch {set_property offset 0x44300000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_cdma_0_Reg}]}
 catch {set_property offset 0x40E00000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_ethernetlite_0_Reg}]}
+catch {set_property offset 0x44100000 [get_bd_addr_segs {axi_cdma_0/Data/SEG_weight_bram_0_reg0}]}
+catch {delete_bd_objs [get_bd_addr_segs {microblaze_0/Instruction/SEG_weight_bram_0_reg0}]}
 catch {set_property offset 0x44300000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_cdma_0_Reg}]}
 catch {set_property offset 0x40E00000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_ethernetlite_0_Reg}]}
+catch {set_property offset 0x44100000 [get_bd_addr_segs {axi_cdma_0/Data/SEG_weight_bram_0_reg0}]}
+catch {delete_bd_objs [get_bd_addr_segs {microblaze_0/Instruction/SEG_weight_bram_0_reg0}]}
 
 make_bd_intf_pins_external [get_bd_intf_pins axi_uart16550_0/UART]
 make_bd_pins_external [get_bd_pins axi_gpio_0/gpio_io_o]
