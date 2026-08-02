@@ -86,3 +86,33 @@ Build 14 (WNS +1.049 ns, WHS +0.013 ns):
 4.750 ms is 55 MB/s against a 325 MB/s ceiling at 81.25 MHz (~5.9 cycles
 per 32-bit word): the CDMA is not bursting into the BRAM. Widening its
 data path is follow-up work, not a blocker.
+
+## Build 15 — AXI4 burst slave on silicon (WNS +1.316 ns)
+
+| Measurement | Build 14 | Build 15 |
+|---|---|---|
+| PAGEDMA per 256 KB page | 4.750 ms | **~0.94 ms** |
+| cycles per 32-bit word | 5.9 | **1.16** (sim predicted 1.25) |
+| CPU PAGE per page | 47.998 ms | 63.994 ms (slower, see below) |
+| phase2_demo via PAGEDMA | 2/2 EXACT | 2/2 EXACT |
+| phase2_demo via CPU PAGE | 2/2 EXACT | 2/2 EXACT |
+| tile cycles | 1031 | 1031 |
+
+Measured by slope, so the UART latency on the MARK lines cancels:
+
+| n pages | total | slope | cycles/word |
+|---|---|---|---|
+| 64 → 128 | 47.98 → 111.97 ms | 1.000 ms/page | 1.24 |
+| 128 → 256 | 111.97 → 223.99 ms | 0.875 ms/page | 1.09 |
+| 256 → 512 | 223.99 → 463.98 ms | 0.937 ms/page | 1.16 |
+
+Silicon lands on the simulated 1.25 cycles/word. **5.1x faster than build 14**,
+and 68x faster than the CPU pager.
+
+The CPU `PAGE` path got *slower*, 48 -> 64 ms, and that is expected: a
+single-word CPU write is now an AWLEN=0 burst, so it walks IDLE -> DATA ->
+RESP instead of firing AW and W together. Three cycles instead of two, on a
+path that PAGEDMA supersedes. Worth knowing, not worth fixing.
+
+Block 0 re-verified on build 15: all 7 projections, 15 tiles, EXACT via host
+tiling. The burst slave changes how weights arrive, not what arrives.
