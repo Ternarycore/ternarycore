@@ -32,39 +32,39 @@ module ternary_dot #(
     input  wire                   valid_in,
     input  wire [DATA_WIDTH-1:0]  activation,
     input  wire [1:0]             weight_enc,   // 00=0, 01=+1, 10=-1
-        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg  [ACC_WIDTH-1:0]   acc_out,
+         output reg  [ACC_WIDTH-1:0]   acc_out,
         output wire                   valid_out,
         // Exported debug ports (preserved for ILA/board probing)
-        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg                  debug_valid_in_out,
-        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg [DATA_WIDTH-1:0] debug_activation_out,
-        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg [1:0]            debug_weight_enc_out,
-        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg [ACC_WIDTH-1:0] debug_acc_out_out,
-        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg                  debug_valid_out_out
+         output reg                  debug_valid_in_out,
+         output reg [DATA_WIDTH-1:0] debug_activation_out,
+         output reg [1:0]            debug_weight_enc_out,
+         output reg [ACC_WIDTH-1:0] debug_acc_out_out,
+         output reg                  debug_valid_out_out
 );
 
-    (* mark_debug = "true" *) reg signed [DATA_WIDTH-1:0] weighted;
-    (* mark_debug = "true" *) reg [ACC_WIDTH-1:0] weighted_ext;
+     reg signed [DATA_WIDTH-1:0] weighted;
+     reg [ACC_WIDTH-1:0] weighted_ext;
 
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [ACC_WIDTH-1:0] acc;
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [15:0]          count;       // down-counter, no $clog2 required
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                 vector_done; // pulses 1 cycle when last element processed
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [ACC_WIDTH-1:0] result_latch; // latches the result for output
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                 vector_done_delayed;
+     reg [ACC_WIDTH-1:0] acc;
+     reg [15:0]          count;       // down-counter, no $clog2 required
+     reg                 vector_done; // pulses 1 cycle when last element processed
+     reg [ACC_WIDTH-1:0] result_latch; // latches the result for output
+     reg                 vector_done_delayed;
 
-    (* mark_debug = "true" *) reg [ACC_WIDTH-1:0] next_acc;
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                  debug_valid_in;
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [DATA_WIDTH-1:0] debug_activation;
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [1:0]            debug_weight_enc;
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [ACC_WIDTH-1:0] debug_acc_out;
-    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                  debug_valid_out;
+     reg [ACC_WIDTH-1:0] next_acc;
+     reg                  debug_valid_in;
+     reg [DATA_WIDTH-1:0] debug_activation;
+     reg [1:0]            debug_weight_enc;
+     reg [ACC_WIDTH-1:0] debug_acc_out;
+     reg                  debug_valid_out;
 
     // ILA-visible port taps: mirror external I/O so the ILA can capture
     // interface-level transitions without depending on optimization choices.
-    (* mark_debug = "true" *) wire                 debug_tap_valid_in;
-    (* mark_debug = "true" *) wire signed [DATA_WIDTH-1:0] debug_tap_activation;
-    (* mark_debug = "true" *) wire [1:0]            debug_tap_weight_enc;
-    (* mark_debug = "true" *) wire [ACC_WIDTH-1:0] debug_tap_acc_out;
-    (* mark_debug = "true" *) wire                 debug_tap_valid_out;
+     wire                 debug_tap_valid_in;
+     wire signed [DATA_WIDTH-1:0] debug_tap_activation;
+     wire [1:0]            debug_tap_weight_enc;
+     wire [ACC_WIDTH-1:0] debug_tap_acc_out;
+     wire                 debug_tap_valid_out;
 
     // Tie taps to module ports / internal outputs
     assign debug_tap_valid_in    = valid_in;
