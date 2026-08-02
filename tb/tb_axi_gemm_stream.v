@@ -26,13 +26,20 @@ module tb_axi_gemm_stream;
 
     weight_bram128 u_bram (
         .clk(clk), .rst_n(rst_n),
-        .s_axi_awaddr(w_awaddr), .s_axi_awprot(3'b0), .s_axi_awvalid(w_awvalid),
-        .s_axi_awready(w_awready), .s_axi_wdata(w_wdata), .s_axi_wstrb(4'hF),
-        .s_axi_wvalid(w_wvalid), .s_axi_wready(w_wready), .s_axi_bresp(w_bresp),
+        // AXI4 now: single-beat writes are AWLEN=0 bursts, WLAST tied high
+        .s_axi_awid(4'd0), .s_axi_awaddr(w_awaddr), .s_axi_awlen(8'd0),
+        .s_axi_awsize(3'd2), .s_axi_awburst(2'b01), .s_axi_awlock(1'b0),
+        .s_axi_awcache(4'd0), .s_axi_awprot(3'b0), .s_axi_awqos(4'd0),
+        .s_axi_awvalid(w_awvalid), .s_axi_awready(w_awready),
+        .s_axi_wdata(w_wdata), .s_axi_wstrb(4'hF), .s_axi_wlast(1'b1),
+        .s_axi_wvalid(w_wvalid), .s_axi_wready(w_wready),
+        .s_axi_bid(), .s_axi_bresp(w_bresp),
         .s_axi_bvalid(w_bvalid), .s_axi_bready(w_bready),
-        .s_axi_araddr(18'b0), .s_axi_arprot(3'b0), .s_axi_arvalid(1'b0),
-        .s_axi_arready(), .s_axi_rdata(), .s_axi_rresp(), .s_axi_rvalid(),
-        .s_axi_rready(1'b1),
+        .s_axi_arid(4'd0), .s_axi_araddr(18'b0), .s_axi_arlen(8'd0),
+        .s_axi_arsize(3'd2), .s_axi_arburst(2'b01), .s_axi_arlock(1'b0),
+        .s_axi_arcache(4'd0), .s_axi_arprot(3'b0), .s_axi_arqos(4'd0),
+        .s_axi_arvalid(1'b0), .s_axi_arready(), .s_axi_rid(), .s_axi_rdata(),
+        .s_axi_rresp(), .s_axi_rlast(), .s_axi_rvalid(), .s_axi_rready(1'b1),
         .w_word_addr(ww_addr), .w_word(ww_data));
 
     axi_gemm_stream u_dut (
@@ -59,10 +66,15 @@ module tb_axi_gemm_stream;
         @(negedge clk); g_arvalid=0;
         @(posedge clk); while(!g_rvalid) @(posedge clk); d=g_rdata;
     end endtask
+    // AW and W are independent channels. The burst slave takes the address in
+    // one cycle and data in the next, so a master must not wait for both
+    // readys together -- that deadlocked this TB when the slave went AXI4.
     task wwr(input [17:0] a, input [31:0] d); begin
-        @(negedge clk); w_awaddr=a; w_wdata=d; w_awvalid=1; w_wvalid=1;
-        @(posedge clk); while(!(w_awready&&w_wready)) @(posedge clk);
-        @(negedge clk); w_awvalid=0; w_wvalid=0;
+        @(negedge clk); w_awaddr=a; w_awvalid=1;
+        @(posedge clk); while(!w_awready) @(posedge clk);
+        @(negedge clk); w_awvalid=0; w_wdata=d; w_wvalid=1;
+        @(posedge clk); while(!w_wready) @(posedge clk);
+        @(negedge clk); w_wvalid=0;
         @(posedge clk); while(!w_bvalid) @(posedge clk);
     end endtask
 
