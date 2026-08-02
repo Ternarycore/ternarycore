@@ -1,0 +1,23 @@
+[options]
+mode cover
+depth 16
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_gemm.v
+read -formal ternary_dot.v
+read -formal ternary_gemm_stream.v
+read -formal ternary_gemm_stream_cover.v
+setattr -unset keep *
+setattr -unset dont_touch *
+setattr -unset mark_debug *
+prep -top ternary_gemm_stream_cover
+
+[files]
+../rtl/ternary_defines.vh
+../rtl/ternary_gemm.v
+../rtl/ternary_dot.v
+../rtl/ternary_gemm_stream.v
+ternary_gemm_stream_cover.v

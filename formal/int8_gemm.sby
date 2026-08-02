@@ -1,0 +1,18 @@
+[options]
+mode cover
+depth 12
+
+[engines]
+smtbmc
+
+[script]
+read -formal int8_gemm.v
+read -formal int8_dot.v
+read -formal int8_gemm_formal.v
+prep -top int8_gemm_formal
+
+[files]
+../rtl/ternary_defines.vh
+../rtl/int8_gemm.v
+../rtl/int8_dot.v
+int8_gemm_formal.v

@@ -16,8 +16,8 @@
 // After DEPTH valid_in cycles, one full output row is ready (valid_out high).
 // Feed ROWS groups of DEPTH activations to produce the complete output matrix.
 //
-// This implementation uses a generate loop over COLS for scalable dot unit
-// instantiation, supporting arbitrary DEPTH and COLS parameters.
+// This implementation explicitly instantiates COLS=4 dot units with literal
+// bit selects for maximum portability across Icarus Verilog versions.
 //
 // Interface:
 //   activation  — one element of the current row of A per cycle (int8)
@@ -46,26 +46,69 @@ module ternary_gemm #(
 
     wire [COLS-1:0] col_valids;
 
+    // The GEMM output is valid when the underlying dot products are ready
     assign valid_out = col_valids[0];
 
-    genvar i;
-    generate
-        for (i = 0; i < COLS; i = i + 1) begin : dot_gen
-            ternary_dot #(
-                .DATA_WIDTH(DATA_WIDTH),
-                .ACC_WIDTH(ACC_WIDTH),
-                .VECTOR_LEN(DEPTH),
-                .DOT_ID(i)
-            ) dot_i (
-                .clk(clk),
-                .rst_n(rst_n),
-                .valid_in(valid_in),
-                .activation(activation),
-                .weight_enc(weight_enc[2*i +: 2]),
-                .acc_out(acc_out[ACC_WIDTH*i +: ACC_WIDTH]),
-                .valid_out(col_valids[i])
-            );
-        end
-    endgenerate
+    // Explicitly instantiate COLS dot units with literal bit selects
+    // to avoid Icarus Verilog generate loop issues
+    ternary_dot #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .ACC_WIDTH(ACC_WIDTH),
+        .VECTOR_LEN(DEPTH),
+        .DOT_ID(0)
+    ) dot_0 (
+        .clk(clk),
+        .rst_n(rst_n),
+        .valid_in(valid_in),
+        .activation(activation),
+        .weight_enc(weight_enc[1:0]),
+        .acc_out(acc_out[ACC_WIDTH*1-1 -: ACC_WIDTH]),
+        .valid_out(col_valids[0])
+    );
+
+    ternary_dot #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .ACC_WIDTH(ACC_WIDTH),
+        .VECTOR_LEN(DEPTH),
+        .DOT_ID(1)
+    ) dot_1 (
+        .clk(clk),
+        .rst_n(rst_n),
+        .valid_in(valid_in),
+        .activation(activation),
+        .weight_enc(weight_enc[3:2]),
+        .acc_out(acc_out[ACC_WIDTH*2-1 -: ACC_WIDTH]),
+        .valid_out(col_valids[1])
+    );
+
+    ternary_dot #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .ACC_WIDTH(ACC_WIDTH),
+        .VECTOR_LEN(DEPTH),
+        .DOT_ID(2)
+    ) dot_2 (
+        .clk(clk),
+        .rst_n(rst_n),
+        .valid_in(valid_in),
+        .activation(activation),
+        .weight_enc(weight_enc[5:4]),
+        .acc_out(acc_out[ACC_WIDTH*3-1 -: ACC_WIDTH]),
+        .valid_out(col_valids[2])
+    );
+
+    ternary_dot #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .ACC_WIDTH(ACC_WIDTH),
+        .VECTOR_LEN(DEPTH),
+        .DOT_ID(3)
+    ) dot_3 (
+        .clk(clk),
+        .rst_n(rst_n),
+        .valid_in(valid_in),
+        .activation(activation),
+        .weight_enc(weight_enc[7:6]),
+        .acc_out(acc_out[ACC_WIDTH*4-1 -: ACC_WIDTH]),
+        .valid_out(col_valids[3])
+    );
 
 endmodule

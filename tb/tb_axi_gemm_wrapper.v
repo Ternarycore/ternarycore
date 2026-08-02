@@ -50,7 +50,6 @@ module tb_axi_gemm_wrapper;
     axi_gemm_wrapper #(
         .DATA_WIDTH(DATA_WIDTH),
         .ACC_WIDTH(ACC_WIDTH),
-        .ROWS(ROWS),
         .COLS(COLS),
         .DEPTH(DEPTH)
     ) dut (
