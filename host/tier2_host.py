@@ -93,8 +93,19 @@ def main():
     print(f"RESULT GOPS @100MHz:             {2*1024*1024/ (layer_cycles_pure/1e2) / 1e3:.1f}")
 
     outs = [int(x) for x in schk.split("OUT")[1].strip().rstrip(",").split(",")]
-    ok = outs == exp[:8]
-    print("HOST REFERENCE", "MATCH (first 8)" if ok else f"MISMATCH {outs} vs {exp[:8]}")
+    # Full-vector check, not just the first 8: SCHK is the board's own
+    # sum(out[c] * (c+1)) over all outputs, 32-bit wraparound. weight_bram128
+    # has no AXI readback, so the firmware's RUN self-verify is meaningless on
+    # this RTL -- this checksum is the real verification.
+    board_chk = int(schk.split()[1], 16)
+    host_chk = sum((v & 0xFFFFFFFF) * (i + 1) for i, v in enumerate(exp)) & 0xFFFFFFFF
+    ok = outs == exp[:8] and board_chk == host_chk
+    if outs != exp[:8]:
+        print(f"HOST REFERENCE MISMATCH head {outs} vs {exp[:8]}")
+    elif board_chk != host_chk:
+        print(f"HOST REFERENCE MISMATCH checksum 0x{board_chk:08x} vs 0x{host_chk:08x}")
+    else:
+        print(f"HOST REFERENCE MATCH (all {len(exp)} outputs, SCHK 0x{board_chk:08x})")
     sys.exit(0 if ok else 1)
 
 

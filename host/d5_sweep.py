@@ -15,7 +15,7 @@ ap.add_argument("--export", default=os.path.expanduser("~/tc-export/d4-student-s
 ap.add_argument("--dev", default="/dev/ttyUSB1")
 ap.add_argument("--passes", type=int, default=2)
 ap.add_argument("--host-script", default=os.path.expanduser(
-    "~/hwsw/tcore/tc-arty/host/tier1_host.py"))
+    "~/hwsw/tcore/tc-arty/host/tier2_host.py"))
 args = ap.parse_args()
 
 EXP = args.export
