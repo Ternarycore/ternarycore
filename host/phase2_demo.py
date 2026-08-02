@@ -52,6 +52,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--export", default=os.path.expanduser("~/tc-export/d4-student-sst2-r2"))
     ap.add_argument("--dev", default="/dev/ttyUSB1")
+    ap.add_argument("--pager", choices=["cpu", "dma"], default="cpu",
+                    help="cpu = MicroBlaze copy loop, dma = AXI CDMA hardware pager")
     ap.add_argument("--layers", default="0.self_attn.k_proj,27.self_attn.v_proj")
     args = ap.parse_args()
     names = args.layers.split(",")
@@ -82,10 +84,12 @@ def main():
         a = rng.integers(-8, 8, 1024).astype(np.int8)
         e = t @ a.astype(np.int32)
 
-        b.send(f"PAGE {i*262144}\n")
-        b.expect("MARK PAGE_START"); tp0 = time.time()
-        b.expect("MARK PAGE_END");   tp1 = time.time()
-        b.expect("OK P")
+        cmd, tag, ack = (("PAGEDMA", "PAGEDMA", "OK PD") if args.pager == "dma"
+                         else ("PAGE", "PAGE", "OK P"))
+        b.send(f"{cmd} {i*262144}\n")
+        b.expect(f"MARK {tag}_START"); tp0 = time.time()
+        b.expect(f"MARK {tag}_END");   tp1 = time.time()
+        b.expect(ack)
 
         b.send(f"LOADA 1024\n"); os.write(b.fd, a.tobytes()); b.expect("OK A")
         b.send("SLOAD\n"); b.expect("OK SL")

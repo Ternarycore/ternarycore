@@ -116,3 +116,19 @@ path that PAGEDMA supersedes. Worth knowing, not worth fixing.
 
 Block 0 re-verified on build 15: all 7 projections, 15 tiles, EXACT via host
 tiling. The burst slave changes how weights arrive, not what arrives.
+
+## Build 16 — CDMA max burst 16 -> 256 beats (WNS +1.316 ns)
+
+| n pages | total | slope | cycles/word |
+|---|---|---|---|
+| 256 -> 512 | 207.98 -> 415.97 ms | 0.8125 ms/page | 1.01 |
+| 512 -> 1024 | 415.97 -> 831.97 ms | 0.8125 ms/page | 1.01 |
+
+**0.8125 ms/page, 1.01 cycles/word.** The floor for a 32-bit AXI port at
+81.25 MHz is 0.806 ms, so the pager runs at 99.2% of what this bus width can
+deliver; nothing further is winnable without widening the port. 78.8x the CPU
+pager, 5.85x build 14, implying ~2.9 tok/s for a 110 MB model at 420 pages
+per token.
+
+Correctness unchanged: phase2_demo 2/2 EXACT on both --pager dma and
+--pager cpu; tile cycles still 1031.
