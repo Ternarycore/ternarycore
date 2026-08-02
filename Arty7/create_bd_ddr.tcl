@@ -97,7 +97,6 @@ connect_bd_intf_net [get_bd_intf_pins ilmb_cntlr/BRAM_PORT] [get_bd_intf_pins lm
 
 create_bd_cell -type ip -vlnv xilinx.com:ip:mdm:3.2 mdm_1
 connect_bd_intf_net [get_bd_intf_pins mdm_1/MBDEBUG_0] [get_bd_intf_pins microblaze_0/DEBUG]
-connect_bd_net $UICLK [get_bd_pins mdm_1/M_AXI_ACLK] 2>/dev/null
 connect_bd_net [get_bd_pins mdm_1/Debug_SYS_Rst] [get_bd_pins rst_ui/mb_debug_sys_rst]
 connect_bd_net [get_bd_pins rst_ui/mb_reset] [get_bd_pins microblaze_0/Reset]
 
