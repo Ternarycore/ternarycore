@@ -162,12 +162,38 @@ set_property offset 0x00000000 [get_bd_addr_segs {microblaze_0/Instruction/SEG_i
 set_property range  64K        [get_bd_addr_segs {microblaze_0/Instruction/SEG_ilmb_cntlr_Mem}]
 catch {set_property offset 0x44300000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_cdma_0_Reg}]}
 catch {set_property offset 0x40E00000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_ethernetlite_0_Reg}]}
-catch {set_property offset 0x44100000 [get_bd_addr_segs {axi_cdma_0/Data/SEG_weight_bram_0_reg0}]}
 catch {delete_bd_objs [get_bd_addr_segs {microblaze_0/Instruction/SEG_weight_bram_0_reg0}]}
 catch {set_property offset 0x44300000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_cdma_0_Reg}]}
 catch {set_property offset 0x40E00000 [get_bd_addr_segs {microblaze_0/Data/SEG_axi_ethernetlite_0_Reg}]}
-catch {set_property offset 0x44100000 [get_bd_addr_segs {axi_cdma_0/Data/SEG_weight_bram_0_reg0}]}
 catch {delete_bd_objs [get_bd_addr_segs {microblaze_0/Instruction/SEG_weight_bram_0_reg0}]}
+
+# -- address-map assertions ------------------------------------------
+# Build 12 shipped a bitstream whose CDMA had no weight_bram segment: the
+# transfer returned DECERR (SR 0x5042) and the array read zeros, while the
+# build reported 0 errors. A `catch` had swallowed it. Assert the map.
+if {[catch {set r [assign_bd_address -target_address_space /axi_cdma_0/Data -offset 0x44100000 -range 256K [get_bd_addr_segs weight_bram_0/s_axi/reg0]]} e]} { puts "ADDRMAP assign ERR: $e" } else { puts "ADDRMAP assign ret: $r" }
+# THE bug: assign_bd_address auto-EXCLUDED weight_bram from the CDMA's
+# address space, so the pager had a wire but no decode -> DECERR (SR 0x5042)
+# and an all-zero GEMM, with the build reporting success. Re-include it.
+catch {include_bd_addr_seg [get_bd_addr_segs -quiet -excluded axi_cdma_0/Data/SEG_weight_bram_0_reg0]}
+set cs [get_bd_addr_segs -quiet -of_objects [get_bd_addr_spaces axi_cdma_0/Data]]
+puts "ADDRMAP cdma segs: $cs"
+set wb ""
+foreach g $cs { if {[string match *weight_bram* $g]} { set wb $g } }
+if {$wb eq ""} {
+    error "ADDRMAP: CDMA has no weight_bram segment (has: $cs)"
+} else {
+    set_property offset 0x44100000 [get_bd_addr_segs $wb]
+    set_property range  256K       [get_bd_addr_segs $wb]
+}
+set mb [get_bd_addr_segs -quiet microblaze_0/Data/SEG_weight_bram_0_reg0]
+if {$mb eq ""} { error "ADDRMAP: MicroBlaze has no weight_bram segment" }
+set_property offset 0x44100000 $mb
+set_property range  256K       $mb
+
+puts "ADDRMAP OK: microblaze + cdma both reach weight_bram @ 0x44100000"
+
+
 
 make_bd_intf_pins_external [get_bd_intf_pins axi_uart16550_0/UART]
 make_bd_pins_external [get_bd_pins axi_gpio_0/gpio_io_o]

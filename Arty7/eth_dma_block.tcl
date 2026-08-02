@@ -9,7 +9,7 @@
 # SPDX-License-Identifier: CERN-OHL-S-2.0
 
 # ── grow the fabrics ─────────────────────────────────────────────
-set_property -dict [list CONFIG.NUM_SI {3} CONFIG.NUM_MI {2}] [get_bd_cells axi_smc]
+set_property -dict [list CONFIG.NUM_SI {3} CONFIG.NUM_MI {1}] [get_bd_cells axi_smc]
 set_property CONFIG.NUM_MI {6} [get_bd_cells periph]
 connect_bd_net $UICLK [get_bd_pins periph/M04_ACLK] [get_bd_pins periph/M05_ACLK]
 connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] \
@@ -22,27 +22,33 @@ connect_bd_intf_net [get_bd_intf_pins periph/M04_AXI] [get_bd_intf_pins axi_cdma
 connect_bd_net $UICLK [get_bd_pins axi_cdma_0/s_axi_lite_aclk] [get_bd_pins axi_cdma_0/m_axi_aclk]
 connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] [get_bd_pins axi_cdma_0/s_axi_lite_aresetn]
 
-create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 bram_ic
+# Build-13 lesson: with an axi_interconnect here, Vivado would not propagate
+# address reachability through the SECOND slave port -- assign_bd_address
+# reported nothing addressable from the CDMA, so the pager had no route to
+# the BRAM. SmartConnect resolves the cascade correctly.
+create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 bram_ic
 set_property -dict [list CONFIG.NUM_SI {2} CONFIG.NUM_MI {1}] [get_bd_cells bram_ic]
-
-foreach {cell pins} {
-    bram_ic {ACLK S00_ACLK S01_ACLK M00_ACLK}
-} {
-    foreach p $pins { connect_bd_net $UICLK [get_bd_pins $cell/$p] }
-}
-foreach {cell pins} {
-    bram_ic {ARESETN S00_ARESETN S01_ARESETN M00_ARESETN}
-} {
-    foreach p $pins { connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] [get_bd_pins $cell/$p] }
-}
+connect_bd_net $UICLK [get_bd_pins bram_ic/aclk]
+connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] [get_bd_pins bram_ic/aresetn]
 
 # rewire weight_bram behind bram_ic
 delete_bd_objs [get_bd_intf_nets -of [get_bd_intf_pins weight_bram_0/s_axi]]
 connect_bd_intf_net [get_bd_intf_pins periph/M02_AXI] [get_bd_intf_pins bram_ic/S00_AXI]
 connect_bd_intf_net [get_bd_intf_pins bram_ic/M00_AXI] [get_bd_intf_pins weight_bram_0/s_axi]
 
-connect_bd_intf_net [get_bd_intf_pins axi_cdma_0/M_AXI] [get_bd_intf_pins axi_smc/S02_AXI]
-connect_bd_intf_net [get_bd_intf_pins axi_smc/M01_AXI] [get_bd_intf_pins bram_ic/S01_AXI]
+# Build-12 lesson: routing the CDMA through axi_smc gave the MicroBlaze a
+# SECOND path to weight_bram (M_AXI_DC -> smc M01 -> bram_ic). Vivado bound
+# the CPU segment to that path, but MicroBlaze sends non-cacheable addresses
+# out M_AXI_DP -> periph, which had no decode: every weight write was
+# silently dropped and the array computed zeros. Private crossbar => each
+# master has exactly ONE route to the BRAM.
+create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 cdma_ic
+set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {2}] [get_bd_cells cdma_ic]
+connect_bd_net $UICLK [get_bd_pins cdma_ic/aclk]
+connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] [get_bd_pins cdma_ic/aresetn]
+connect_bd_intf_net [get_bd_intf_pins axi_cdma_0/M_AXI] [get_bd_intf_pins cdma_ic/S00_AXI]
+connect_bd_intf_net [get_bd_intf_pins cdma_ic/M00_AXI] [get_bd_intf_pins axi_smc/S02_AXI]
+connect_bd_intf_net [get_bd_intf_pins cdma_ic/M01_AXI] [get_bd_intf_pins bram_ic/S01_AXI]
 
 # ── EthernetLite (MII to the DP83848) ─────────────────────────────────
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_ethernetlite:3.0 axi_ethernetlite_0

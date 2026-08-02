@@ -84,9 +84,10 @@ static void dcache_flush_range(unsigned long base, unsigned long bytes) {
 }
 
 static void cmd_pagedma(const char *p) {
-    unsigned long off = parse_u(&p), spin = 0;
+    unsigned long off = parse_u(&p), n = parse_u(&p), k, spin = 0;
     unsigned int sr;
     if (off & 3u) { uart_puts("ERR align\\n"); return; }
+    if (n == 0u) n = 1u;   /* optional repeat count: amortise UART latency */
 
     IO32(CDMA_CR) = 0x04u;                                  /* soft reset */
     while (IO32(CDMA_CR) & 0x04u)
@@ -95,6 +96,7 @@ static void cmd_pagedma(const char *p) {
     dcache_flush_range(DDR_BASE + off, PAGE_BYTES);
 
     uart_puts("MARK PAGEDMA_START\\n");
+    for (k = 0; k < n; k++) {
     IO32(CDMA_SA)  = DDR_BASE + off;
     IO32(CDMA_DA)  = WEIGHT_BRAM;
     IO32(CDMA_BTT) = PAGE_BYTES;                            /* starts transfer */
@@ -104,6 +106,7 @@ static void cmd_pagedma(const char *p) {
             uart_puts("ERR cdma timeout SR "); uart_puthex(IO32(CDMA_SR));
             uart_puts("\\n"); return;
         }
+    }
     }
     uart_puts("MARK PAGEDMA_END\\n");
     sr = IO32(CDMA_SR);
