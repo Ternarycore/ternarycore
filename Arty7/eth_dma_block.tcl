@@ -76,8 +76,7 @@ foreach {dir width port pin} {
 }
 
 create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_eth
-set_property -dict [list CONFIG.PRIM_IN_FREQ {81.250} \
-    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {25.000} \
+set_property -dict [list CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {25.000} \
     CONFIG.USE_LOCKED {false} CONFIG.USE_RESET {false}] [get_bd_cells clk_eth]
 connect_bd_net $UICLK [get_bd_pins clk_eth/clk_in1]
 create_bd_port -dir O -type clk eth_ref_clk
