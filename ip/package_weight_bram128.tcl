@@ -9,7 +9,7 @@ set ip_vendor  "shepherdscientific.com"
 set ip_library "user"
 set ip_version "1.0"
 set ip_display "Ternary Weight BRAM (128b read port)"
-set ip_desc    "Dual-port BRAM for packed ternary weights. Write: AXI4-Lite. Read: 128-bit word port (16 packed bytes = 64 ternary columns/cycle) for the Tier-2 line-rate feeder. 256 KB."
+set ip_desc    "Dual-port BRAM for packed ternary weights. Write: AXI4 with INCR bursts. Read: 128-bit word port (16 packed bytes = 64 ternary columns/cycle) for the Tier-2 line-rate feeder. 256 KB."
 
 set script_dir [file dirname [file normalize [info script]]]
 set repo_root  [file normalize [file join $script_dir ..]]

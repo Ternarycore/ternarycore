@@ -1,46 +1,67 @@
-// weight_bram128.v -- packed ternary weight store, 256 KB.
+// weight_bram128.v -- 256 KB weight store: AXI4 burst write + 128-bit read port
 // SPDX-License-Identifier: CERN-OHL-S-2.0
-// Copyright (C) 2026 Ifedayo Oladapo
 //
-// v2 for the Tier-2 line-rate feeder: internal organization is 128-bit
-// words (16 packed bytes = 64 ternary columns) so one read feeds the
-// COLS=64 array every cycle. AXI4-Lite write/read slave is unchanged in
-// behavior from weight_bram v1 (32-bit, byte-addressed 256 KB window).
+// Build-14 measurement: the AXI4-Lite slave this replaces cost ~5.9 cycles per
+// 32-bit word -- every word needed its own AW + W + B round trip, and the
+// SmartConnect protocol converter shredded the CDMA's bursts into singles.
+// 256 KB took 4.75 ms, capping the board near 0.5 tok/s. This version accepts
+// AXI4 INCR bursts: one address, N back-to-back beats, one response at WLAST.
 //
-// Read port: w_word_addr (14b, 128-bit word address) -> w_word, 1-cycle
-// registered latency. Word w holds bytes [w*16 .. w*16+15] of the packed
-// layout addr = k*GROUPS + g  (GROUPS = 256 for a 1024-wide matrix), i.e.
-// word address = k*16 + column_tile for tile-of-64 reads.
+// The read channel still returns 0xDEADBEEF (readback was removed to keep the
+// block RAM at two ports) but is protocol-legal -- RID/RLAST -- so an upstream
+// converter never stalls waiting for beats that will not come.
 
-`timescale 1ns / 1ps
 `default_nettype none
 
 module weight_bram128 #(
-    parameter ADDR_WIDTH = 18            // byte-address width (256 KB)
+    parameter ADDR_WIDTH = 18,           // byte-address width (256 KB)
+    parameter ID_WIDTH   = 4
 ) (
     input  wire                     clk,
     input  wire                     rst_n,
 
-    // AXI4-Lite write address / data / response
+    // AXI4 write address
+    input  wire [ID_WIDTH-1:0]      s_axi_awid,
     input  wire [ADDR_WIDTH-1:0]    s_axi_awaddr,
+    input  wire [7:0]               s_axi_awlen,
+    input  wire [2:0]               s_axi_awsize,
+    input  wire [1:0]               s_axi_awburst,
+    input  wire                     s_axi_awlock,
+    input  wire [3:0]               s_axi_awcache,
     input  wire [2:0]               s_axi_awprot,
+    input  wire [3:0]               s_axi_awqos,
     input  wire                     s_axi_awvalid,
     output wire                     s_axi_awready,
+
+    // AXI4 write data / response
     input  wire [31:0]              s_axi_wdata,
     input  wire [3:0]               s_axi_wstrb,
+    input  wire                     s_axi_wlast,
     input  wire                     s_axi_wvalid,
     output wire                     s_axi_wready,
+    output wire [ID_WIDTH-1:0]      s_axi_bid,
     output wire [1:0]               s_axi_bresp,
     output reg                      s_axi_bvalid,
     input  wire                     s_axi_bready,
 
-    // AXI4-Lite read address / data
+    // AXI4 read address
+    input  wire [ID_WIDTH-1:0]      s_axi_arid,
     input  wire [ADDR_WIDTH-1:0]    s_axi_araddr,
+    input  wire [7:0]               s_axi_arlen,
+    input  wire [2:0]               s_axi_arsize,
+    input  wire [1:0]               s_axi_arburst,
+    input  wire                     s_axi_arlock,
+    input  wire [3:0]               s_axi_arcache,
     input  wire [2:0]               s_axi_arprot,
+    input  wire [3:0]               s_axi_arqos,
     input  wire                     s_axi_arvalid,
     output wire                     s_axi_arready,
-    output reg  [31:0]              s_axi_rdata,
+
+    // AXI4 read data
+    output wire [ID_WIDTH-1:0]      s_axi_rid,
+    output wire [31:0]              s_axi_rdata,
     output wire [1:0]               s_axi_rresp,
+    output wire                     s_axi_rlast,
     output reg                      s_axi_rvalid,
     input  wire                     s_axi_rready,
 
@@ -59,48 +80,91 @@ module weight_bram128 #(
         w_word <= bram[w_word_addr];
     end
 
-    // -- AXI4-Lite write: 32b lane into a 128b word --------------------------
-    wire aw_fire = s_axi_awvalid && s_axi_wvalid && !s_axi_bvalid;
-    assign s_axi_awready = aw_fire;
-    assign s_axi_wready  = aw_fire;
-    assign s_axi_bresp   = 2'b00;
+    // -- AXI4 burst write: 32b lanes into 128b words -------------------------
+    // Three states. IDLE takes the address; DATA streams beats and walks the
+    // address itself; RESP issues one BVALID for the whole burst.
+    localparam W_IDLE = 2'd0, W_DATA = 2'd1, W_RESP = 2'd2;
 
-    wire [ADDR_WIDTH-5:0] wr_word = s_axi_awaddr[ADDR_WIDTH-1:4];
-    wire [1:0]            wr_lane = s_axi_awaddr[3:2];
+    reg [1:0]            wstate;
+    reg [ADDR_WIDTH-1:0] waddr;
+    reg [ID_WIDTH-1:0]   wid;
+    reg [1:0]            wburst;
+    reg [2:0]            wsize;
+
+    assign s_axi_awready = (wstate == W_IDLE);
+    assign s_axi_wready  = (wstate == W_DATA);
+    assign s_axi_bresp   = 2'b00;
+    assign s_axi_bid     = wid;
+
+    wire w_beat = (wstate == W_DATA) && s_axi_wvalid;
+
+    wire [ADDR_WIDTH-5:0] wr_word = waddr[ADDR_WIDTH-1:4];
+    wire [1:0]            wr_lane = waddr[3:2];
     wire [15:0]  wstrb16  = {12'b0, s_axi_wstrb} << {wr_lane, 2'b00};
     wire [127:0] wdata128 = {4{s_axi_wdata}};
 
     integer bi;
     always @(posedge clk) begin
         if (!rst_n) begin
+            wstate       <= W_IDLE;
             s_axi_bvalid <= 1'b0;
+            waddr        <= {ADDR_WIDTH{1'b0}};
+            wid          <= {ID_WIDTH{1'b0}};
+            wburst       <= 2'b01;
+            wsize        <= 3'd2;
         end else begin
-            if (aw_fire) begin
+            case (wstate)
+            W_IDLE: if (s_axi_awvalid) begin
+                waddr  <= s_axi_awaddr;
+                wid    <= s_axi_awid;
+                wburst <= s_axi_awburst;
+                wsize  <= s_axi_awsize;
+                wstate <= W_DATA;
+            end
+            W_DATA: if (s_axi_wvalid) begin
                 for (bi = 0; bi < 16; bi = bi + 1)
                     if (wstrb16[bi])
                         bram[wr_word][bi*8 +: 8] <= wdata128[bi*8 +: 8];
-                s_axi_bvalid <= 1'b1;
-            end else if (s_axi_bvalid && s_axi_bready) begin
-                s_axi_bvalid <= 1'b0;
+                // INCR walks; FIXED holds. WRAP is not issued by the CDMA and
+                // is treated as INCR -- asserted against in the testbench.
+                if (wburst != 2'b00)
+                    waddr <= waddr + (1 << wsize);
+                if (s_axi_wlast) begin
+                    s_axi_bvalid <= 1'b1;
+                    wstate       <= W_RESP;
+                end
             end
+            W_RESP: if (s_axi_bready) begin
+                s_axi_bvalid <= 1'b0;
+                wstate       <= W_IDLE;
+            end
+            default: wstate <= W_IDLE;
+            endcase
         end
     end
 
-    // -- AXI4-Lite read: 32b lane out of a 128b word -------------------------
-    wire ar_fire = s_axi_arvalid && !s_axi_rvalid;
-    assign s_axi_arready = ar_fire;
+    // -- AXI4 read: protocol-legal stub (no readback; 2-port BRAM budget) ----
+    reg [7:0]          rbeats;
+    reg [ID_WIDTH-1:0] rid_r;
+
+    assign s_axi_arready = !s_axi_rvalid && (rbeats == 8'd0);
     assign s_axi_rresp   = 2'b00;
+    assign s_axi_rdata   = 32'hDEADBEEF;
+    assign s_axi_rid     = rid_r;
+    assign s_axi_rlast   = (rbeats == 8'd1);
 
     always @(posedge clk) begin
         if (!rst_n) begin
             s_axi_rvalid <= 1'b0;
-        end else begin
-            if (ar_fire) begin
-                s_axi_rdata  <= 32'hDEADBEEF;  // readback removed: keeps BRAM at 2 ports
-                s_axi_rvalid <= 1'b1;
-            end else if (s_axi_rvalid && s_axi_rready) begin
-                s_axi_rvalid <= 1'b0;
-            end
+            rbeats       <= 8'd0;
+            rid_r        <= {ID_WIDTH{1'b0}};
+        end else if (s_axi_arready && s_axi_arvalid) begin
+            rid_r        <= s_axi_arid;
+            rbeats       <= s_axi_arlen + 8'd1;
+            s_axi_rvalid <= 1'b1;
+        end else if (s_axi_rvalid && s_axi_rready) begin
+            rbeats       <= rbeats - 8'd1;
+            if (rbeats == 8'd1) s_axi_rvalid <= 1'b0;
         end
     end
 
