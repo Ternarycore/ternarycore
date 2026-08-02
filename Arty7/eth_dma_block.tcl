@@ -17,7 +17,13 @@ connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] \
 
 # ── CDMA with private routing ───────────────────────────────────────
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_cdma:4.1 axi_cdma_0
-set_property CONFIG.C_INCLUDE_SG {0} [get_bd_cells axi_cdma_0]
+# Build 15 measured 1.16 cycles/word with the CDMA at its default 16-beat
+# maximum: ~3 cycles of address+response overhead amortised over 16 words.
+# 256-beat bursts push that toward ~1.02. 256 x 4 B = 1 KB, well inside the
+# AXI 4 KB boundary rule, and the burst slave counts on WLAST so it has no
+# length limit of its own.
+set_property -dict [list CONFIG.C_INCLUDE_SG {0} \
+    CONFIG.C_M_AXI_MAX_BURST_LEN {256}] [get_bd_cells axi_cdma_0]
 connect_bd_intf_net [get_bd_intf_pins periph/M04_AXI] [get_bd_intf_pins axi_cdma_0/S_AXI_LITE]
 connect_bd_net $UICLK [get_bd_pins axi_cdma_0/s_axi_lite_aclk] [get_bd_pins axi_cdma_0/m_axi_aclk]
 connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] [get_bd_pins axi_cdma_0/s_axi_lite_aresetn]
