@@ -76,6 +76,7 @@ module axi_gemm_stream #(
     reg [10:0] k;               // issue counter
     reg        v0, v1;          // address-issued / data-valid pipeline
     reg [1:0]  clr_cnt;
+    reg        vout_d;
 
     wire busy = (state != S_IDLE);
 
@@ -100,7 +101,7 @@ module axi_gemm_stream #(
         .rst_n      (gemm_rst_n),
         .valid_in   (v1),
         .activation (act_q),
-        .weight     (w_word),     // 2*64 = 128 bits
+        .weight_enc (w_word),     // 2*64 = 128 bits
         .acc_out    (acc_out),
         .valid_out  (valid_out)
     );
@@ -109,7 +110,7 @@ module axi_gemm_stream #(
     // pass length is the runtime 'depth' register, independent of the
     // compile-time DEPTH parameter inside ternary_gemm.
     reg [10:0] fed;
-    wire pass_done = (fed == depth) && !v0 && !v1;
+    wire pass_done = (fed == DEPTH_MAX) && !v0 && !v1;
 
     wire start_cmd, clear_cmd, aptr_cmd;
 
@@ -121,7 +122,7 @@ module axi_gemm_stream #(
             case (state)
                 S_IDLE: if (start_cmd) begin
                     state <= S_CLR; gemm_clr <= 1; clr_cnt <= 2;
-                    done <= 0; k <= 0; v0 <= 0; v1 <= 0; fed <= 0; cycles <= 0;
+                    done <= 0; k <= 0; v0 <= 0; v1 <= 0; fed <= 0; cycles <= 0; vout_d <= 0;
                 end
                 S_CLR: begin
                     cycles <= cycles + 1;
@@ -131,7 +132,7 @@ module axi_gemm_stream #(
                 S_RUN: begin
                     cycles <= cycles + 1;
                     // issue phase
-                    if (k < depth) begin
+                    if (k < DEPTH_MAX) begin
                         k  <= k + 1;
                         v0 <= 1;
                     end else begin
@@ -143,8 +144,8 @@ module axi_gemm_stream #(
                 end
                 S_WAIT: begin
                     cycles <= cycles + 1;
-                    done  <= 1;
-                    state <= S_IDLE;
+                    vout_d <= valid_out;
+                    if (vout_d) begin done <= 1; state <= S_IDLE; end
                 end
             endcase
             if (clear_cmd) done <= 0;

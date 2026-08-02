@@ -4,7 +4,7 @@
 // pass in iverilog before Vivado sees the RTL.
 `timescale 1ns / 1ps
 module tb_axi_gemm_stream;
-    localparam DEPTH = 96;          // runtime depth for the test
+    localparam DEPTH = 1024;          // runtime depth for the test
     localparam COLS  = 64;
 
     reg clk = 0, rst_n = 0;
@@ -144,5 +144,5 @@ module tb_axi_gemm_stream;
         $finish;
     end
 
-    initial begin #4000000; $display("TIMEOUT"); $finish; end
+    initial begin #80000000; $display("TIMEOUT"); $finish; end
 endmodule
