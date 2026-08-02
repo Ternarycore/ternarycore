@@ -51,10 +51,7 @@ if {[llength [get_bd_pins -quiet mig_7series_0/device_temp_i]]} {
     connect_bd_net [get_bd_pins temp_zero/dout] [get_bd_pins mig_7series_0/device_temp_i]
 }
 
-create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_ref
-set_property -dict [list CONFIG.PRIM_IN_FREQ {100.000} CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {200.000} CONFIG.USE_LOCKED {false} CONFIG.USE_RESET {false}] [get_bd_cells clk_ref]
-connect_bd_net [get_bd_ports sys_clk] [get_bd_pins clk_ref/clk_in1]
-connect_bd_net [get_bd_pins clk_ref/clk_out1] [get_bd_pins mig_7series_0/clk_ref_i]
+connect_bd_net [get_bd_pins mig_7series_0/ui_addn_clk_0] [get_bd_pins mig_7series_0/clk_ref_i]
 
 set UICLK [get_bd_pins mig_7series_0/ui_clk]
 
