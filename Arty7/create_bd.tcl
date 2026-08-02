@@ -124,7 +124,7 @@ set_property -dict [list \
     CONFIG.ACC_WIDTH {32} \
     CONFIG.ROWS {4} \
     CONFIG.COLS {4} \
-    CONFIG.DEPTH {768} \
+    CONFIG.DEPTH {1024} \
 ] [get_bd_cells axi_gemm_wrapper_0]
 
 # ── Weight BRAM ───────────────────────────────────────────────────────────────
