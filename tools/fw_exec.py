@@ -76,7 +76,9 @@ static void cmd_dumpb(const char *p) {
 static void cmd_dumpr(const char *p) {
     unsigned long slot = parse_u(&p), n = parse_u(&p), i;
     const signed char *b = (const signed char *)VSLOT(slot);
-    if (n > VS_MAX) { uart_puts("ERR range\n"); return; }
+    /* n is a BYTE count here, so the bound is the slot size, not the
+       element cap -- 3072 int32 is 12288 bytes and was being refused. */
+    if (n > VS_STRIDE) { uart_puts("ERR range\n"); return; }
     uart_puts("RAW "); uart_putdec((long)n); uart_puts("\n");
     for (i = 0; i < n; i++) uart_putc((char)b[i]);
     uart_puts("\nOK DR\n");

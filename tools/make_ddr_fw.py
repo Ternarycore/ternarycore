@@ -350,10 +350,10 @@ static void build_luts(void) {
     for (i = 0; i < LUTN; i++) {
         xq = ((i - 512) << 16) / 16;
         ax = (xq < 0) ? -xq : xq;
-        e  = fx_exp2(-(int)(((long)ax * 94548) >> 16));
+        e  = fx_exp2(-(int)(((long long)ax * 94548) >> 16));
         s  = (int)((1u << 28) / (unsigned int)(((65536 + e) >> 4) ? ((65536 + e) >> 4) : 1));
         if (xq < 0) s = 65536 - s;
-        silu_lut[i] = (int)(((long)xq * s) >> 16);
+        silu_lut[i] = (int)(((long long)xq * s) >> 16);
     }
     luts_ready = 1;
 }
