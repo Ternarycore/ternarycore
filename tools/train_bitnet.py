@@ -121,9 +121,16 @@ def flatten_model(model, full_model=False):
 
 # ── Data ──────────────────────────────────────────────────────────
 
-def load_wikitext2(tokenizer, seq_len=128, split="train", max_samples=5000):
+DATASETS = {
+    "wikitext-2": "https://raw.githubusercontent.com/pytorch/examples/main/word_language_model/data/wikitext-2",
+}
+
+def load_dataset(dataset, tokenizer, seq_len=128, split="train", max_samples=5000):
+    base_url = DATASETS.get(dataset)
+    if base_url is None:
+        raise ValueError(f"Unknown dataset '{dataset}'. Available: {list(DATASETS.keys())}")
+    url = f'{base_url}/{split}.txt'
     import requests
-    url = f'https://raw.githubusercontent.com/pytorch/examples/main/word_language_model/data/wikitext-2/{split}.txt'
     r = requests.get(url, timeout=10)
     r.raise_for_status()
     text = r.text.replace(chr(10), ' ').replace(chr(13), ' ')[:max_samples * 5000]
@@ -172,6 +179,8 @@ def train_epoch(text_submodel, embed, loader, optimizer, scheduler, device, tpar
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", default="wikitext-2",
+                        help="Dataset name (default: %(default)s). Available: wikitext-2")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--seq-len", type=int, default=128)
@@ -232,10 +241,10 @@ def main():
 
     # ── Data ──
     print("Loading data...")
-    train_data = load_wikitext2(tok, args.seq_len, "train", args.samples)
+    train_data = load_dataset(args.dataset, tok, args.seq_len, "train", args.samples)
     loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
 
-    val_data = load_wikitext2(tok, args.seq_len, "test", min(args.samples // 5, 200))
+    val_data = load_dataset(args.dataset, tok, args.seq_len, "test", min(args.samples // 5, 200))
 
     # ── Optimizer ──
     optimizer = torch.optim.AdamW(tparams, lr=args.lr, weight_decay=0.01)

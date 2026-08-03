@@ -209,10 +209,11 @@ def convert_module(module, qfmt="int4", prefix=""):
     return module
 
 
-def build_full_bitnet_vlm(qfmt="int4"):
+def build_full_bitnet_vlm(qfmt="int4", model_id=None):
     """Load SmolVLM and convert all components to BitNet."""
-    print(f"Loading {MODEL_ID}...")
-    model = AutoModel.from_pretrained(MODEL_ID, torch_dtype=torch.float32)
+    model_id = model_id or MODEL_ID
+    print(f"Loading {model_id}...")
+    model = AutoModel.from_pretrained(model_id, torch_dtype=torch.float32)
     model.eval()
 
     print("\nConverting vision encoder...")
@@ -262,13 +263,14 @@ def build_full_bitnet_vlm(qfmt="int4"):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=MODEL_ID, help="HuggingFace model ID (default: %(default)s)")
     parser.add_argument("--qfmt", default="int4", choices=["int4", "fp4"])
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--epochs", type=int, default=3)
     args = parser.parse_args()
 
-    model = build_full_bitnet_vlm(args.qfmt)
+    model = build_full_bitnet_vlm(args.qfmt, args.model)
 
     if args.train:
         print("\nTraining not yet implemented for full VLM.")
