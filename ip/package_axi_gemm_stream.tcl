@@ -16,6 +16,7 @@ set repo_root  [file normalize [file join $script_dir ..]]
 
 create_project -force ${ip_name}_pkg ${ip_name}_pkg -part xc7a100tcsg324-1
 
+add_files -norecurse [file join $repo_root rtl ternary_weight.v]
 add_files -norecurse [file join $repo_root rtl ternary_mac.v]
 add_files -norecurse [file join $repo_root rtl ternary_dot.v]
 add_files -norecurse [file join $repo_root rtl ternary_gemm.v]
