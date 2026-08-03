@@ -28,14 +28,6 @@ EXEC = r"""
 #define VS_TMP    (VS_BASE + VS_SLOTS * VS_STRIDE)
 #define VS_MAX    4096u
 
-/* Arithmetic shift rounds toward negative infinity, which puts a sign on
-   the error of every negative element. Round away from zero on both. */
-static int rsh(int v, int s) {
-    if (s <= 0) return v;
-    return (v >= 0) ? ((v + (1 << (s - 1))) >> s)
-                    : -(((-v) + (1 << (s - 1))) >> s);
-}
-
 static void cmd_loadv(const char *p) {
     unsigned long slot = parse_u(&p), n = parse_u(&p), i, j;
     unsigned int w, base;
@@ -104,14 +96,20 @@ static void cmd_dumpr(const char *p) {
    that fusion is what the cold-to-hot gap in the DDR benchmark was
    measuring. Pass three only scales.
 
-   On precision: t is the *full* 32-bit product and is not shifted on the
-   way into memory. An earlier version wrote (v*g) >> 15, and that
-   truncation cost one unit of t, which is worth mx/127 output LSBs -- at
-   mx=32767 it is invisible, and at mx=564 it flipped one rounding in nine
-   downward. The maximum is normalized into 16 bits afterwards instead, so
-   the reciprocal can carry 23 fractional bits with |t>>ms| <= 65535 and
-   the product bounded near 1.065e9, safely inside int32. No 64-bit
-   arithmetic anywhere; that cost RoPE a factor of six. */
+   Two precision lessons are baked into that last pass. t is the full
+   32-bit product and is never shifted on the way into memory: an earlier
+   version wrote (v*g) >> 15, and one truncated unit of t is worth mx/127
+   output LSBs, which is invisible at mx=32767 and flips one rounding in
+   nine downward at mx=564.
+
+   And the reciprocal carries 46 fractional bits in a 64-bit product. That
+   is the one place in this firmware where long long is affordable, and it
+   is affordable because it was measured: the quantizer benchmarked at
+   18.02 cycles/element in both 32-bit and 64-bit form, identical, while
+   RoPE paid a factor of six for the same construct. A 32-bit reciprocal
+   normalized to 16 bits carries an error near 0.008 of an LSB, which is
+   enough to move any element sitting that close to a rounding boundary;
+   at 46 bits the error is 1.5e-5 and nothing moves. */
 
 static void cmd_nq(const char *p) {
     unsigned long src = parse_u(&p), gsl = parse_u(&p), dst = parse_u(&p),
@@ -120,8 +118,9 @@ static void cmd_nq(const char *p) {
     const int *g = (const int *)VSLOT(gsl);
     int *t = (int *)VS_TMP;
     signed char *o8 = (signed char *)VSLOT(dst);
-    int v, u, w, q, mx = 0, amx = 0, xs = 0, ms = 0, mxn, inv;
+    int v, u, w, q, mx = 0, amx = 0, xs = 0;
     unsigned int ss = 0u;
+    long long inv, qq;
 
     if (n == 0u || n > VS_MAX) { uart_puts("ERR range\n"); return; }
 
@@ -146,13 +145,14 @@ static void cmd_nq(const char *p) {
         if (w > mx) mx = w;
     }
     if (mx == 0) mx = 1;
-    while ((mx >> ms) > 65535) ms++;
-    mxn = mx >> ms;
-    if (mxn == 0) mxn = 1;
-    inv = (int)(((unsigned int)127u << 23) / (unsigned int)mxn);
 
+    /* |t| <= mx, so |t * inv| <= 127 << 46 = 8.9e15, well inside int64. */
+    inv = ((long long)127 << 46) / (long long)mx;
     for (i = 0; i < n; i++) {
-        q = rsh(rsh(t[i], ms) * inv, 23);
+        qq = (long long)t[i] * inv;
+        qq = (qq >= 0) ? ((qq + ((long long)1 << 45)) >> 46)
+                       : -((((-qq) + ((long long)1 << 45)) >> 46));
+        q = (int)qq;
         if (q > 127) q = 127; else if (q < -128) q = -128;
         o8[i] = (signed char)q;
     }
@@ -160,7 +160,6 @@ static void cmd_nq(const char *p) {
     uart_puts("NQ mx "); uart_putdec((long)mx);
     uart_puts(" ss "); uart_puthex(ss);
     uart_puts(" xs "); uart_putdec((long)xs);
-    uart_puts(" ms "); uart_putdec((long)ms);
     uart_puts("\nOK NQ\n");
 }
 
