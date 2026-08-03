@@ -119,7 +119,8 @@ vp::IoReqStatus TernarycoreDevice::handle_req(vp::Block *__this, vp::IoReq *req)
                     uint16_t tmp = self->alpha[idx];
                     std::memcpy(data, &tmp, 2);
                 } else if (size == 4) {
-                    uint32_t tmp = self->alpha[idx] & 0xFFFF;
+                    uint32_t tmp = (uint32_t)self->alpha[idx]
+                                 | ((uint32_t)self->alpha[idx + 1] << 16);
                     std::memcpy(data, &tmp, 4);
                 }
             }
