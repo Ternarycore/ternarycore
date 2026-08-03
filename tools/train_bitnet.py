@@ -77,6 +77,7 @@ def convert_to_bitnet(text_model):
                               module.bias is not None)
             with torch.no_grad():
                 bn.weight.copy_(module.weight)
+                bn.gamma.data = bn.weight.abs().mean(dim=1).clamp(min=1e-8)
                 if module.bias is not None:
                     bn.bias.copy_(module.bias)
             setattr(text_model, name, bn)
