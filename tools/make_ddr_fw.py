@@ -532,6 +532,11 @@ s = s.replace(anchor, anchor +
     '\n        else if (starts(line, "ETHLINK")) cmd_ethlink();' +
     '\n        else if (starts(line, "SL8")) cmd_sload8();\n        else if (starts(line, "AMAC")) cmd_amac();\n        else if (starts(line, "BENCH ")) cmd_bench(line + 6);\n        else if (starts(line, "ETHLOAD ")) cmd_ethload(line + 8);\n        else if (starts(line, "ETHRX")) cmd_ethrx(line + 5);', 1)
 
+import fw_ops
+s = s.replace(fw_ops.ANCHOR, fw_ops.OPS + fw_ops.ANCHOR, 1)
+assert fw_ops.DISPATCH_OLD in s
+s = s.replace(fw_ops.DISPATCH_OLD, fw_ops.DISPATCH_NEW, 1)
+
 s = s.replace("IO32(UART_RBR_THR) = 54u;", "IO32(UART_RBR_THR) = 44u;", 1)
 s = s.replace("/* DLL: 100e6/(16*115200) */", "/* DLL: 81.25e6/(16*115200) */", 1)
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)

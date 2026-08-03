@@ -36,9 +36,12 @@ PER_TOKEN = {
     6:  ("softmax table", NB * NH * CTX),
     7:  ("silu table",   NB * INTER),
     8:  ("scalar MAC",   NB * 2 * NH * HD * CTX),
-    9:  ("quantize",     NB * 10240),
-    10: ("rope",         NB * (NH + NKV) * HD),
-    11: ("sum of squares", NB * (2 * H + 2 * (H + INTER) // 2 + 24 * HD)),
+    9:  ("quantize 64b", NB * 11264),
+    12: ("quantize 32b", NB * 11264),
+    10: ("rope 64b",     NB * (NH + NKV) * HD),
+    13: ("rope 32b",     NB * (NH + NKV) * HD),
+    11: ("sumsq 64b",    NB * 10240),
+    14: ("sumsq 32b",    NB * 10240),
 }
 
 
