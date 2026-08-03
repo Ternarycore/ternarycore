@@ -15,10 +15,11 @@ EXEC = r"""
    a result back. Sixteen 16 KB slots in DDR, each big enough for the
    widest vector a block handles (3072 int32 = 12 KB), plus one scratch.
 
-   Read-back is a position-weighted checksum and the first eight values
-   rather than the whole vector. Position-weighted because a plain byte
-   sum is order independent, and this project has already had one of those
-   report a perfect match on a page whose weights had been scrambled. */
+   DUMPV returns a position-weighted checksum and the first eight values;
+   position-weighted because a plain byte sum is order independent, and
+   this project has already had one of those report a perfect match on a
+   page whose weights had been scrambled. DUMPR returns the whole vector
+   raw, because "the checksum differs" is not a diagnosis. */
 
 #define VS_BASE   (DDR_BASE + 0x0D000000u)
 #define VS_STRIDE 0x4000u
@@ -59,6 +60,18 @@ static void cmd_dumpb(const char *p) {
     uart_puts("\nOK DB\n");
 }
 
+/* Raw int8 read-back: header, then exactly n bytes, then the trailer. The
+   payload can contain any byte including newline, so the host must count
+   bytes rather than read lines. */
+static void cmd_dumpr(const char *p) {
+    unsigned long slot = parse_u(&p), n = parse_u(&p), i;
+    const signed char *b = (const signed char *)VSLOT(slot);
+    if (n > VS_MAX) { uart_puts("ERR range\n"); return; }
+    uart_puts("RAW "); uart_putdec((long)n); uart_puts("\n");
+    for (i = 0; i < n; i++) uart_putc((char)b[i]);
+    uart_puts("\nOK DR\n");
+}
+
 /* ---- Stage 1: fused RMSNorm + absmax int8 quantize -------------------
    Every BitLinear input in this model is RMSNorm(x)*g followed by absmax
    int8 quantization. Absmax is scale invariant, so RMSNorm's 1/rms factor
@@ -82,7 +95,16 @@ static void cmd_dumpb(const char *p) {
    accumulates sum(x^2) and tracks max|t| in the same loop that writes t --
    that fusion is what the cold-to-hot gap in the DDR benchmark was
    measuring. Pass three only scales. Every product is 16x16 into 32 bits;
-   the 64-bit form cost RoPE a factor of six. */
+   the 64-bit form cost RoPE a factor of six.
+
+   The reciprocal carries twenty fractional bits, not fifteen. Integer
+   division always lands below the true ratio, so a coarse reciprocal
+   biases every element downward at once -- which is what the first run
+   showed: matching head values and a checksum wrong by a little on all
+   six cases. t * inv is bounded by 127 << 20 and cannot overflow.
+   Rounding is away from zero on both signs, because add-half-then-shift
+   rounds positives away and negatives toward, making the error depend on
+   the sign of the data. */
 
 static void cmd_nq(const char *p) {
     unsigned long src = parse_u(&p), gsl = parse_u(&p), dst = parse_u(&p),
@@ -91,7 +113,7 @@ static void cmd_nq(const char *p) {
     const int *g = (const int *)VSLOT(gsl);
     int *t = (int *)VS_TMP;
     signed char *o8 = (signed char *)VSLOT(dst);
-    int v, u, mx = 0, amx = 0, xs = 0, inv;
+    int v, u, q, mx = 0, amx = 0, xs = 0, inv;
     unsigned int ss = 0u;
 
     if (n == 0u || n > VS_MAX) { uart_puts("ERR range\n"); return; }
@@ -117,9 +139,12 @@ static void cmd_nq(const char *p) {
         if (u > mx) mx = u;
     }
     if (mx == 0) mx = 1;
-    inv = (127 << 15) / mx;
-    for (i = 0; i < n; i++)
-        o8[i] = (signed char)((t[i] * inv + (1 << 14)) >> 15);
+    inv = (int)(((unsigned int)127u << 20) / (unsigned int)mx);
+    for (i = 0; i < n; i++) {
+        q = t[i] * inv;
+        o8[i] = (signed char)((q >= 0) ? ((q + (1 << 19)) >> 20)
+                                       : -(((-q) + (1 << 19)) >> 20));
+    }
 
     uart_puts("NQ mx "); uart_putdec((long)mx);
     uart_puts(" ss "); uart_puthex(ss);
@@ -136,4 +161,5 @@ CMD_NEW = (CMD_OLD +
            '\n        else if (starts(line, "LOADV ")) cmd_loadv(line + 6);'
            '\n        else if (starts(line, "DUMPV ")) cmd_dumpv(line + 6);'
            '\n        else if (starts(line, "DUMPB ")) cmd_dumpb(line + 6);'
+           '\n        else if (starts(line, "DUMPR ")) cmd_dumpr(line + 6);'
            '\n        else if (starts(line, "NQ ")) cmd_nq(line + 3);')
