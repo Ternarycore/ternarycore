@@ -28,6 +28,14 @@ EXEC = r"""
 #define VS_TMP    (VS_BASE + VS_SLOTS * VS_STRIDE)
 #define VS_MAX    4096u
 
+/* Arithmetic shift rounds toward negative infinity, which puts a sign on
+   the error of every negative element. Round away from zero on both. */
+static int rsh(int v, int s) {
+    if (s <= 0) return v;
+    return (v >= 0) ? ((v + (1 << (s - 1))) >> s)
+                    : -(((-v) + (1 << (s - 1))) >> s);
+}
+
 static void cmd_loadv(const char *p) {
     unsigned long slot = parse_u(&p), n = parse_u(&p), i, j;
     unsigned int w, base;
@@ -85,26 +93,25 @@ static void cmd_dumpr(const char *p) {
    any global factor in g cancels in the maximum, so g arrives normalized
    to +-32767 in Q15 with gmax kept on the host.
 
-   x must therefore arrive with its mantissas inside 16 bits -- the host
-   scales the residual stream, and this checks rather than trusts, because
-   a silent overflow here would look exactly like a quantization artefact
+   x must arrive with its mantissas inside 16 bits -- the host scales the
+   residual stream, and this checks rather than trusts, because a silent
+   overflow here would look exactly like a quantization artefact
    twenty-eight blocks downstream.
 
    Two passes where the obvious implementation has four. Pass one is the
    range scan the sum of squares needs; pass two computes t = x*g,
    accumulates sum(x^2) and tracks max|t| in the same loop that writes t --
    that fusion is what the cold-to-hot gap in the DDR benchmark was
-   measuring. Pass three only scales. Every product is 16x16 into 32 bits;
-   the 64-bit form cost RoPE a factor of six.
+   measuring. Pass three only scales.
 
-   The reciprocal carries twenty fractional bits, not fifteen. Integer
-   division always lands below the true ratio, so a coarse reciprocal
-   biases every element downward at once -- which is what the first run
-   showed: matching head values and a checksum wrong by a little on all
-   six cases. t * inv is bounded by 127 << 20 and cannot overflow.
-   Rounding is away from zero on both signs, because add-half-then-shift
-   rounds positives away and negatives toward, making the error depend on
-   the sign of the data. */
+   On precision: t is the *full* 32-bit product and is not shifted on the
+   way into memory. An earlier version wrote (v*g) >> 15, and that
+   truncation cost one unit of t, which is worth mx/127 output LSBs -- at
+   mx=32767 it is invisible, and at mx=564 it flipped one rounding in nine
+   downward. The maximum is normalized into 16 bits afterwards instead, so
+   the reciprocal can carry 23 fractional bits with |t>>ms| <= 65535 and
+   the product bounded near 1.065e9, safely inside int32. No 64-bit
+   arithmetic anywhere; that cost RoPE a factor of six. */
 
 static void cmd_nq(const char *p) {
     unsigned long src = parse_u(&p), gsl = parse_u(&p), dst = parse_u(&p),
@@ -113,7 +120,7 @@ static void cmd_nq(const char *p) {
     const int *g = (const int *)VSLOT(gsl);
     int *t = (int *)VS_TMP;
     signed char *o8 = (signed char *)VSLOT(dst);
-    int v, u, q, mx = 0, amx = 0, xs = 0, inv;
+    int v, u, w, q, mx = 0, amx = 0, xs = 0, ms = 0, mxn, inv;
     unsigned int ss = 0u;
 
     if (n == 0u || n > VS_MAX) { uart_puts("ERR range\n"); return; }
@@ -133,22 +140,27 @@ static void cmd_nq(const char *p) {
         v = x[i];
         u = v >> xs;
         ss += (unsigned int)(u * u);
-        u = (v * g[i]) >> 15;             /* Q15 gain, 32-bit product */
-        t[i] = u;
-        if (u < 0) u = -u;
-        if (u > mx) mx = u;
+        w = v * g[i];                     /* full product, nothing discarded */
+        t[i] = w;
+        if (w < 0) w = -w;
+        if (w > mx) mx = w;
     }
     if (mx == 0) mx = 1;
-    inv = (int)(((unsigned int)127u << 20) / (unsigned int)mx);
+    while ((mx >> ms) > 65535) ms++;
+    mxn = mx >> ms;
+    if (mxn == 0) mxn = 1;
+    inv = (int)(((unsigned int)127u << 23) / (unsigned int)mxn);
+
     for (i = 0; i < n; i++) {
-        q = t[i] * inv;
-        o8[i] = (signed char)((q >= 0) ? ((q + (1 << 19)) >> 20)
-                                       : -(((-q) + (1 << 19)) >> 20));
+        q = rsh(rsh(t[i], ms) * inv, 23);
+        if (q > 127) q = 127; else if (q < -128) q = -128;
+        o8[i] = (signed char)q;
     }
 
     uart_puts("NQ mx "); uart_putdec((long)mx);
     uart_puts(" ss "); uart_puthex(ss);
     uart_puts(" xs "); uart_putdec((long)xs);
+    uart_puts(" ms "); uart_putdec((long)ms);
     uart_puts("\nOK NQ\n");
 }
 
