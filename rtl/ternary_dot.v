@@ -42,7 +42,7 @@ module ternary_dot #(
          output reg                  debug_valid_out_out
 );
 
-     reg signed [DATA_WIDTH-1:0] weighted;
+     reg signed [DATA_WIDTH:0]   weighted;
      reg [ACC_WIDTH-1:0] weighted_ext;
 
      reg [ACC_WIDTH-1:0] acc;
@@ -98,10 +98,13 @@ module ternary_dot #(
               debug_valid_out_out <= 1'b0;
           end else begin
               // Compute weighted value from current inputs
-              weighted = (weight_enc == 2'b00) ?  {DATA_WIDTH{1'b0}} :
-                         (weight_enc == 2'b01) ?  $signed(activation) :
-                                                  -$signed(activation);
-              weighted_ext = {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
+              // Negate one bit wider: -(-2^(N-1)) is not representable in
+              // N bits and wrapped to itself, so w=-1 on the most negative
+              // activation had the wrong sign. Same fix as ternary_mac.v.
+              weighted = (weight_enc == 2'b00) ? {(DATA_WIDTH+1){1'b0}} :
+                         (weight_enc == 2'b01) ?  $signed({activation[DATA_WIDTH-1], activation}) :
+                                                 -$signed({activation[DATA_WIDTH-1], activation});
+              weighted_ext = {{(ACC_WIDTH-DATA_WIDTH-1){weighted[DATA_WIDTH]}}, weighted};
               next_acc = acc + weighted_ext;
 
              // ── Accumulation + counter stage ──────────────────────
