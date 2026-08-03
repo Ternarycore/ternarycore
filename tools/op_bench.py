@@ -42,6 +42,12 @@ PER_TOKEN = {
     13: ("rope 32b",     NB * (NH + NKV) * HD),
     11: ("sumsq 64b",    NB * 10240),
     14: ("sumsq 32b",    NB * 10240),
+    15: ("quant DDR hot",  NB * 11264),
+    16: ("quant DDR cold", NB * 11264),
+    17: ("rope DDR hot",   NB * 3072),
+    18: ("rope DDR cold",  NB * 3072),
+    19: ("sumsq DDR hot",  NB * 10240),
+    20: ("sumsq DDR cold", NB * 10240),
 }
 
 

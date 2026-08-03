@@ -649,22 +649,13 @@ static void bench_silu_l(int n) {
 /* ---- Phase-5: the operators the budget never counted -----------------
    The token budget has measured lines for the pager, softmax, SiLU and
    RMSNorm. It had no line at all for the activation quantizer, which runs
-   six times a block on vectors up to 3072 wide -- about 300,000 elements
-   per token -- and RoPE's 11 ms was an estimate.
-
-   Measured, they came back at 63.6, 120.5 and 176.5 ms a token against 29
-   ms budgeted for all of them together. Ops 12-14 below are the same three
-   with every 64-bit intermediate removed, to find out whether that is the
-   operators or the 32-bit CPU synthesising long long out of parts. */
+   six times a block on vectors up to 3072 wide -- about 315,000 elements
+   per token -- and RoPE's 11 ms was an estimate. */
 
 static signed char bench_i8[BN];
 static int rope_cos[64], rope_sin[64];
 static int rope_ready = 0;
 
-/* Per-token absmax int8, exactly BitLinear's definition: one pass for the
-   maximum, one reciprocal, one pass to scale. The reciprocal is deliberate
-   -- a divide per element is the trap softmax fell into, and MicroBlaze's
-   hardware divider is 30-odd cycles. */
 static void bench_quant(int n) {
     int i, v, mx = 0, inv;
     for (i = 0; i < n; i++) {
@@ -679,10 +670,6 @@ static void bench_quant(int n) {
     bench_out[0] = mx;
 }
 
-/* RoPE over 128-wide heads: q' = q*cos + rot(q)*sin, rot([a,b]) = [-b,a]
-   across the halves. cos and sin come from the host for the current
-   position -- 512 bytes a token -- rather than being recomputed here or
-   tabled for every position, which would want 256 KB. */
 static void rope_init(void) {
     int i;
     if (rope_ready) return;
@@ -708,8 +695,6 @@ static void bench_rope(int n) {
     }
 }
 
-/* RMSNorm's vector half. 1024 squares of Q16.16 values overflow 32 bits
-   well before the end, so this accumulator is 64-bit. */
 static void bench_sumsq(int n) {
     int i;
     long long s = 0;
@@ -717,63 +702,153 @@ static void bench_sumsq(int n) {
     bench_out[0] = (int)(s >> 20);
 }
 
-/* ---- The same three, with no 64-bit arithmetic anywhere --------------
-   Each shifts its operands into 16 bits first, so every product is a
-   32-bit multiply the hardware multiplier does in one go. What that costs
-   is precision, and the honest question is whether these three consumers
-   need it: an int8 quantizer emits seven bits, a reciprocal square root
-   feeds a scale factor, and RoPE's rotation is bounded by construction.
-   None of them are carrying 30 significant bits anywhere useful. */
+/* ---- The same three, with no 64-bit arithmetic anywhere -------------- */
 
-static void bench_quant32(int n) {
+static void op_quant_p(const int *in, signed char *o8, int n) {
     int i, v, mx = 0, inv, sh = 0;
     for (i = 0; i < n; i++) {
-        v = bench_buf[i];
+        v = in[i];
         if (v < 0) v = -v;
         if (v > mx) mx = v;
     }
     if (mx == 0) mx = 1;
-    while ((mx >> sh) > 32767) sh++;            /* max into 16 bits */
+    while ((mx >> sh) > 32767) sh++;
     v = mx >> sh; if (v == 0) v = 1;
     inv = (127 << 15) / v;
     for (i = 0; i < n; i++)
-        bench_i8[i] = (signed char)(((bench_buf[i] >> sh) * inv) >> 15);
+        o8[i] = (signed char)(((in[i] >> sh) * inv) >> 15);
     bench_out[0] = mx;
 }
 
-/* Q1.15 rotation: cos and sin drop to 16 bits, activations shift into 16,
-   and every product stays 32-bit. */
-static void bench_rope32(int n) {
+static void op_rope_p(const int *in, int *out, int n) {
     int h, i, a, b, c, s;
     rope_init();
     for (h = 0; h + 128 <= n; h += 128) {
         for (i = 0; i < 64; i++) {
-            a = bench_buf[h + i] >> 8;
-            b = bench_buf[h + 64 + i] >> 8;
+            a = in[h + i] >> 8;
+            b = in[h + 64 + i] >> 8;
             c = rope_cos[i] >> 1;
             s = rope_sin[i] >> 1;
-            bench_out[h + i]      = ((a * c - b * s) >> 15) << 8;
-            bench_out[h + 64 + i] = ((b * c + a * s) >> 15) << 8;
+            out[h + i]      = ((a * c - b * s) >> 15) << 8;
+            out[h + 64 + i] = ((b * c + a * s) >> 15) << 8;
         }
     }
 }
 
-/* Sum of squares in 32 bits: shift the vector until 1024 squares cannot
-   overflow. Costs low bits the scale factor never sees. */
-static void bench_sumsq32(int n) {
+static void op_sumsq_p(const int *in, int n) {
     int i, v, mx = 0, sh = 0;
     unsigned int s = 0u;
     for (i = 0; i < n; i++) {
-        v = bench_buf[i];
+        v = in[i];
         if (v < 0) v = -v;
         if (v > mx) mx = v;
     }
-    while ((mx >> sh) > 2047) sh++;        /* x*x <= 2^22, 1024 of them fit */
+    while ((mx >> sh) > 2047) sh++;
     for (i = 0; i < n; i++) {
-        v = bench_buf[i] >> sh;
+        v = in[i] >> sh;
         s += (unsigned int)(v * v);
     }
     bench_out[0] = (int)(s >> 4);
+}
+
+static void bench_quant32(int n) { op_quant_p(bench_buf, bench_i8, n); }
+static void bench_rope32(int n)  { op_rope_p(bench_buf, bench_out, n); }
+static void bench_sumsq32(int n) { op_sumsq_p(bench_buf, n); }
+
+/* ---- The same operators, on DDR-resident vectors ---------------------
+   Everything above runs in local memory: single cycle, no cache, the
+   fastest memory this CPU will ever address. The block executor cannot
+   use it. LMB is 64 KB, the firmware already holds 56 KB, and one block's
+   working set -- residual, normed copy, Q, K, V, attention output, gate
+   and up -- is about 56 KB. All of it lives in DDR.
+
+   HOT reuses one buffer; COLD walks a 256 KB region. With a working cache
+   those two must differ. Measured, they did not. */
+
+#define DDRB_BASE   (DDR_BASE + 0x0C000000u)  /* 192 MB in, clear of weights */
+#define DDRB_STRIDE 0x4000u                   /* 16 KB, one D-cache worth    */
+#define DDRB_SLOTS  16u                       /* 256 KB total, 16x the cache */
+#define DDRB_OUT    0x00100000u
+#define DDRB_I8     0x00200000u
+
+static unsigned int ddrb_rep = 0u;
+static int ddrb_ready = 0;
+
+static void ddrb_init(void) {
+    unsigned int i;
+    if (ddrb_ready) return;
+    for (i = 0; i < DDRB_SLOTS * DDRB_STRIDE; i += 4u)
+        IO32(DDRB_BASE + i) = (unsigned int)(i * 2654435761u) & 0x3FFFu;
+    ddrb_ready = 1;
+}
+
+static unsigned int ddrb_slot(int cold) {
+    unsigned int s = cold ? ((ddrb_rep % DDRB_SLOTS) * DDRB_STRIDE) : 0u;
+    ddrb_rep++;
+    return s;
+}
+
+static void bench_quant_ddr(int n, int cold) {
+    unsigned int s = ddrb_slot(cold);
+    ddrb_init();
+    op_quant_p((const int *)(DDRB_BASE + s),
+               (signed char *)(DDRB_BASE + DDRB_I8 + s), n);
+}
+
+static void bench_rope_ddr(int n, int cold) {
+    unsigned int s = ddrb_slot(cold);
+    ddrb_init();
+    op_rope_p((const int *)(DDRB_BASE + s),
+              (int *)(DDRB_BASE + DDRB_OUT + s), n);
+}
+
+static void bench_sumsq_ddr(int n, int cold) {
+    unsigned int s = ddrb_slot(cold);
+    ddrb_init();
+    op_sumsq_p((const int *)(DDRB_BASE + s), n);
+}
+
+/* ---- The data cache, which has never been switched on ----------------
+   create_bd_ddr.tcl gives this MicroBlaze 16 KB of D-cache. main() has
+   never executed the msrset that enables it, so every DDR access this
+   project has made went to the MIG uncached -- the CPU pager's 48 ms per
+   page, and every operator above at roughly 4.5x its local-memory cost.
+
+   The benchmark said so before the source did: DDR hot and DDR cold came
+   back within 1% on all three operators. One 4 KB buffer reused and a
+   256 KB region walked cannot cost the same through a cache.
+
+   Toggleable rather than always-on. Switching it on makes the flush in
+   cmd_pagedma load-bearing for the first time -- until now it has been
+   flushing a cache that was not there -- so the ternary and int8
+   verifications have to be re-run with it enabled before anything here
+   is believed. An A/B inside one firmware build settles the size of the
+   effect without a second variable. */
+
+static int dcache_on = 0;
+
+static void dcache_invalidate_all(void) {
+    unsigned long i, zero = 0;
+    for (i = 0; i < 16384u; i += 32u)
+        __asm__ __volatile__ ("wdc %0, %1" :: "r"(DDR_BASE + i), "r"(zero));
+    __asm__ __volatile__ ("mbar 1");
+}
+
+static void cmd_cache(const char *p) {
+    p = skip_ws(p);
+    if (*p == '1') {
+        if (!dcache_on) {
+            dcache_invalidate_all();
+            __asm__ __volatile__ ("msrset r0, 0x80" ::: "memory");
+            dcache_on = 1;
+        }
+    } else if (*p == '0') {
+        if (dcache_on) {
+            __asm__ __volatile__ ("msrclr r0, 0x80" ::: "memory");
+            dcache_on = 0;
+        }
+    }
+    uart_puts(dcache_on ? "OK CACHE 1\n" : "OK CACHE 0\n");
 }
 
 static void bench_mac(int n) {
@@ -841,6 +916,12 @@ static void cmd_bench(const char *p) {
         else if (op == 12u) bench_quant32((int)n);
         else if (op == 13u) bench_rope32((int)n);
         else if (op == 14u) bench_sumsq32((int)n);
+        else if (op == 15u) bench_quant_ddr((int)n, 0);
+        else if (op == 16u) bench_quant_ddr((int)n, 1);
+        else if (op == 17u) bench_rope_ddr((int)n, 0);
+        else if (op == 18u) bench_rope_ddr((int)n, 1);
+        else if (op == 19u) bench_sumsq_ddr((int)n, 0);
+        else if (op == 20u) bench_sumsq_ddr((int)n, 1);
         else               bench_mac((int)n);
     }
     uart_puts("MARK BENCH_END\nOK B ");
@@ -910,6 +991,7 @@ static void cmd_ethrx(const char *p) {
 int main(void) {
     uart_init();
     led(0x1);
+    cmd_cache("1");   /* 16 KB D-cache: 4x on every DDR access */
     uart_puts("\nTernaryCore Phase2 DDR firmware READY\n");
     for (;;) {
         read_line();
@@ -920,6 +1002,7 @@ int main(void) {
         else if (starts(line, "SLOAD")) cmd_sload();
         else if (starts(line, "SRUN"))  cmd_srun(line + 4);
         else if (starts(line, "MEMTEST")) cmd_memtest();
+        else if (starts(line, "CACHE")) cmd_cache(line + 5);
         else if (starts(line, "LOADM ")) cmd_loadm(line + 6);
         else if (starts(line, "PAGEDMA ")) cmd_pagedma(line + 8);
         else if (starts(line, "PAGE "))  cmd_page(line + 5);
