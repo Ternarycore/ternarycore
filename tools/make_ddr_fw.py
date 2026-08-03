@@ -228,7 +228,8 @@ static void cmd_ethload(const char *p) {
     while (got < count) {
         if (IO32(ETH_RSR0) & RSR_RECV)      { buf = ETH_RXBUF0; rsr = ETH_RSR0; }
         else if (IO32(ETH_RSR1) & RSR_RECV) { buf = ETH_RXBUF1; rsr = ETH_RSR1; }
-        else { if (++spin > 200000000u) break; continue; }
+        else { if (++spin > 2000000u) break; continue; }  /* idle timeout: a lost
+           frame must fail fast and be retried, not hang the transfer */
         spin = 0;
         if (eth_hdr_type(buf) == 0x88B5u) {
             seq = eth_seq(buf);
@@ -238,8 +239,10 @@ static void cmd_ethload(const char *p) {
             for (i = 0; i < len; i += 4u) {
                 w = IO32(buf + 20u + i);
                 IO32(DDR_BASE + dst + i) = w;
-                sum += (w & 0xFFu) + ((w >> 8) & 0xFFu)
-                     + ((w >> 16) & 0xFFu) + ((w >> 24) & 0xFFu);
+                /* Weighted by word index. A plain byte sum is
+                   order-independent and cannot see frames landing at the
+                   wrong offset -- it matched perfectly on scrambled memory. */
+                sum += w * (((dst + i) >> 2u) + 1u);
             }
             got++;
         }
