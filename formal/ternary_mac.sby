@@ -12,5 +12,4 @@ prep -top ternary_mac_formal
 
 [files]
 ../rtl/ternary_mac.v
-../rtl/ternary_defines.vh
 ternary_mac_formal.v
