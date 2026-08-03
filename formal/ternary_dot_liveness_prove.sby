@@ -19,5 +19,4 @@ prep -top ternary_dot_liveness_formal
 
 [files]
 ../rtl/ternary_dot.v
-../rtl/ternary_defines.vh
 ternary_dot_liveness_formal.v

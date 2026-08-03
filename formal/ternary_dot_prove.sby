@@ -15,5 +15,4 @@ prep -top ternary_dot_formal
 
 [files]
 ../rtl/ternary_dot.v
-../rtl/ternary_defines.vh
 ternary_dot_formal.v

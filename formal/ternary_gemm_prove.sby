@@ -15,7 +15,6 @@ setattr -unset mark_debug *
 prep -top ternary_gemm_formal
 
 [files]
-../rtl/ternary_defines.vh
 ../rtl/ternary_gemm.v
 ../rtl/ternary_dot.v
 ternary_gemm_formal.v
