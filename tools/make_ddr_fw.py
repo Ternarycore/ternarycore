@@ -593,6 +593,11 @@ s = s.replace(fw_exec_s8.ANCHOR, fw_exec_s8.EXEC8 + fw_exec_s8.ANCHOR, 1)
 assert fw_exec_s8.CMD_OLD in s
 s = s.replace(fw_exec_s8.CMD_OLD, fw_exec_s8.CMD_NEW, 1)
 
+import fw_exec_s9
+s = s.replace(fw_exec_s9.ANCHOR, fw_exec_s9.EXEC9 + fw_exec_s9.ANCHOR, 1)
+assert fw_exec_s9.CMD_OLD in s
+s = s.replace(fw_exec_s9.CMD_OLD, fw_exec_s9.CMD_NEW, 1)
+
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)
 
 open(dst, "w").write(s)
