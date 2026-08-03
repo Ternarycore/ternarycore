@@ -41,6 +41,16 @@ static void cmd_loadv(const char *p) {
     uart_puts("OK V\n");
 }
 
+/* Raw int8 in, so a stage can be driven with a known activation vector
+   rather than only with whatever the stage before it produced. */
+static void cmd_loadb(const char *p) {
+    unsigned long slot = parse_u(&p), n = parse_u(&p), i;
+    signed char *b = (signed char *)VSLOT(slot);
+    if (n > VS_MAX * 4u) { uart_puts("ERR range\n"); return; }
+    for (i = 0; i < n; i++) b[i] = (signed char)uart_getc();
+    uart_puts("OK B\n");
+}
+
 static void cmd_dumpv(const char *p) {
     unsigned long slot = parse_u(&p), n = parse_u(&p), i, c = 0;
     const int *v = (const int *)VSLOT(slot);
@@ -78,38 +88,28 @@ static void cmd_dumpr(const char *p) {
    divides out of all 1024 elements and is never computed per element here.
    It survives as one scalar in the output scale,
 
-       s_a = gmax * max|x*g| / (rms * 127)
+       s_a = gmax * mx / (32767 * 127 * sqrt(ss * 2^(2*xs) / n))
 
-   and rms itself needs only the sum of squares, which is a reduction, not
-   a vector operation. The same argument disposes of the gain's own scale:
-   any global factor in g cancels in the maximum, so g arrives normalized
-   to +-32767 in Q15 with gmax kept on the host.
+   which the host can evaluate from the three numbers reported below. The
+   same argument disposes of the gain's own scale: any global factor in g
+   cancels in the maximum, so g arrives normalized to +-32767 in Q15.
 
    x must arrive with its mantissas inside 16 bits -- the host scales the
    residual stream, and this checks rather than trusts, because a silent
    overflow here would look exactly like a quantization artefact
    twenty-eight blocks downstream.
 
-   Two passes where the obvious implementation has four. Pass one is the
-   range scan the sum of squares needs; pass two computes t = x*g,
-   accumulates sum(x^2) and tracks max|t| in the same loop that writes t --
-   that fusion is what the cold-to-hot gap in the DDR benchmark was
-   measuring. Pass three only scales.
+   Two passes where the obvious implementation has four: pass one is the
+   range scan the sum of squares needs, pass two computes t = x*g and
+   accumulates sum(x^2) and max|t| in the same loop that writes t.
 
-   Two precision lessons are baked into that last pass. t is the full
-   32-bit product and is never shifted on the way into memory: an earlier
-   version wrote (v*g) >> 15, and one truncated unit of t is worth mx/127
-   output LSBs, which is invisible at mx=32767 and flips one rounding in
-   nine downward at mx=564.
-
-   And the reciprocal carries 46 fractional bits in a 64-bit product. That
-   is the one place in this firmware where long long is affordable, and it
-   is affordable because it was measured: the quantizer benchmarked at
-   18.02 cycles/element in both 32-bit and 64-bit form, identical, while
-   RoPE paid a factor of six for the same construct. A 32-bit reciprocal
-   normalized to 16 bits carries an error near 0.008 of an LSB, which is
-   enough to move any element sitting that close to a rounding boundary;
-   at 46 bits the error is 1.5e-5 and nothing moves. */
+   Two precision lessons are baked into pass three. t is the full 32-bit
+   product and is never shifted into memory -- an earlier version wrote
+   (v*g) >> 15, and one truncated unit of t is worth mx/127 output LSBs,
+   invisible at mx=32767 and one rounding in nine at mx=564. And the
+   reciprocal carries 46 fractional bits in a 64-bit product, which is
+   affordable here and nowhere else: this operator measured 18.02
+   cycles/element in both 32- and 64-bit form, while RoPE paid 6x. */
 
 static void cmd_nq(const char *p) {
     unsigned long src = parse_u(&p), gsl = parse_u(&p), dst = parse_u(&p),
@@ -163,6 +163,57 @@ static void cmd_nq(const char *p) {
     uart_puts("\nOK NQ\n");
 }
 
+/* ---- Stage 2: a projection through the array -------------------------
+   The arithmetic here is already proven -- phase2_demo has been computing
+   exact 1024-wide projections through this path for weeks. What is new is
+   that the activations come from a scratch slot written by stage 1 rather
+   than from a UART command, and the int32 accumulators land in another
+   slot rather than being checksummed and thrown away.
+
+   The segment count exists because the array is 1024 deep and two of the
+   seven projections are not: o_proj reads 2048 and down_proj reads 3072.
+   Each segment is a separate weight page and a separate 1024-deep pass,
+   summed here. That is one add per output per segment, and it is inherent
+   to the array's depth rather than a shortcut -- the alternative is a
+   deeper act_ram, which is a bitstream change.
+
+   Segment 0 writes, later segments accumulate; the caller pages the right
+   weights in between. No scale arithmetic: the output scale follows from
+   what stage 1 reported, and keeping it on the host means this stage can
+   be checked against exact integers instead of a float and a tolerance. */
+
+static void cmd_proj(const char *p) {
+    unsigned long asrc = parse_u(&p), dst = parse_u(&p), ntile = parse_u(&p),
+                  seg = parse_u(&p), j;
+    const signed char *a = (const signed char *)VSLOT(asrc);
+    int *o = (int *)VSLOT(dst);
+    unsigned long k;
+    unsigned int ct;
+    int c, v;
+    unsigned long chk = 0;
+
+    if (ntile == 0u || ntile > 16u) { uart_puts("ERR range\n"); return; }
+
+    IO32(STREAM_BASE + S_CTRL) = 0x4u;               /* act ptr reset */
+    for (k = 0; k < DEPTH; k++)
+        IO32(STREAM_BASE + S_ACTWR) = (unsigned int)(unsigned char)a[k];
+
+    for (ct = 0; ct < (unsigned int)ntile; ct++) {
+        stream_tile(ct);
+        for (c = 0; c < 64; c++) {
+            IO32(STREAM_BASE + S_RIDX) = (unsigned int)c;
+            v = (int)IO32(STREAM_BASE + S_RDATA);
+            j = (unsigned long)ct * 64u + (unsigned long)c;
+            o[j] = seg ? (o[j] + v) : v;
+        }
+    }
+    for (j = 0; j < ntile * 64u; j++)
+        chk += (unsigned long)o[j] * (unsigned long)(j + 1u);
+    uart_puts("PCHK "); uart_puthex(chk);
+    uart_puts(" CYC "); uart_putdec((long)IO32(STREAM_BASE + S_CYC));
+    uart_puts("\nOK PJ\n");
+}
+
 """
 
 ANCHOR = "int main(void) {"
@@ -170,7 +221,9 @@ ANCHOR = "int main(void) {"
 CMD_OLD = '        else if (starts(line, "MEMTEST")) cmd_memtest();'
 CMD_NEW = (CMD_OLD +
            '\n        else if (starts(line, "LOADV ")) cmd_loadv(line + 6);'
+           '\n        else if (starts(line, "LOADB ")) cmd_loadb(line + 6);'
            '\n        else if (starts(line, "DUMPV ")) cmd_dumpv(line + 6);'
            '\n        else if (starts(line, "DUMPB ")) cmd_dumpb(line + 6);'
            '\n        else if (starts(line, "DUMPR ")) cmd_dumpr(line + 6);'
-           '\n        else if (starts(line, "NQ ")) cmd_nq(line + 3);')
+           '\n        else if (starts(line, "NQ ")) cmd_nq(line + 3);'
+           '\n        else if (starts(line, "PROJ ")) cmd_proj(line + 5);')
