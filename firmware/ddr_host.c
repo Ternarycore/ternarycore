@@ -1490,7 +1490,12 @@ static void cmd_kvr(const char *p) {
    These are scalar operations, once per head rather than once per
    element, so the 64-bit arithmetic that cost RoPE a factor of six is
    free here. Same argument that gave stage 1 an exact reciprocal: the
-   benchmark says where the width is affordable. */
+   benchmark says where the width is affordable.
+
+   Every routine normalizes its own inputs. They did not at first, and the
+   result was a divide wrong by a whole factor of two rather than by
+   rounding. A function that quietly loses precision on input it never
+   documented a requirement for is a trap, so these are total. */
 
 static void sc_norm(unsigned int *m, int *e) {
     if (*m == 0u) { *e = 0; return; }
@@ -1498,22 +1503,32 @@ static void sc_norm(unsigned int *m, int *e) {
     while (*m >= (1u << 31)) { *m >>= 1; (*e)++; }
 }
 
-static void sc_set(unsigned int v, int e, unsigned int *mo, int *eo) {
-    *mo = v; *eo = e; sc_norm(mo, eo);
-}
-
 static void sc_mul(unsigned int ma, int ea, unsigned int mb, int eb,
                    unsigned int *mo, int *eo) {
-    unsigned long long p = (unsigned long long)ma * (unsigned long long)mb;
-    *mo = (unsigned int)(p >> 31);
-    *eo = ea + eb + 31;
+    unsigned long long p;
+    int sh;
+    sc_norm(&ma, &ea);
+    sc_norm(&mb, &eb);
+    if (ma == 0u || mb == 0u) { *mo = 0u; *eo = 0; return; }
+    /* Both in [2^30, 2^31), so p is in [2^60, 2^62). A fixed shift of 31
+       would land below 2^30 half the time and normalization would then
+       shift zeros back in, so pick the shift from the range. */
+    p  = (unsigned long long)ma * (unsigned long long)mb;
+    sh = (p < ((unsigned long long)1 << 61)) ? 30 : 31;
+    *mo = (unsigned int)((p + ((unsigned long long)1 << (sh - 1))) >> sh);
+    *eo = ea + eb + sh;
     sc_norm(mo, eo);
 }
 
 static void sc_div(unsigned int ma, int ea, unsigned int mb, int eb,
                    unsigned int *mo, int *eo) {
-    unsigned long long n = (unsigned long long)ma << 31;
-    if (mb == 0u) { *mo = 0u; *eo = 0; return; }
+    unsigned long long n;
+    sc_norm(&ma, &ea);
+    sc_norm(&mb, &eb);
+    if (ma == 0u || mb == 0u) { *mo = 0u; *eo = 0; return; }
+    /* Normalized inputs put the ratio in (1/2, 2), so the quotient of
+       (ma << 31) by mb is between 2^30 and 2^32 and stays in 32 bits. */
+    n = (unsigned long long)ma << 31;
     *mo = (unsigned int)(n / (unsigned long long)mb);
     *eo = ea - eb - 31;
     sc_norm(mo, eo);
@@ -1535,6 +1550,7 @@ static unsigned int isqrt64(unsigned long long v) {
 /* sqrt(m * 2^e). The exponent is made even first, then the mantissa is
    shifted up 32 bits so the root keeps its full width. */
 static void sc_sqrt(unsigned int m, int e, unsigned int *mo, int *eo) {
+    sc_norm(&m, &e);
     if (m == 0u) { *mo = 0u; *eo = 0; return; }
     if (e & 1) { m >>= 1; e++; }
     *mo = isqrt64((unsigned long long)m << 32);
