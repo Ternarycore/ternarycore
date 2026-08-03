@@ -94,6 +94,10 @@ clean:
 # ── Verilator C++ simulation (fast) ──────────────────────────────────────────
 # Requirements: verilator (brew install verilator)
 # Builds a standalone C++ simulator. Typically 10-100x faster than Icarus.
+# Dot variants share the same structure (ternary_dot top, .cpp per variant);
+# each one varies --Mdir, -GVECTOR_LEN, and whether it runs after build.
+# The 3 suffixed variants (back2back/fuzz/diff) could use a pattern rule but
+# their unique Mdirs and build/run split make explicit rules clearer.
 VERILATOR_SRCDIR = tests
 VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -I../rtl
 CXX ?= g++
@@ -103,6 +107,7 @@ verilator-mac: $(VERILATOR_SRCDIR)/verilator_mac.cpp ../rtl/ternary_mac.v
 		$(VERILATOR_FLAGS) ../rtl/ternary_mac.v $< -o sim_mac_verilator
 	./obj_dir/sim_mac_verilator
 
+# ── Dot-product variants ─────────────────────────────────────────────────────
 verilator-dot: $(VERILATOR_SRCDIR)/verilator_dot.cpp ../rtl/ternary_dot.v
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
 		-GVECTOR_LEN=8 \
@@ -117,6 +122,14 @@ verilator-dot-back2back: $(VERILATOR_SRCDIR)/verilator_dot_back2back.cpp ../rtl/
 		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_back2back_verilator
 	./obj_dir_dot_b2b/sim_dot_back2back_verilator
 
+verilator-dot-fuzz: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v
+	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
+		-GVECTOR_LEN=8 \
+		--Mdir obj_dir_dot_fuzz \
+		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_fuzz_verilator
+	./obj_dir_dot_fuzz/sim_dot_fuzz_verilator
+
+# ── GEMM and pipeline ────────────────────────────────────────────────────────
 verilator-gemm: $(VERILATOR_SRCDIR)/verilator_gemm.cpp ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_gemm \
 		-GDEPTH=4 -GCOLS=4 \
@@ -135,16 +148,12 @@ verilator-pipeline-large: $(VERILATOR_SRCDIR)/verilator_pipeline_576.cpp \
 
 verilator-all:\
   verilator-mac verilator-dot verilator-dot-back2back verilator-dot-fuzz\
-  verilator-gemm verilator-pipeline-large verilator-dot-diff
+  verilator-gemm verilator-pipeline-large
 
-verilator-dot-fuzz: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
-		-GVECTOR_LEN=8 \
-		--Mdir obj_dir_dot_fuzz \
-		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_fuzz_verilator
-	./obj_dir_dot_fuzz/sim_dot_fuzz_verilator
-
-# ── Differential fuzzing ──────────────────────────────────────────────────────
+# ── Differential fuzzing (build-only targets) ───────────────────────────────
+# These are cross-verification tools (+ device model, Python orchestration)
+# that compare RTL vs GVSoC device model. Consider splitting off into a
+# separate PR if they grow further — they're testing infrastructure, not RTL.
 DIFF_BUILD = build
 
 verilator-dot-diff: $(VERILATOR_SRCDIR)/verilator_dot_diff.cpp ../rtl/ternary_dot.v
