@@ -584,6 +584,10 @@ s = s.replace(fw_exec_s7.ANCHOR, fw_exec_s7.EXEC7 + fw_exec_s7.ANCHOR, 1)
 assert fw_exec_s7.CMD_OLD in s
 s = s.replace(fw_exec_s7.CMD_OLD, fw_exec_s7.CMD_NEW, 1)
 
+# accel_out is 4 KB read once per verification, not once per token.
+s = s.replace("static long accel_out[COLS_TOTAL];",
+              "static long * const accel_out = (long *)(DDR_BASE + 0x0E040000u);", 1)
+
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)
 
 open(dst, "w").write(s)

@@ -130,7 +130,7 @@ static void uart_puthex(unsigned long v) {
 static void led(unsigned int v) { IO32(GPIO_BASE) = v; }
 
 static signed char activations[DEPTH];
-static long accel_out[COLS_TOTAL];
+static long * const accel_out = (long *)(DDR_BASE + 0x0E040000u);
 static long * const sw_out = (long *)(DDR_BASE + 0x0E030000u);
 
 static unsigned char read_weight_byte(unsigned int a) {

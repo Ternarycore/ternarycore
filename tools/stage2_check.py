@@ -115,8 +115,7 @@ def main():
 
     z = np.load(a.cache)
     b = Board(a.dev)
-    b.send("PING\n")
-    b.until("PONG")
+    b.sync()
 
     print("stage 2: NQ -> PROJ, real ternary weights\n")
     cases = [(0, "self_attn.k_proj", "0.in_norm", 1024, 1024),

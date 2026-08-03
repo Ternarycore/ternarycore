@@ -87,8 +87,7 @@ def main():
     ap.add_argument("--dev", default="/dev/ttyUSB1")
     a = ap.parse_args()
     b = Board(a.dev)
-    b.send("PING\n")
-    b.until("PONG")
+    b.sync()
     print("stage 5b: Q.K^T from the cache\n")
 
     cases = [(0, 0, 1), (0, 0, 63), (0, 0, 64), (0, 0, 65), (5, 3, 200)]

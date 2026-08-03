@@ -54,6 +54,25 @@ class Board:
                 out += d
         return out.decode("utf8", "replace")
 
+    def sync(self, tries=8):
+        """Handshake that tolerates a board still coming out of reset.
+
+        xsdb can still be releasing the core when a check opens the port,
+        so a single PING gets swallowed and the PONG that arrives belongs
+        to the previous firmware -- after which every subsequent command
+        is lost. Retry until the board genuinely answers.
+        """
+        for _ in range(tries):
+            termios.tcflush(self.fd, termios.TCIOFLUSH)
+            self.buf = b""
+            self.send("PING\n")
+            try:
+                self.until("PONG", timeout=3)
+                return
+            except TimeoutError:
+                time.sleep(1)
+        raise TimeoutError("board never answered PING")
+
     def loadv(self, slot, vec):
         v = np.asarray(vec, dtype=np.int32)
         self.send(f"LOADV {slot} {v.size}\n")
@@ -139,8 +158,7 @@ def main():
 
     z = np.load(a.cache)
     b = Board(a.dev)
-    b.send("PING\n")
-    b.until("PONG")
+    b.sync()
 
     cases = [(0, "in_norm", "0.in_norm", 1024),
              (0, "post_norm", "0.post_norm", 1024),

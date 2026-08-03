@@ -55,8 +55,7 @@ def main():
     a = ap.parse_args()
 
     b = Board(a.dev)
-    b.send("PING\n")
-    b.until("PONG")
+    b.sync()
     print("stage 5a: block-float scalars\n")
 
     rng = np.random.default_rng(5)

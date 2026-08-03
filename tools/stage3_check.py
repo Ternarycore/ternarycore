@@ -84,8 +84,7 @@ def main():
 
     z = np.load(a.cache)
     b = Board(a.dev)
-    b.send("PING\n")
-    b.until("PONG")
+    b.sync()
 
     print("stage 3: QK-norm + RoPE\n")
     cases = [(0, "q", NH, 0),       # identity rotation: isolates the norm

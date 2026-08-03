@@ -39,8 +39,7 @@ def main():
     a = ap.parse_args()
 
     b = Board(a.dev)
-    b.send("PING\n")
-    b.until("PONG")
+    b.sync()
     print("stage 4: KV cache round-trip through bit planes\n")
 
     rng = np.random.default_rng(4)
