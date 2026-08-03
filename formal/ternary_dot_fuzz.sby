@@ -1,0 +1,23 @@
+# Fuzz bug-hunter: cover-only at extended depth 24.
+# Attempts to reach bug-hunter cover states added to ternary_dot_formal.v:
+#   cover(valid_out && !ref_done)   — valid_out firing without ref prediction
+#   cover(ref_done && !valid_out)   — ref predicting done without valid_out
+# If either is REACHABLE, the ref model and RTL disagree on valid_out timing.
+[options]
+mode cover
+depth 24
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_dot.v
+read -formal ternary_dot_formal.v
+setattr -unset keep *
+setattr -unset dont_touch *
+setattr -unset mark_debug *
+prep -top ternary_dot_formal
+
+[files]
+../rtl/ternary_dot.v
+ternary_dot_formal.v

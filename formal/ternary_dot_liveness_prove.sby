@@ -1,0 +1,22 @@
+# Liveness proof for ternary_dot counter FSM.
+# Prove: feeding VECTOR_LEN consecutive elements always produces valid_out
+# within VECTOR_LEN+2 cycles. BMC depth 14 covers reset (2) + feeding (4) +
+# wait (2) + margin.
+[options]
+mode bmc
+depth 14
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_dot.v
+read -formal ternary_dot_liveness_formal.v
+setattr -unset keep *
+setattr -unset dont_touch *
+setattr -unset mark_debug *
+prep -top ternary_dot_liveness_formal
+
+[files]
+../rtl/ternary_dot.v
+ternary_dot_liveness_formal.v

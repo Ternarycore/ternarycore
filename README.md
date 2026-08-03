@@ -16,14 +16,19 @@ BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix mu
 | `ternary_mac` | 8/8 | ✅ All passing |
 | `ternary_dot` | 7/7 | ✅ All passing |
 | `ternary_gemm` | 16/16 (4×4) | ✅ All passing |
+| `activation_quant` | formal (cover + prove) | ✅ All passing |
+| `ternary_scale` | formal (cover + prove) | ✅ All passing |
+| `ternary_pipeline` | formal + C++ sim | ✅ All passing |
 
 > **All tests passing!** The system has been fully verified with RTL simulation matching Python reference implementation. Recent fixes addressed timing bugs in `ternary_dot.v` and testbench race conditions.
 
-### Recent Fixes (April 2026)
+### Recent Fixes
 
-1. **Fixed `ternary_dot.v` timing bugs**: 
-   - `valid_out` now pulses correctly one cycle after last element
-   - Fixed `vector_done` logic to persist through `valid_in=0`
+1. **Fixed `ternary_dot.v` timing bugs**:
+   - `valid_out` now pulses for exactly one cycle when the dot product is ready
+   - `vector_done` self-clears on `valid_in=0` (no longer sticky-high across vectors)
+   - Removed dead `result_latch`/`vector_done_delayed` registers
+   - Supports back-to-back vectors: a new vector can start the cycle after the previous result latches
    - Removed debug statements for cleaner output
 
 2. **Fixed testbench race conditions**:
@@ -106,6 +111,43 @@ Three layers, each building on the last:
 | `2'b00` | 0 | No contribution (skip) |
 | `2'b01` | +1 | `acc_out = acc_in + activation` |
 | `2'b10` | -1 | `acc_out = acc_in - activation` |
+
+---
+
+## BitNet Inference Pipeline
+
+The GEMM core computes ternary matmuls, but a real BitNet b1.58 layer also needs
+input quantization to INT8, an integer scaling multiply, and FP8→Q15 conversion
+for streaming activations. These modules complete the layer:
+
+**`activation_quant`** — quantizes an INT8 activation `x` to INT8 with
+`q = RoundClip(x * inv / 2^PRECISION, -Q_MAX, +Q_MAX)` (Q_MAX = 127 for INT8,
+`inv` precomputed in software). Round-to-nearest via `+ 2^(PRECISION-1)`;
+no zero-point offset is used. Two pipeline stages.
+
+**`ternary_scale`** — post-GEMM scaling: multiplies the integer accumulator
+(`acc`) by `alpha` (Q15) and rounds back to the output data width. Two pipeline stages.
+
+**`fp8_to_q15`** — converts an FP8 (E5M2) activation to Q15, for feeding the
+GEMM array from an FP8 stream. Single-cycle, combinatorial.
+
+**`ternary_pipeline`** — ties it together: `activation_quant` → `ternary_gemm` →
+`ternary_scale` using simple valid/valid_out handshaking. No FIFOs and no AXI
+interfaces; the pipeline is a purely streaming datapath.
+
+> **DSP usage — honest accounting.** The GEMM core (`ternary_mac`/`ternary_dot`/
+> `ternary_gemm`) is multiplier-free. The inference pipeline is not: both
+> `activation_quant` and `ternary_scale` contain a real integer multiplier
+> (`activation * inv`, `acc * alpha`). On FPGAs these map to DSP slices. A
+> full-layer implementation therefore uses DSPs for quantization/scaling, not
+> for the matmul itself.
+
+Run the fast C++ simulation of the whole pipeline (576-element vectors):
+
+```bash
+cd sim
+make verilator-all          # MAC, dot, GEMM, and full-pipeline C++ sims
+```
 
 ---
 
