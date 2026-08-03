@@ -1,0 +1,23 @@
+[options]
+mode bmc
+depth 60
+
+[engines]
+smtbmc
+
+[script]
+read -formal axi_gemm_wrapper.v
+read -formal ternary_gemm.v
+read -formal ternary_dot.v
+read -formal axi_gemm_wrapper_b2b_formal.v
+setattr -unset keep *
+setattr -unset dont_touch *
+setattr -unset mark_debug *
+prep -top axi_gemm_wrapper_b2b_formal
+
+[files]
+../rtl/axi_gemm_wrapper.v
+../rtl/ternary_gemm.v
+../rtl/ternary_dot.v
+../rtl/ternary_defines.vh
+axi_gemm_wrapper_b2b_formal.v

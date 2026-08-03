@@ -1,0 +1,22 @@
+# Bounded-model-checking proof for ternary_scale.
+#
+# mode is bmc, not prove. The reference model involves 32×16 multiply chains
+# over the 4 channels; k-induction with the max alpha value 65535 (saturated
+# Q15 2.0) is slower than bounded BMC at the depth needed to cover reset +
+# one full transaction through both pipeline stages (~6 steps, but depth 10
+# provides margin for the run_cnt gate).
+[options]
+mode bmc
+depth 10
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_scale.v
+read -formal ternary_scale_formal.v
+prep -top ternary_scale_formal
+
+[files]
+../rtl/ternary_scale.v
+ternary_scale_formal.v

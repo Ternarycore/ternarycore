@@ -27,8 +27,10 @@ module weight_bram #(
 
     // AXI4-Lite write address
     input  wire [ADDR_WIDTH-1:0]    s_axi_awaddr,
+/* verilator lint_off UNUSEDSIGNAL */
     input  wire [2:0]               s_axi_awprot,
     input  wire                     s_axi_awvalid,
+/* verilator lint_on UNUSEDSIGNAL */
     output wire                     s_axi_awready,
 
     // AXI4-Lite write data
@@ -43,9 +45,11 @@ module weight_bram #(
     input  wire                     s_axi_bready,
 
     // AXI4-Lite read address
+/* verilator lint_off UNUSEDSIGNAL */
     input  wire [ADDR_WIDTH-1:0]    s_axi_araddr,
     input  wire [2:0]               s_axi_arprot,
     input  wire                     s_axi_arvalid,
+/* verilator lint_on UNUSEDSIGNAL */
     output wire                     s_axi_arready,
 
     // AXI4-Lite read data
@@ -75,7 +79,9 @@ module weight_bram #(
 
     // ── AXI write state machine ───────────────────────────────────────────────
     reg aw_accepted, w_accepted, b_pending;
+/* verilator lint_off UNUSEDSIGNAL */
     reg [ADDR_WIDTH-1:0] wr_addr;
+/* verilator lint_on UNUSEDSIGNAL */
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

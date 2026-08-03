@@ -62,7 +62,7 @@ module ternary_gemm_stream #(
 
     ternary_gemm #(
         .DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH),
-        .ROWS(1), .COLS(COLS), .DEPTH(DEPTH)
+        .COLS(COLS), .DEPTH(DEPTH)
     ) gemm_i (
         .clk(clk), .rst_n(rst_n),
         .valid_in(v1),              // aligned to act_data/w_data (both +1 cycle)
@@ -101,7 +101,7 @@ module ternary_gemm_stream #(
                         v0 <= 1'b0;
                     end
                     if (v1) fed <= fed + 1'b1;
-                    if (fed == DEPTH) state <= S_WAIT;   // all DEPTH driven
+                    if (fed + 1'b1 == DEPTH) state <= S_WAIT;   // pre-increment compare — enter WAIT on the same cycle as the last feed
                 end
                 S_WAIT: begin
                     v0 <= 1'b0;

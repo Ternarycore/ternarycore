@@ -32,39 +32,39 @@ module ternary_dot #(
     input  wire                   valid_in,
     input  wire [DATA_WIDTH-1:0]  activation,
     input  wire [1:0]             weight_enc,   // 00=0, 01=+1, 10=-1
-         output reg  [ACC_WIDTH-1:0]   acc_out,
+        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg  [ACC_WIDTH-1:0]   acc_out,
         output wire                   valid_out,
         // Exported debug ports (preserved for ILA/board probing)
-         output reg                  debug_valid_in_out,
-         output reg [DATA_WIDTH-1:0] debug_activation_out,
-         output reg [1:0]            debug_weight_enc_out,
-         output reg [ACC_WIDTH-1:0] debug_acc_out_out,
-         output reg                  debug_valid_out_out
+        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg                  debug_valid_in_out,
+        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg [DATA_WIDTH-1:0] debug_activation_out,
+        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg [1:0]            debug_weight_enc_out,
+        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg [ACC_WIDTH-1:0] debug_acc_out_out,
+        (* mark_debug = "true", keep = "true", dont_touch = "true" *) output reg                  debug_valid_out_out
 );
 
-     reg signed [DATA_WIDTH-1:0] weighted;
-     reg [ACC_WIDTH-1:0] weighted_ext;
+    (* mark_debug = "true" *) reg signed [DATA_WIDTH-1:0] weighted;
+    (* mark_debug = "true" *) reg [ACC_WIDTH-1:0] weighted_ext;
 
-     reg [ACC_WIDTH-1:0] acc;
-     reg [15:0]          count;       // down-counter, no $clog2 required
-     reg                 vector_done; // pulses 1 cycle when last element processed
-     reg [ACC_WIDTH-1:0] result_latch; // latches the result for output
-     reg                 vector_done_delayed;
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [ACC_WIDTH-1:0] acc;
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [15:0]          count;       // down-counter, no $clog2 required
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                 vector_done; // pulses 1 cycle when last element processed
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [ACC_WIDTH-1:0] result_latch; // latches the result for output
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                 vector_done_delayed;
 
-     reg [ACC_WIDTH-1:0] next_acc;
-     reg                  debug_valid_in;
-     reg [DATA_WIDTH-1:0] debug_activation;
-     reg [1:0]            debug_weight_enc;
-     reg [ACC_WIDTH-1:0] debug_acc_out;
-     reg                  debug_valid_out;
+    (* mark_debug = "true" *) reg [ACC_WIDTH-1:0] next_acc;
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                  debug_valid_in;
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [DATA_WIDTH-1:0] debug_activation;
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [1:0]            debug_weight_enc;
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg [ACC_WIDTH-1:0] debug_acc_out;
+    (* mark_debug = "true", keep = "true", dont_touch = "true" *) reg                  debug_valid_out;
 
     // ILA-visible port taps: mirror external I/O so the ILA can capture
     // interface-level transitions without depending on optimization choices.
-     wire                 debug_tap_valid_in;
-     wire signed [DATA_WIDTH-1:0] debug_tap_activation;
-     wire [1:0]            debug_tap_weight_enc;
-     wire [ACC_WIDTH-1:0] debug_tap_acc_out;
-     wire                 debug_tap_valid_out;
+    (* mark_debug = "true" *) wire                 debug_tap_valid_in;
+    (* mark_debug = "true" *) wire signed [DATA_WIDTH-1:0] debug_tap_activation;
+    (* mark_debug = "true" *) wire [1:0]            debug_tap_weight_enc;
+    (* mark_debug = "true" *) wire [ACC_WIDTH-1:0] debug_tap_acc_out;
+    (* mark_debug = "true" *) wire                 debug_tap_valid_out;
 
     // Tie taps to module ports / internal outputs
     assign debug_tap_valid_in    = valid_in;
@@ -72,17 +72,11 @@ module ternary_dot #(
     assign debug_tap_weight_enc  = weight_enc;
     assign debug_tap_acc_out     = acc_out;
     assign debug_tap_valid_out   = valid_out;
-    // ── Main sequential logic ─────────────────────────────
+    // ── Main sequential logic ─────────────────────────────────────
     always @(posedge clk or negedge rst_n) begin
          if (!rst_n) begin
              acc        <= {ACC_WIDTH{1'b0}};
              count      <= VECTOR_LEN;    // load down-counter (counts VECTOR_LEN down to 1)
-             // NOTE: acc_out and vector_done_delayed are reset in their own
-             // always blocks below. Resetting them here as well makes them
-             // MULTI-DRIVEN: simulators tolerate it, but Vivado synthesis
-             // (Synth 8-6858/8-6859) preserves the constant driver and ties
-             // acc_out to zero in silicon. This was the root cause of the
-             // all-zero accelerator reads on the Arty A7 (July 2026).
              vector_done <= 1'b0;
               result_latch <= {ACC_WIDTH{1'b0}};
              debug_valid_in <= 1'b0;
@@ -104,7 +98,7 @@ module ternary_dot #(
               weighted_ext = {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
               next_acc = acc + weighted_ext;
 
-             // ── Accumulation + counter stage ──────────────────────
+             // ── Accumulation + counter stage ──────────────────────────────
              // Accumulate when valid_in is high and we're not done (or we're starting new vector)
              if (valid_in && (!vector_done || vector_done_delayed)) begin
                  if (count == 16'b1) begin
@@ -138,7 +132,7 @@ module ternary_dot #(
          end
     end
 
-    // ── Output stage ─────────────────────────────────
+    // ── Output stage ─────────────────────────────────────────────
     // valid_out pulses high ONE CYCLE after the last element is fed.
     // Combinatorial: valid_out is high when vector_done was true previous cycle
     always @(posedge clk or negedge rst_n) begin

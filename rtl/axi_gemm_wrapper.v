@@ -26,7 +26,6 @@
 module axi_gemm_wrapper #(
     parameter DATA_WIDTH = 8,
     parameter ACC_WIDTH  = 32,
-    parameter ROWS       = 4,
     parameter COLS       = 4,
     parameter DEPTH      = 4
 )(
@@ -34,12 +33,16 @@ module axi_gemm_wrapper #(
     input  wire         s_axi_aresetn,
 
     input  wire [7:0]   s_axi_awaddr,
+/* verilator lint_off UNUSEDSIGNAL */
     input  wire [2:0]   s_axi_awprot,
+/* verilator lint_on UNUSEDSIGNAL */
     input  wire         s_axi_awvalid,
     output wire         s_axi_awready,
 
     input  wire [31:0]  s_axi_wdata,
+/* verilator lint_off UNUSEDSIGNAL */
     input  wire [3:0]   s_axi_wstrb,
+/* verilator lint_on UNUSEDSIGNAL */
     input  wire         s_axi_wvalid,
     output wire         s_axi_wready,
 
@@ -48,7 +51,9 @@ module axi_gemm_wrapper #(
     input  wire         s_axi_bready,
 
     input  wire [7:0]   s_axi_araddr,
+/* verilator lint_off UNUSEDSIGNAL */
     input  wire [2:0]   s_axi_arprot,
+/* verilator lint_on UNUSEDSIGNAL */
     input  wire         s_axi_arvalid,
     output wire         s_axi_arready,
 
@@ -153,16 +158,13 @@ module axi_gemm_wrapper #(
 
     // ── AXI read state machine ─────────────────────────────────
     reg         rd_active;
-    reg [7:0]   rd_addr;
 
     always @(posedge s_axi_aclk or negedge s_axi_aresetn) begin
         if (!s_axi_aresetn) begin
             rd_active <= 1'b0;
-            rd_addr   <= 8'h00;
         end else begin
             if (s_axi_arvalid && s_axi_arready) begin
                 rd_active <= 1'b1;
-                rd_addr   <= s_axi_araddr[7:0];
             end else if (s_axi_rvalid && s_axi_rready) begin
                 rd_active <= 1'b0;
             end
@@ -207,7 +209,6 @@ module axi_gemm_wrapper #(
     ternary_gemm #(
         .DATA_WIDTH(DATA_WIDTH),
         .ACC_WIDTH(ACC_WIDTH),
-        .ROWS(ROWS),
         .COLS(COLS),
         .DEPTH(DEPTH)
     ) gemm_i (
@@ -221,14 +222,11 @@ module axi_gemm_wrapper #(
     );
 
     // ── valid_out edge detect ──────────────────────────────────
-    // ternary_dot HOLDS vector_done (and therefore valid_out) high from the
-    // last element until the first element of the next vector is accepted.
-    // When a CPU feeds elements over AXI there are long idle gaps in which
-    // valid_out stays asserted, so a level-sensitive latch is rewritten every
-    // cycle and a level-sensitive done outprioritises the CTRL-write clear.
-    // Additionally, the dot registers its result onto acc_out one cycle AFTER
-    // valid_out first rises. Therefore: capture exactly one cycle after the
-    // rising edge of valid_out, when acc_out carries the settled result.
+    // ternary_dot pulses valid_out for exactly one cycle after the
+    // last element. acc_out holds the result on that same cycle.
+    // Delay valid_out by two cycles (gemm_valid_out_d2) to match the
+    // RTL's single-driver acc_out timing, then capture on the rising
+    // edge of gemm_valid_out_d1 (the settled pulse).
     reg gemm_valid_out_d1;
     reg gemm_valid_out_d2;
 
@@ -271,7 +269,6 @@ module axi_gemm_wrapper #(
     reg [31:0] rdata;
 
     function [31:0] get_acc_out;
-        input [7:0] addr;
         input integer n;
         begin
             if (n < COLS)
@@ -290,12 +287,14 @@ module axi_gemm_wrapper #(
                     ADDR_CTRL: begin
                         rdata <= {ctrl_done, 29'b0, ctrl_rst_sw, ctrl_start};
                     end
+                    ADDR_ACTIVATION:
+                        rdata <= {{(32-DATA_WIDTH){1'b0}}, activation_reg};
                     ADDR_WEIGHT_ENC_LO: rdata <= weight_enc_lo;
                     ADDR_WEIGHT_ENC_HI: rdata <= weight_enc_hi;
-                    ADDR_ACC_OUT0:      rdata <= get_acc_out(8'h00, 0);
-                    ADDR_ACC_OUT1:      rdata <= get_acc_out(8'h00, 1);
-                    ADDR_ACC_OUT2:      rdata <= get_acc_out(8'h00, 2);
-                    ADDR_ACC_OUT3:      rdata <= get_acc_out(8'h00, 3);
+                    ADDR_ACC_OUT0:      rdata <= get_acc_out(0);
+                    ADDR_ACC_OUT1:      rdata <= get_acc_out(1);
+                    ADDR_ACC_OUT2:      rdata <= get_acc_out(2);
+                    ADDR_ACC_OUT3:      rdata <= get_acc_out(3);
                     default:            rdata <= 32'h00000000;
                 endcase
             end
