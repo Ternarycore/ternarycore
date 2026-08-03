@@ -25,14 +25,24 @@ EXEC3 = r"""
    for this operator is the difference between 18.6 and 113.8 cycles per
    element -- RoPE is where 64-bit arithmetic actually costs.
 
+   All three shifts round away from zero. An arithmetic shift truncates
+   toward negative infinity, and one discarded unit here is 127/32767 =
+   0.004 of an output LSB -- the exact magnitude that put five differing
+   elements per thousand into stage 1 before the same fix was applied
+   there. Twice was enough.
+
    cos and sin share one slot: cos in [0, hd/2), sin in [hd/2, hd), both
    Q15, sent by the host for the current position. 512 bytes a token beats
-   tabling 512 positions at 256 KB, and beats recomputing them here with
-   no FPU.
+   tabling 512 positions at 256 KB, and beats recomputing them with no FPU.
 
    Per-head scalars land in a slot as [ss, s1, sq, mx] so the host can
-   reconstruct the score scale exactly; the board does not need them until
-   softmax. */
+   reconstruct the score scale exactly; the board needs them at softmax. */
+
+static int rsh(int v, int s) {
+    if (s <= 0) return v;
+    return (v >= 0) ? ((v + (1 << (s - 1))) >> s)
+                    : -(((-v) + (1 << (s - 1))) >> s);
+}
 
 static void cmd_qkn(const char *p) {
     unsigned long src = parse_u(&p), gsl = parse_u(&p), cs = parse_u(&p),
@@ -70,17 +80,17 @@ static void cmd_qkn(const char *p) {
         while (((amx >> s1) >> sq) > 2047) sq++;
 
         for (i = 0; i < hd; i++) {
-            v = (qh[i] >> s1) >> sq;
+            v = rsh(rsh(qh[i], s1), sq);
             ss += (unsigned int)(v * v);
         }
         for (i = 0; i < hd; i++)
-            u[i] = ((qh[i] >> s1) * g[i]) >> 15;      /* 16x16 -> 32 */
+            u[i] = rsh(rsh(qh[i], s1) * g[i], 15);    /* 16x16 -> 32 */
 
         for (i = 0; i < half; i++) {
             a = u[i];
             b = u[i + half];
-            u[i]        = (a * co[i] - b * si[i]) >> 15;
-            u[i + half] = (b * co[i] + a * si[i]) >> 15;
+            u[i]        = rsh(a * co[i] - b * si[i], 15);
+            u[i + half] = rsh(b * co[i] + a * si[i], 15);
         }
         for (i = 0; i < hd; i++) {
             v = u[i];
