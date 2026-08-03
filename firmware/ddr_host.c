@@ -46,6 +46,21 @@
 #define ETH_MDIOWR    (ETH_BASE + 0x07E8u)
 #define ETH_MDIORD    (ETH_BASE + 0x07ECu)
 #define ETH_MDIOCTRL  (ETH_BASE + 0x07F0u)  /* bit0 = status/start, bit3 = enable */
+
+/* EthernetLite buffers. No DMA: the CPU copies frames by hand.
+   TX ping 0x0000..0x07FF, TPLR 0x07F4, TSR 0x07FC (bit0 busy, bit1 prog MAC)
+   RX ping 0x1000..0x17FF, RSR 0x17FC (bit0 = frame present, write 0 to clear)
+   RX pong 0x1800..0x1FFF, RSR 0x1FFC                                       */
+#define ETH_TXBUF     (ETH_BASE + 0x0000u)
+#define ETH_TPLR      (ETH_BASE + 0x07F4u)
+#define ETH_TSR       (ETH_BASE + 0x07FCu)
+#define ETH_RXBUF0    (ETH_BASE + 0x1000u)
+#define ETH_RSR0      (ETH_BASE + 0x17FCu)
+#define ETH_RXBUF1    (ETH_BASE + 0x1800u)
+#define ETH_RSR1      (ETH_BASE + 0x1FFCu)
+#define TSR_BUSY      0x00000001u
+#define TSR_PROG_MAC  0x00000002u
+#define RSR_RECV      0x00000001u
 /* ---- Tier-2 streaming GEMM (axi_gemm_stream @ 0x44200000) ---- */
 #define STREAM_BASE   0x44200000u
 #define S_CTRL        0x00u
@@ -400,6 +415,124 @@ static void cmd_ethlink(void) {
     uart_puts("ETHLINK no PHY responded\n");
 }
 
+/* ---- Phase-3: raw frame reception ----
+   No IP stack. The board talks to exactly one host over a direct link, so a
+   custom EtherType with a sequence number is enough, and it saves an entire
+   networking stack on a bare-metal MicroBlaze.
+   Frame: [0..5] dst MAC [6..11] src MAC [12..13] 0x88B5
+          [14..17] seq BE [18..19] payload len BE [20..] payload            */
+
+static unsigned char eth_mac[6] = { 0x02u, 0x54u, 0x43u, 0x00u, 0x00u, 0x01u };
+
+static void eth_set_mac(void) {
+    unsigned long spin = 0;
+    /* The core reads the address out of the TX ping buffer when PROG_MAC is
+       set, so stage it there first. */
+    IO32(ETH_TXBUF + 0u) = (unsigned int)eth_mac[0] | ((unsigned int)eth_mac[1] << 8)
+        | ((unsigned int)eth_mac[2] << 16) | ((unsigned int)eth_mac[3] << 24);
+    IO32(ETH_TXBUF + 4u) = (unsigned int)eth_mac[4] | ((unsigned int)eth_mac[5] << 8);
+    IO32(ETH_TPLR) = 6u;
+    /* PROG_MAC in Xilinx's driver is BUSY|PROGRAM (0x03), not PROGRAM alone:
+       the core needs the busy bit to actually start the update. */
+    IO32(ETH_TSR)  = TSR_BUSY | TSR_PROG_MAC;
+    while (IO32(ETH_TSR) & TSR_PROG_MAC)
+        if (++spin > 1000000u) { uart_puts("ERR mac program\n"); return; }
+}
+
+static unsigned int eth_hdr_type(unsigned int buf) {
+    unsigned int w = IO32(buf + 12u);          /* bytes 12..15 */
+    return ((w & 0xFFu) << 8) | ((w >> 8) & 0xFFu);
+}
+
+static unsigned long eth_be32(unsigned int buf, unsigned long off) {
+    unsigned int w = IO32(buf + off);
+    return ((unsigned long)(w & 0xFFu) << 24)
+         | ((unsigned long)((w >> 8) & 0xFFu) << 16)
+         | ((unsigned long)((w >> 16) & 0xFFu) << 8)
+         | (unsigned long)((w >> 24) & 0xFFu);
+}
+
+
+/* Header fields at bytes 14..19 straddle 32-bit word boundaries, and AXI4-Lite
+   has no unaligned reads. Extract from the two aligned words instead. The
+   first version read at buf+14 directly and only appeared to work because the
+   sequence number under test was zero. */
+static unsigned long eth_seq(unsigned int buf) {
+    unsigned int a = IO32(buf + 12u), b = IO32(buf + 16u);
+    return ((unsigned long)((a >> 16) & 0xFFu) << 24)
+         | ((unsigned long)((a >> 24) & 0xFFu) << 16)
+         | ((unsigned long)(b & 0xFFu) << 8)
+         | (unsigned long)((b >> 8) & 0xFFu);
+}
+
+static unsigned long eth_len(unsigned int buf) {
+    unsigned int b = IO32(buf + 16u);
+    return ((unsigned long)((b >> 16) & 0xFFu) << 8)
+         | (unsigned long)((b >> 24) & 0xFFu);
+}
+
+/* ETHLOAD <off> <count> <chunk> -- bulk weights into DDR3 over raw Ethernet.
+   Frame seq n lands at DDR_BASE + off + n*chunk, so the host can blast frames
+   in any order and retry a page without re-sending the whole model. The byte
+   checksum uses the same convention as LOADM, so the fast path can be checked
+   against the slow one. */
+static void cmd_ethload(const char *p) {
+    unsigned long off = parse_u(&p), count = parse_u(&p), chunk = parse_u(&p);
+    unsigned long got = 0, sum = 0, spin = 0, i, seq, len, dst;
+    unsigned int buf = 0, rsr = 0, w;
+    if (chunk == 0u) chunk = 1024u;
+    eth_set_mac();
+    uart_puts("MARK ETHLOAD_START\n");
+    while (got < count) {
+        if (IO32(ETH_RSR0) & RSR_RECV)      { buf = ETH_RXBUF0; rsr = ETH_RSR0; }
+        else if (IO32(ETH_RSR1) & RSR_RECV) { buf = ETH_RXBUF1; rsr = ETH_RSR1; }
+        else { if (++spin > 200000000u) break; continue; }
+        spin = 0;
+        if (eth_hdr_type(buf) == 0x88B5u) {
+            seq = eth_seq(buf);
+            len = eth_len(buf);
+            if (len > chunk) len = chunk;
+            dst = off + seq * chunk;
+            for (i = 0; i < len; i += 4u) {
+                w = IO32(buf + 20u + i);
+                IO32(DDR_BASE + dst + i) = w;
+                sum += (w & 0xFFu) + ((w >> 8) & 0xFFu)
+                     + ((w >> 16) & 0xFFu) + ((w >> 24) & 0xFFu);
+            }
+            got++;
+        }
+        IO32(rsr) = 0u;
+    }
+    uart_puts("MARK ETHLOAD_END\n");
+    uart_puts("OK E "); uart_puthex(sum);
+    uart_puts(" n ");   uart_putdec((long)got); uart_puts("\n");
+}
+
+static void cmd_ethrx(const char *p) {
+    unsigned long budget = parse_u(&p), spin = 0, seen = 0;
+    unsigned int buf = 0, rsr = 0, i;
+    if (budget == 0u) budget = 20000000u;
+    eth_set_mac();
+    uart_puts("ETHRX waiting\n");
+    while (spin++ < budget) {
+        if (IO32(ETH_RSR0) & RSR_RECV)      { buf = ETH_RXBUF0; rsr = ETH_RSR0; }
+        else if (IO32(ETH_RSR1) & RSR_RECV) { buf = ETH_RXBUF1; rsr = ETH_RSR1; }
+        else continue;
+        seen++;
+        uart_puts("ETHRX FRAME type "); uart_puthex(eth_hdr_type(buf));
+        uart_puts(" seq ");   uart_putdec((long)eth_be32(buf, 14u));
+        uart_puts(" dst ");
+        for (i = 0; i < 6u; i++)
+            uart_puthex((IO32(buf + (i & ~3u)) >> (8u * (i & 3u))) & 0xFFu);
+        uart_puts(" p0 ");    uart_puthex(IO32(buf + 20u));
+        uart_puts("\n");
+        IO32(rsr) = 0u;                      /* release the buffer */
+        break;
+    }
+    if (!seen) uart_puts("ETHRX none\n");
+    else       uart_puts("OK RX\n");
+}
+
 int main(void) {
     uart_init();
     led(0x1);
@@ -417,6 +550,8 @@ int main(void) {
         else if (starts(line, "PAGEDMA ")) cmd_pagedma(line + 8);
         else if (starts(line, "PAGE "))  cmd_page(line + 5);
         else if (starts(line, "ETHLINK")) cmd_ethlink();
+        else if (starts(line, "ETHLOAD ")) cmd_ethload(line + 8);
+        else if (starts(line, "ETHRX")) cmd_ethrx(line + 5);
         else                             uart_puts("ERR cmd\n");
     }
     return 0;
