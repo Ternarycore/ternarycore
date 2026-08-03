@@ -132,3 +132,12 @@ per token.
 
 Correctness unchanged: phase2_demo 2/2 EXACT on both --pager dma and
 --pager cpu; tile cycles still 1031.
+
+## Build 18 — int8 attention path in the bitstream (WNS +0.862 ns)
+
+CTRL bit3 selects int8 mode; the feeder expands one bit-slice of 64 int8
+operands per sub-cycle into the array 2-bit codes and shifts the activation.
+The array is untouched. Timing: +1.316 -> +0.862 ns, the wider datapath cost
+0.45 ns and still closes with margin, so no pipelining was needed.
+
+Silicon regression on the new bitstream: phase2_demo 2/2 EXACT, 1031 cycles.
