@@ -31,18 +31,26 @@ def run(cache, ids, mode, bits=7, blocks=tc_ref.NB):
 
 
 class Work:
-    """Crash-safe scratch: alternate temp file then rename, never truncate."""
+    """Crash-safe scratch: write a temp file, verify it, then rename.
+
+    The temp path ends in .npz deliberately -- np.savez appends .npz to any
+    name that lacks it, silently, which once left the temp file somewhere
+    os.replace could not find it and killed the run it was protecting.
+    """
 
     def __init__(self, path, key):
         self.path, self.key = path, key
         self.d = {}
         if path and os.path.exists(path):
-            z = np.load(path)
-            if str(z.get("key", "")) == key:
-                self.d = {k: z[k] for k in z.files if k != "key"}
-                print(f"resuming from {path}: {sorted(self.d)}", flush=True)
-            else:
-                print(f"{path} is from a different run, ignoring", flush=True)
+            try:
+                z = np.load(path)
+                if str(z.get("key", "")) == key:
+                    self.d = {k: z[k] for k in z.files if k != "key"}
+                    print(f"resuming from {path}: {sorted(self.d)}", flush=True)
+                else:
+                    print(f"{path} is from a different run, ignoring", flush=True)
+            except Exception as e:
+                print(f"{path} unreadable ({e}), starting clean", flush=True)
 
     def get(self, name):
         return self.d.get(name)
@@ -51,9 +59,14 @@ class Work:
         self.d[name] = arr
         if not self.path:
             return
-        tmp = self.path + ".tmp"
-        np.savez(tmp, key=np.array(self.key), **self.d)
-        os.replace(tmp, self.path)
+        tmp = self.path[:-4] + ".tmp.npz" if self.path.endswith(".npz") \
+            else self.path + ".tmp.npz"
+        try:
+            np.savez(tmp, key=np.array(self.key), **self.d)
+            np.load(tmp).files                      # prove it reads back
+            os.replace(tmp, self.path)
+        except Exception as e:                      # scratch is not the point
+            print(f"  warning: could not checkpoint {name}: {e}", flush=True)
 
 
 def main():
@@ -96,11 +109,11 @@ def main():
     bref = base.argmax(1)
     scale = np.abs(base).max(1)
 
-    print(f"{'bits':>5} {'mean rel':>10} {'worst rel':>10} {'argmax kept':>12}")
+    print(f"{'bits':>5} {'mean rel':>10} {'worst rel':>10} {'argmax kept':>12}",
+          flush=True)
     for b in [int(x) for x in a.bits.split(",")]:
         lg = w.get(f"int{b}")
         if lg is None:
-            t0 = time.time()
             lg = run(a.cache, ids, "int", bits=b, blocks=a.blocks)[sl]
             w.put(f"int{b}", lg)
         rel = np.abs(lg - base).max(1) / scale
