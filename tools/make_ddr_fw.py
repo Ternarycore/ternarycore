@@ -548,6 +548,22 @@ s = s.replace(fw_exec.ANCHOR, fw_exec.EXEC + fw_exec.ANCHOR, 1)
 assert fw_exec.CMD_OLD in s
 s = s.replace(fw_exec.CMD_OLD, fw_exec.CMD_NEW, 1)
 
+import fw_exec_s3
+s = s.replace(fw_exec_s3.ANCHOR, fw_exec_s3.EXEC3 + fw_exec_s3.ANCHOR, 1)
+assert fw_exec_s3.CMD_OLD in s
+s = s.replace(fw_exec_s3.CMD_OLD, fw_exec_s3.CMD_NEW, 1)
+
+
+# Buffers that do not belong in 64 KB of local memory.
+s = s.replace('static int bench_buf[BN];',
+              'static int * const bench_buf = (int *)(DDR_BASE + 0x0E000000u);', 1)
+s = s.replace('static int bench_out[BN];',
+              'static int * const bench_out = (int *)(DDR_BASE + 0x0E010000u);', 1)
+s = s.replace('static signed char bench_i8[BN];',
+              'static signed char * const bench_i8 = (signed char *)(DDR_BASE + 0x0E020000u);', 1)
+s = s.replace('static long sw_out[COLS_TOTAL];',
+              'static long * const sw_out = (long *)(DDR_BASE + 0x0E030000u);', 1)
+
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)
 
 open(dst, "w").write(s)
