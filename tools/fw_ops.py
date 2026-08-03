@@ -14,21 +14,12 @@ OPS = r"""
    The token budget has measured lines for the pager, softmax, SiLU and
    RMSNorm. It had no line at all for the activation quantizer, which runs
    six times a block on vectors up to 3072 wide -- about 315,000 elements
-   per token -- and RoPE's 11 ms was an estimate.
-
-   Measured, they came back at 70.0, 120.5 and 196.6 ms a token against 29
-   ms budgeted for all of them together. Ops 12-14 are the same three with
-   every 64-bit intermediate removed. Ops 15-20 are the winners of that
-   comparison, moved to DDR where they will actually run. */
+   per token -- and RoPE's 11 ms was an estimate. */
 
 static signed char bench_i8[BN];
 static int rope_cos[64], rope_sin[64];
 static int rope_ready = 0;
 
-/* Per-token absmax int8, exactly BitLinear's definition: one pass for the
-   maximum, one reciprocal, one pass to scale. The reciprocal is deliberate
-   -- a divide per element is the trap softmax fell into, and MicroBlaze's
-   hardware divider is 30-odd cycles. */
 static void bench_quant(int n) {
     int i, v, mx = 0, inv;
     for (i = 0; i < n; i++) {
@@ -53,10 +44,6 @@ static void rope_init(void) {
     rope_ready = 1;
 }
 
-/* RoPE over 128-wide heads: q' = q*cos + rot(q)*sin, rot([a,b]) = [-b,a]
-   across the halves. cos and sin come from the host for the current
-   position -- 512 bytes a token -- rather than being tabled for every
-   position, which would want 256 KB. */
 static void bench_rope(int n) {
     int h, i, a, b;
     rope_init();
@@ -135,23 +122,17 @@ static void bench_sumsq32(int n) { op_sumsq_p(bench_buf, n); }
 /* ---- The same operators, on DDR-resident vectors ---------------------
    Everything above runs in local memory: single cycle, no cache, the
    fastest memory this CPU will ever address. The block executor cannot
-   use it. LMB is 64 KB, the firmware already holds 54 KB, and one block's
+   use it. LMB is 64 KB, the firmware already holds 56 KB, and one block's
    working set -- residual, normed copy, Q, K, V, attention output, gate
-   and up -- is about 56 KB. All of it lives in DDR behind a 16 KB cache.
+   and up -- is about 56 KB. All of it lives in DDR.
 
-   So the budget is currently built on numbers taken under conditions the
-   real system will not run in.
-
-   HOT reuses one buffer, so after the first repetition everything is
-   resident: the best case, and what a fused producer-consumer pair would
-   see. COLD walks a 256 KB region so no repetition finds its data cached:
-   the worst case, and what a vector written early in a block and read
-   late actually gets. The executor lives between them. */
+   HOT reuses one buffer; COLD walks a 256 KB region. With a working cache
+   those two must differ. Measured, they did not. */
 
 #define DDRB_BASE   (DDR_BASE + 0x0C000000u)  /* 192 MB in, clear of weights */
 #define DDRB_STRIDE 0x4000u                   /* 16 KB, one D-cache worth    */
 #define DDRB_SLOTS  16u                       /* 256 KB total, 16x the cache */
-#define DDRB_OUT    0x00100000u               /* outputs a megabyte further  */
+#define DDRB_OUT    0x00100000u
 #define DDRB_I8     0x00200000u
 
 static unsigned int ddrb_rep = 0u;
@@ -191,6 +172,49 @@ static void bench_sumsq_ddr(int n, int cold) {
     op_sumsq_p((const int *)(DDRB_BASE + s), n);
 }
 
+/* ---- The data cache, which has never been switched on ----------------
+   create_bd_ddr.tcl gives this MicroBlaze 16 KB of D-cache. main() has
+   never executed the msrset that enables it, so every DDR access this
+   project has made went to the MIG uncached -- the CPU pager's 48 ms per
+   page, and every operator above at roughly 4.5x its local-memory cost.
+
+   The benchmark said so before the source did: DDR hot and DDR cold came
+   back within 1% on all three operators. One 4 KB buffer reused and a
+   256 KB region walked cannot cost the same through a cache.
+
+   Toggleable rather than always-on. Switching it on makes the flush in
+   cmd_pagedma load-bearing for the first time -- until now it has been
+   flushing a cache that was not there -- so the ternary and int8
+   verifications have to be re-run with it enabled before anything here
+   is believed. An A/B inside one firmware build settles the size of the
+   effect without a second variable. */
+
+static int dcache_on = 0;
+
+static void dcache_invalidate_all(void) {
+    unsigned long i, zero = 0;
+    for (i = 0; i < 16384u; i += 32u)
+        __asm__ __volatile__ ("wdc %0, %1" :: "r"(DDR_BASE + i), "r"(zero));
+    __asm__ __volatile__ ("mbar 1");
+}
+
+static void cmd_cache(const char *p) {
+    p = skip_ws(p);
+    if (*p == '1') {
+        if (!dcache_on) {
+            dcache_invalidate_all();
+            __asm__ __volatile__ ("msrset r0, 0x80" ::: "memory");
+            dcache_on = 1;
+        }
+    } else if (*p == '0') {
+        if (dcache_on) {
+            __asm__ __volatile__ ("msrclr r0, 0x80" ::: "memory");
+            dcache_on = 0;
+        }
+    }
+    uart_puts(dcache_on ? "OK CACHE 1\n" : "OK CACHE 0\n");
+}
+
 """
 
 # cmd_bench's dispatch chain; the final else must stay last.
@@ -210,3 +234,9 @@ DISPATCH_NEW = """        else if (op == 9u)  bench_quant((int)n);
         else               bench_mac((int)n);"""
 
 ANCHOR = "static void bench_mac(int n) {"
+
+# The top-level command chain. No existing command is a prefix of "CACHE",
+# which is the check SL8 had to learn the hard way after SLOAD8 collided
+# with SLOAD and the dispatcher matched the earlier entry.
+CMD_OLD = '        else if (starts(line, "MEMTEST")) cmd_memtest();'
+CMD_NEW = CMD_OLD + '\n        else if (starts(line, "CACHE")) cmd_cache(line + 5);'
