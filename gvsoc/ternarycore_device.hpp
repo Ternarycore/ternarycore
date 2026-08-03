@@ -92,6 +92,12 @@ private:
     // IO request handler — called by the bus when the CPU accesses our address range
     static vp::IoReqStatus handle_req(vp::Block *__this, vp::IoReq *req);
 
+    // Register read/write helpers (called by handle_req)
+    vp::IoReqStatus handle_act_buf(vp::IoReq *req);
+    vp::IoReqStatus handle_wgt_buf(vp::IoReq *req);
+    vp::IoReqStatus handle_alpha(vp::IoReq *req);
+    vp::IoReqStatus handle_register(uint64_t addr, vp::IoReq *req);
+
     // Run the ternary GEMM pipeline (synchronous computation)
     void run_pipeline();
 

@@ -55,9 +55,7 @@ vp::IoReqStatus TernarycoreDevice::handle_req(vp::Block *__this, vp::IoReq *req)
 {
     TernarycoreDevice *self = (TernarycoreDevice *)__this;
     uint64_t addr = req->get_addr();
-    uint8_t *data = req->get_data();
     uint64_t size = req->get_size();
-    bool is_write = req->get_is_write();
 
     // Guard against oversized accesses
     if (addr + size > TC_ADDR_MAX) {
@@ -66,141 +64,166 @@ vp::IoReqStatus TernarycoreDevice::handle_req(vp::Block *__this, vp::IoReq *req)
         return vp::IO_REQ_INVALID;
     }
 
-    // --- Activation buffer (byte-wide, any sub-range) ---
-    if (addr >= TC_ACT_BUF && addr < TC_ACT_BUF + TC_ACT_BUF_SIZE) {
-        uint64_t offset = addr - TC_ACT_BUF;
-        if (offset + size > TC_ACT_BUF_SIZE) {
-            self->trace.msg(vp::Trace::LEVEL_WARNING,
-                "Activation buffer access out of bounds: offset=%lu size=%lu (buffer=%u)\n",
-                offset, size, TC_ACT_BUF_SIZE);
-            return vp::IO_REQ_INVALID;
-        }
-        if (is_write) {
-            std::memcpy(&self->act_buf[offset], data, size);
-        } else {
-            std::memcpy(data, &self->act_buf[offset], size);
-        }
-        return vp::IO_REQ_OK;
-    }
+    // Dispatch to region-specific handler
+    if (addr >= TC_ACT_BUF && addr < TC_ACT_BUF + TC_ACT_BUF_SIZE)
+        return self->handle_act_buf(req);
 
-    // --- Weight buffer (byte-wide packed 2-bit, any sub-range) ---
-    if (addr >= TC_WGT_BUF && addr < TC_WGT_BUF + TC_WGT_BUF_SIZE) {
-        uint64_t offset = addr - TC_WGT_BUF;
-        if (offset + size > TC_WGT_BUF_SIZE) {
-            self->trace.msg(vp::Trace::LEVEL_WARNING,
-                "Weight buffer access out of bounds: offset=%lu size=%lu (buffer=%u)\n",
-                offset, size, TC_WGT_BUF_SIZE);
-            return vp::IO_REQ_INVALID;
-        }
-        if (is_write) {
-            std::memcpy(&self->wgt_buf[offset], data, size);
-        } else {
-            std::memcpy(data, &self->wgt_buf[offset], size);
-        }
-        return vp::IO_REQ_OK;
-    }
+    if (addr >= TC_WGT_BUF && addr < TC_WGT_BUF + TC_WGT_BUF_SIZE)
+        return self->handle_wgt_buf(req);
 
-    // --- Alpha registers (16-bit each) ---
-    if (addr >= TC_ALPHA_0 && addr < TC_ALPHA_0 + TC_COLS * 2) {
-        int idx = (addr - TC_ALPHA_0) / 2;
-        if (idx >= 0 && idx < TC_COLS) {
-            if (is_write) {
-                if (size == 2) {
-                    uint16_t tmp;
-                    std::memcpy(&tmp, data, 2);
-                    self->alpha[idx] = tmp;
-                } else if (size == 4) {
-                    uint32_t tmp;
-                    std::memcpy(&tmp, data, 4);
-                    self->alpha[idx] = tmp & 0xFFFF;
-                }
-            } else {
-                if (size == 2) {
-                    uint16_t tmp = self->alpha[idx];
-                    std::memcpy(data, &tmp, 2);
-                } else if (size == 4) {
-                    uint32_t tmp = (uint32_t)self->alpha[idx]
-                                 | ((uint32_t)self->alpha[idx + 1] << 16);
-                    std::memcpy(data, &tmp, 4);
-                }
-            }
-        }
-        return vp::IO_REQ_OK;
-    }
+    if (addr >= TC_ALPHA_0 && addr < TC_ALPHA_0 + TC_COLS * 2)
+        return self->handle_alpha(req);
 
-    // --- Result registers (read-only, 32-bit each) ---
+    // Result, CTRL, STATUS, VECTOR_LEN, INV at fixed addresses
+    return self->handle_register(addr, req);
+}
+
+vp::IoReqStatus TernarycoreDevice::handle_act_buf(vp::IoReq *req)
+{
+    uint64_t offset = req->get_addr() - TC_ACT_BUF;
+    uint8_t *data = req->get_data();
+    uint64_t size = req->get_size();
+    if (offset + size > TC_ACT_BUF_SIZE) {
+        this->trace.msg(vp::Trace::LEVEL_WARNING,
+            "Activation buffer access out of bounds: offset=%lu size=%lu (buffer=%u)\n",
+            offset, size, TC_ACT_BUF_SIZE);
+        return vp::IO_REQ_INVALID;
+    }
+    if (req->get_is_write())
+        std::memcpy(&this->act_buf[offset], data, size);
+    else
+        std::memcpy(data, &this->act_buf[offset], size);
+    return vp::IO_REQ_OK;
+}
+
+vp::IoReqStatus TernarycoreDevice::handle_wgt_buf(vp::IoReq *req)
+{
+    uint64_t offset = req->get_addr() - TC_WGT_BUF;
+    uint8_t *data = req->get_data();
+    uint64_t size = req->get_size();
+    if (offset + size > TC_WGT_BUF_SIZE) {
+        this->trace.msg(vp::Trace::LEVEL_WARNING,
+            "Weight buffer access out of bounds: offset=%lu size=%lu (buffer=%u)\n",
+            offset, size, TC_WGT_BUF_SIZE);
+        return vp::IO_REQ_INVALID;
+    }
+    if (req->get_is_write())
+        std::memcpy(&this->wgt_buf[offset], data, size);
+    else
+        std::memcpy(data, &this->wgt_buf[offset], size);
+    return vp::IO_REQ_OK;
+}
+
+vp::IoReqStatus TernarycoreDevice::handle_alpha(vp::IoReq *req)
+{
+    int idx = (req->get_addr() - TC_ALPHA_0) / 2;
+    uint8_t *data = req->get_data();
+    uint64_t size = req->get_size();
+    bool is_write = req->get_is_write();
+    if (idx < 0 || idx >= TC_COLS)
+        return vp::IO_REQ_OK;
+    if (is_write) {
+        if (size == 2) {
+            uint16_t tmp;
+            std::memcpy(&tmp, data, 2);
+            this->alpha[idx] = tmp;
+        } else if (size == 4) {
+            uint32_t tmp;
+            std::memcpy(&tmp, data, 4);
+            this->alpha[idx] = tmp & 0xFFFF;
+        }
+    } else {
+        if (size == 2) {
+            uint16_t tmp = this->alpha[idx];
+            std::memcpy(data, &tmp, 2);
+        } else if (size == 4) {
+            uint32_t tmp = (uint32_t)this->alpha[idx]
+                         | ((uint32_t)this->alpha[idx + 1] << 16);
+            std::memcpy(data, &tmp, 4);
+        }
+    }
+    return vp::IO_REQ_OK;
+}
+
+vp::IoReqStatus TernarycoreDevice::handle_register(uint64_t addr, vp::IoReq *req)
+{
+    uint8_t *data = req->get_data();
+    uint64_t size = req->get_size();
+    bool is_write = req->get_is_write();
+
+    // Result registers (read-only, 32-bit each)
     if (addr >= TC_RESULT_0 && addr < TC_RESULT_0 + TC_COLS * 4) {
         if (!is_write) {
             int idx = (addr - TC_RESULT_0) / 4;
             if (idx >= 0 && idx < TC_COLS) {
-                uint32_t tmp = (uint32_t)self->result[idx];
+                uint32_t tmp = (uint32_t)this->result[idx];
                 std::memcpy(data, &tmp, 4);
             }
         }
         return vp::IO_REQ_OK;
     }
 
-    // --- CTRL register (write-only) ---
+    // CTRL register (write-only)
     if (addr == TC_CTRL) {
         if (is_write && size == 4) {
             uint32_t ctrl_val;
             std::memcpy(&ctrl_val, data, 4);
             if (ctrl_val & TC_CTRL_START) {
-                self->trace.msg(vp::Trace::LEVEL_INFO,
+                this->trace.msg(vp::Trace::LEVEL_INFO,
                     "Starting pipeline (vector_len=%u, inv=%u)\n",
-                    self->vector_len, self->inv);
-                self->status |= TC_STATUS_BUSY;
-                self->status &= ~TC_STATUS_DONE;
-                self->run_pipeline();
-                self->status &= ~TC_STATUS_BUSY;
-                self->status |= TC_STATUS_DONE;
-                self->trace.msg(vp::Trace::LEVEL_INFO,
+                    this->vector_len, this->inv);
+                this->status |= TC_STATUS_BUSY;
+                this->status &= ~TC_STATUS_DONE;
+                this->run_pipeline();
+                this->status &= ~TC_STATUS_BUSY;
+                this->status |= TC_STATUS_DONE;
+                this->trace.msg(vp::Trace::LEVEL_INFO,
                     "Pipeline done. Results: [%d %d %d %d]\n",
-                    self->result[0], self->result[1],
-                    self->result[2], self->result[3]);
+                    this->result[0], this->result[1],
+                    this->result[2], this->result[3]);
             }
-            if (ctrl_val & TC_CTRL_IRQ_ENABLE) {
-                self->irq_enable = 1;
-            }
+            if (ctrl_val & TC_CTRL_IRQ_ENABLE)
+                this->irq_enable = 1;
         }
         return vp::IO_REQ_OK;
     }
 
-    // --- STATUS register (read-only) ---
+    // STATUS register (read-only, supports 1/2/4 byte reads)
     if (addr == TC_STATUS) {
-        if (!is_write && size == 4) {
-            uint32_t tmp = self->status;
-            std::memcpy(data, &tmp, 4);
-        } else if (!is_write && size == 2) {
-            uint16_t tmp = (uint16_t)self->status;
-            std::memcpy(data, &tmp, 2);
-        } else if (!is_write && size == 1) {
-            std::memcpy(data, &self->status, 1);
+        if (!is_write) {
+            if (size == 4) {
+                uint32_t tmp = this->status;
+                std::memcpy(data, &tmp, 4);
+            } else if (size == 2) {
+                uint16_t tmp = (uint16_t)this->status;
+                std::memcpy(data, &tmp, 2);
+            } else if (size == 1) {
+                std::memcpy(data, &this->status, 1);
+            }
         }
         return vp::IO_REQ_OK;
     }
 
-    // --- VECTOR_LEN register ---
+    // VECTOR_LEN register
     if (addr == TC_VECTOR_LEN) {
         if (is_write && size == 4) {
             uint32_t val;
             std::memcpy(&val, data, 4);
             if (val > TC_MAX_VECTOR_LEN) val = TC_MAX_VECTOR_LEN;
-            self->vector_len = val;
+            this->vector_len = val;
         } else if (!is_write && size == 4) {
-            uint32_t tmp = self->vector_len;
+            uint32_t tmp = this->vector_len;
             std::memcpy(data, &tmp, 4);
         }
         return vp::IO_REQ_OK;
     }
 
-    // --- INV register ---
+    // INV register
     if (addr == TC_INV) {
-        if (is_write && size == 4) {
-            std::memcpy(&self->inv, data, 4);
-        } else if (!is_write && size == 4) {
-            std::memcpy(data, &self->inv, 4);
-        }
+        if (is_write && size == 4)
+            std::memcpy(&this->inv, data, 4);
+        else if (!is_write && size == 4)
+            std::memcpy(data, &this->inv, 4);
         return vp::IO_REQ_OK;
     }
 
