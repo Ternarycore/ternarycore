@@ -543,6 +543,11 @@ s = s.replace(fw_ops.CMD_OLD, fw_ops.CMD_NEW, 1)
 s = s.replace("IO32(UART_RBR_THR) = 54u;", "IO32(UART_RBR_THR) = 44u;", 1)
 s = s.replace("/* DLL: 100e6/(16*115200) */", "/* DLL: 81.25e6/(16*115200) */", 1)
 s = s.replace("    uart_init();\n    led(0x1);", "    uart_init();\n    led(0x1);\n    cmd_cache(\"1\");   /* 16 KB D-cache: 4x on every DDR access */", 1)
+import fw_exec
+s = s.replace(fw_exec.ANCHOR, fw_exec.EXEC + fw_exec.ANCHOR, 1)
+assert fw_exec.CMD_OLD in s
+s = s.replace(fw_exec.CMD_OLD, fw_exec.CMD_NEW, 1)
+
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)
 
 open(dst, "w").write(s)
