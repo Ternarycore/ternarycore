@@ -28,18 +28,11 @@ module ternary_mac #(
     output reg                   valid_out
 );
 
-    // Ternary multiply: mux only, no DSP block consumed.
-    // Negate at DATA_WIDTH+1 bits. Two's complement has no +2^(N-1), so
-    // negating the most negative activation at DATA_WIDTH wraps it back to
-    // itself and a weight of -1 comes out with the wrong sign. One extra
-    // bit costs almost nothing and makes the cell exact over the full range
-    // -- which the int8 path needs, since it feeds shifted activations.
-    wire signed [DATA_WIDTH:0] a_ext =
-        $signed({activation[DATA_WIDTH-1], activation});
-    wire signed [DATA_WIDTH:0] weighted =
-        (weight_enc == 2'b00) ? {(DATA_WIDTH+1){1'b0}} :
-        (weight_enc == 2'b01) ?  a_ext
-                              : -a_ext;
+    // One shared definition of the ternary select -- see ternary_weight.v.
+    wire [ACC_WIDTH-1:0] weighted_ext;
+    ternary_weight #(.DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH)) u_w (
+        .activation(activation), .weight_enc(weight_enc),
+        .weighted_ext(weighted_ext));
 
     // Sign-extend and accumulate
     always @(posedge clk or negedge rst_n) begin
@@ -49,7 +42,7 @@ module ternary_mac #(
         end else begin
             valid_out <= valid_in;
             if (valid_in)
-                acc_out <= acc_in + {{(ACC_WIDTH-DATA_WIDTH-1){weighted[DATA_WIDTH]}}, weighted};
+                acc_out <= acc_in + weighted_ext;
         end
     end
 
