@@ -17,9 +17,10 @@ Modes:
   --mode int     every op as the board will do it
 Running both on the same prompt says what the board's arithmetic costs.
 
-  python tc_ref.py --build                  # quantize the checkpoint once
+  python tc_ref.py --build --ckpt ~/tc-ckpt/warmup-final.pt
   python tc_ref.py --mode int --prompt "The capital of France is"
-  python tc_ref.py --compare                # int vs float vs PyTorch bf16
+  python tc_ref.py --compare
+  python tc_ref.py --dump stage0.npz      # per-stage tensors for the firmware
 """
 import argparse, json, os, sys, time
 import numpy as np
@@ -100,6 +101,7 @@ class Ref:
         self.nb = nblocks
         self.pmax = (1 << probs_bits) - 1
         self.embed = self.z["embed"]
+        self.trace = None          # set to {} to collect per-stage tensors
         self.reset()
 
     def reset(self):
@@ -107,6 +109,11 @@ class Ref:
         self.ks = [[] for _ in range(self.nb)]   # their scales
         self.vq = [[] for _ in range(self.nb)]
         self.vs = [[] for _ in range(self.nb)]
+
+    def _t(self, key, val):
+        if self.trace is not None:
+            self.trace[key] = np.asarray(val)
+        return val
 
     # --- one BitLinear ---------------------------------------------------
     def _lin(self, b, name, x, pre_a=None):
@@ -120,6 +127,8 @@ class Ref:
             return (W.astype(np.float64) @ x) * s_w
         a, s_a = pre_a if pre_a is not None else quant_a(x)
         acc = W.astype(np.int32) @ a.astype(np.int32)     # what the array does
+        self._t(f"{b}.{name}.a", a)
+        self._t(f"{b}.{name}.acc", acc)
         return acc.astype(np.float64) * s_w * s_a
 
     def _quant_block_input(self, x):
@@ -135,6 +144,8 @@ class Ref:
         gq, gk = self.z[f"{b}.q_norm"], self.z[f"{b}.k_norm"]
         q = rope(np.stack([rmsnorm(q[h], gq) for h in range(NH)]), cos, sin)
         k = rope(np.stack([rmsnorm(k[h], gk) for h in range(NKV)]), cos, sin)
+        self._t(f"{b}.q_roped", q)
+        self._t(f"{b}.k_roped", k)
 
         # append to the cache in the form attention will actually read
         for h in range(NKV):
@@ -172,23 +183,32 @@ class Ref:
             num = VQ[:, kv, :].astype(np.int32).T @ pi.astype(np.int32)  # array
             den = float((e / w.max() * self.pmax).sum())
             out[h] = num.astype(np.float64) / den if den else 0.0
+            if h == 0:
+                self._t(f"{b}.h0.dots", dots)
+                self._t(f"{b}.h0.probs", pi)
+                self._t(f"{b}.h0.num", num)
+        self._t(f"{b}.attn_out", out)
         return self._lin(b, "o_proj", out.reshape(NH * HD))
 
     # --- one block -------------------------------------------------------
     def block(self, b, x, pos, cos, sin):
         x = x + self._attn(b, rmsnorm(x, self.z[f"{b}.in_norm"]), pos, cos, sin)
+        self._t(f"{b}.resid_attn", x)
         h = rmsnorm(x, self.z[f"{b}.post_norm"])
         pre = self._quant_block_input(h)
         g = self._lin(b, "gate_proj", h, pre)
         u = self._lin(b, "up_proj", h, pre)
-        return x + self._lin(b, "down_proj", (g / (1.0 + np.exp(-g))) * u)
+        x = x + self._lin(b, "down_proj", (g / (1.0 + np.exp(-g))) * u)
+        return self._t(f"{b}.resid_mlp", x)
 
     def forward(self, tok, pos):
         x = self.embed[tok].astype(np.float64)
         cos, sin = rope_tables(pos)
+        self._t("embed", x)
         for b in range(self.nb):
             x = self.block(b, x, pos, cos, sin)
         x = rmsnorm(x, self.z["final_norm"])
+        self._t("final", x)
         return self.embed.astype(np.float64) @ x        # lm_head, tied
 
 
@@ -224,16 +244,20 @@ def generate(ref, ids, n_new, tok=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true")
+    ap.add_argument("--ckpt", default=CKPT)
+    ap.add_argument("--cache", default=CACHE)
     ap.add_argument("--mode", default="int", choices=["int", "float"])
     ap.add_argument("--prompt", default="The capital of France is")
     ap.add_argument("--new", type=int, default=12)
     ap.add_argument("--blocks", type=int, default=NB)
     ap.add_argument("--probs-bits", type=int, default=7)
     ap.add_argument("--compare", action="store_true")
+    ap.add_argument("--dump", default=None,
+                    help="write one position's intermediate tensors to this .npz")
     a = ap.parse_args()
 
     if a.build:
-        build_cache(); return
+        build_cache(a.ckpt, a.cache); return
 
     from transformers import AutoTokenizer
     tk = AutoTokenizer.from_pretrained(TEACHER)
@@ -241,10 +265,10 @@ def main():
 
     if a.compare:
         for m in ("float", "int"):
-            r = Ref(mode=m, nblocks=a.blocks, probs_bits=a.probs_bits)
-            t0 = time.time()
+            r = Ref(cache=a.cache, mode=m, nblocks=a.blocks,
+                    probs_bits=a.probs_bits)
+            t0, lg = time.time(), None
             r.reset()
-            lg = None
             for i, t in enumerate(ids):
                 lg = r.forward(t, i)
             top = np.argsort(lg)[::-1][:5]
@@ -253,7 +277,17 @@ def main():
             print(f"        logits[:6] {np.round(lg[:6], 3)}")
         return
 
-    r = Ref(mode=a.mode, nblocks=a.blocks, probs_bits=a.probs_bits)
+    r = Ref(cache=a.cache, mode=a.mode, nblocks=a.blocks,
+            probs_bits=a.probs_bits)
+    if a.dump:
+        r.trace = {}
+        r.reset()
+        for i, t in enumerate(ids):
+            r.forward(t, i)
+        np.savez(a.dump, **r.trace, ids=np.array(ids))
+        print(f"{len(r.trace)} tensors from position {len(ids)-1} -> {a.dump}")
+        return
+
     print(f"[{a.mode}] {a.prompt}", end="", flush=True)
     generate(r, ids, a.new, tok=tk)
     print()
