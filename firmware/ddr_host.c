@@ -500,7 +500,7 @@ static const unsigned int exp2_lut[33] = {
 static int fx_exp2(int z) {
     int i, f, k, r, a, b, v;
     if (z <= -(31 << 16)) return 0;
-    i = (-z) >> 16;
+    i = -(z >> 16);   /* floors, so this is ceil(-z/65536) */
     f = z & 0xFFFF;
     k = f >> 11; r = f & 0x7FF;
     a = (int)exp2_lut[k]; b = (int)exp2_lut[k + 1];
