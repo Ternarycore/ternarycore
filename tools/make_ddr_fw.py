@@ -332,12 +332,75 @@ static void bench_softmax_d(int n) {
     bench_out[0] += (int)(sum & 0xFFu);   /* keep sum live */
 }
 
+
+/* ---- Operator set: tables, not arithmetic ----
+   exp and SiLU are elementwise, so on a CPU with no FPU the right
+   implementation is a lookup built once at startup. Same principle as the
+   ternary weights: replace expensive arithmetic with cheap structure. */
+#define LUTN 1024
+static int exp_lut[LUTN];    /* exp(-i/16), Q16.16              */
+static int silu_lut[LUTN];   /* silu(x), x = (i-512)/16, Q16.16 */
+static int luts_ready = 0;
+
+static void build_luts(void) {
+    int i, xq, ax, e, s;
+    if (luts_ready) return;
+    for (i = 0; i < LUTN; i++)
+        exp_lut[i] = fx_exp2(-(int)(((unsigned int)i * 94548u) >> 4));
+    for (i = 0; i < LUTN; i++) {
+        xq = ((i - 512) << 16) / 16;
+        ax = (xq < 0) ? -xq : xq;
+        e  = fx_exp2(-(int)(((long)ax * 94548) >> 16));
+        s  = (int)((1u << 28) / (unsigned int)(((65536 + e) >> 4) ? ((65536 + e) >> 4) : 1));
+        if (xq < 0) s = 65536 - s;
+        silu_lut[i] = (int)(((long)xq * s) >> 16);
+    }
+    luts_ready = 1;
+}
+
+/* Softmax, production form: direct exp table, no per-element divide, no
+   normalisation pass. Attention divides once per head downstream. */
+static void bench_softmax_l(int n) {
+    int i, mx = bench_buf[0], d;
+    unsigned int sum = 0u;
+    for (i = 1; i < n; i++) if (bench_buf[i] > mx) mx = bench_buf[i];
+    for (i = 0; i < n; i++) {
+        d = (mx - bench_buf[i]) >> 4;
+        if (d >= LUTN) d = LUTN - 1;
+        bench_out[i] = exp_lut[d];
+        sum += (unsigned int)exp_lut[d];
+    }
+    bench_out[0] += (int)(sum & 0xFFu);
+}
+
+static void bench_silu_l(int n) {
+    int i, idx;
+    for (i = 0; i < n; i++) {
+        idx = (bench_buf[i] >> 4) + 512;
+        if (idx < 0) idx = 0; else if (idx >= LUTN) idx = LUTN - 1;
+        bench_out[i] = silu_lut[idx];
+    }
+}
+
+
+/* Attention's own matmuls (Q.K^T and P.V) are activation x activation, so
+   the ternary array cannot touch them -- it multiplies ternary weights by
+   int8 activations. On this CPU they are a plain MAC loop. Measure it: at
+   512 context this is ~58.7M MACs per token and may dominate everything. */
+static void bench_mac(int n) {
+    int i;
+    int acc = 0;
+    for (i = 0; i < n; i++) acc += bench_buf[i] * bench_out[i];
+    bench_out[0] = acc;
+}
+
 static void cmd_bench(const char *p) {
     unsigned long op = parse_u(&p), reps = parse_u(&p), n = parse_u(&p), r;
     if (n == 0u || n > (unsigned long)BN) n = 1024u;
     if (reps == 0u) reps = 100u;
     for (r = 0; r < n; r++)
         bench_buf[r] = (int)((unsigned int)(r * 2654435761u) & 0x3FFFu) - 8192;
+    build_luts();
     uart_puts("MARK BENCH_START\\n");
     for (r = 0; r < reps; r++) {
         if      (op == 0u) bench_copy((int)n);
@@ -345,7 +408,10 @@ static void cmd_bench(const char *p) {
         else if (op == 2u) bench_softmax((int)n);
         else if (op == 3u) bench_silu((int)n);
         else if (op == 4u) bench_softmax_r((int)n);
-        else               bench_softmax_d((int)n);
+        else if (op == 5u) bench_softmax_d((int)n);
+        else if (op == 6u) bench_softmax_l((int)n);
+        else if (op == 7u) bench_silu_l((int)n);
+        else               bench_mac((int)n);
     }
     uart_puts("MARK BENCH_END\\nOK B ");
     uart_puthex((unsigned int)bench_out[0]); uart_puts("\\n");
