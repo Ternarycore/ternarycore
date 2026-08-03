@@ -9,7 +9,9 @@
 // selected by the column-tile register.
 //
 // Register map (AXI4-Lite, 32-bit):
-//   0x00 CTRL    W   bit0 START (one pass)  bit1 CLEAR done  bit2 ACT_PTR_RST
+//   0x00 CTRL    W   bit0 START  bit1 CLEAR done  bit2 ACT_PTR_RST
+//                    bit3 INT8 mode: attention's activation x activation
+//                         matmuls, bit-serialised through the ternary array
 //   0x04 STATUS  R   bit0 busy  bit1 done
 //   0x08 ACT_WR  W   [7:0] byte -> act_ram[wptr++]
 //   0x0C CT      RW  [3:0] column tile (0..15)
@@ -76,14 +78,46 @@ module axi_gemm_stream #(
     reg [10:0] k;               // issue counter
     reg        v0, v1;          // address-issued / data-valid pipeline
     reg [1:0]  clr_cnt;
+    reg        int8_mode;       // latched at START
+    reg [2:0]  bslice;          // which bit of the int8 operand, 0..7
     reg        vout_d;
 
     wire busy = (state != S_IDLE);
 
     wire [10:0] act_addr = k;
-    assign w_word_addr = {k[9:0], ct};      // word = k*16 + ct
+    // int8 mode walks the bit-slices flat: one 64-bit slice per sub-cycle.
+    assign w_word_addr = int8_mode ? {4'd0, k[9:0]} : {k[9:0], ct};
 
     always @(posedge clk) act_q <= act_ram[act_addr[9:0]];
+    // Single driver. This was assigned here AND in the FSM's reset branch;
+    // iverilog resolved the conflict one way and Vivado the other, so the
+    // shift silently vanished on silicon while simulation passed.
+    always @(posedge clk or negedge rst_n)
+        if (!rst_n) bslice <= 3'd0;
+        else        bslice <= k[2:0];   // aligns with act_q / w_word
+
+    // -- int8 attention path ---------------------------------------------
+    // a*b = sum(k=0..6) b_k*(a<<k) - b_7*(a<<7). The weight port carries one
+    // BIT of each of the 64 int8 operands per sub-cycle, in its low 64 bits;
+    // we expand that to the array's 2-bit codes here. The k=7 term is negated
+    // because in two's complement the top bit carries negative weight. So
+    // attention runs on the ternary array with no multiplier and no DSP.
+    wire [127:0] w_int8;
+    genvar gi;
+    generate
+        for (gi = 0; gi < COLS; gi = gi + 1) begin : g_bitslice
+            assign w_int8[gi*2 +: 2] =
+                (w_word[gi] == 1'b0) ? 2'b00 :
+                (bslice == 3'd7)     ? 2'b10 : 2'b01;
+        end
+    endgenerate
+
+    wire [127:0] w_sel = int8_mode ? w_int8 : w_word;
+
+    // Sign-extend to 16 bits, then shift. Ternary mode shifts by zero, so the
+    // value is identical and that path stays cycle-for-cycle unchanged.
+    wire signed [15:0] act_ext = $signed(act_q);
+    wire        [15:0] act_sel = int8_mode ? (act_ext <<< bslice) : act_ext;
 
     // gemm core (synchronously cleared between passes)
     reg  gemm_clr;
@@ -92,7 +126,7 @@ module axi_gemm_stream #(
     wire valid_out;
 
     ternary_gemm #(
-        .DATA_WIDTH (8),
+        .DATA_WIDTH (16),
         .ACC_WIDTH  (ACC_WIDTH),
         .COLS       (COLS),
         .DEPTH      (DEPTH_MAX)   // counter compare uses depth reg below
@@ -100,8 +134,8 @@ module axi_gemm_stream #(
         .clk        (clk),
         .rst_n      (gemm_rst_n),
         .valid_in   (v1),
-        .activation (act_q),
-        .weight_enc (w_word),     // 2*64 = 128 bits
+        .activation (act_sel),
+        .weight_enc (w_sel),      // 2*64 = 128 bits
         .acc_out    (acc_out),
         .valid_out  (valid_out)
     );
@@ -112,17 +146,19 @@ module axi_gemm_stream #(
     reg [10:0] fed;
     wire pass_done = (fed == DEPTH_MAX) && !v0 && !v1;
 
-    wire start_cmd, clear_cmd, aptr_cmd;
+    wire start_cmd, clear_cmd, aptr_cmd, int8_cmd;
 
     always @(posedge clk) begin
         if (!rst_n) begin
             state <= S_IDLE; k <= 0; v0 <= 0; v1 <= 0; fed <= 0;
             done <= 0; gemm_clr <= 0; clr_cnt <= 0; cycles <= 0;
+            int8_mode <= 0;
         end else begin
             case (state)
                 S_IDLE: if (start_cmd) begin
                     state <= S_CLR; gemm_clr <= 1; clr_cnt <= 2;
                     done <= 0; k <= 0; v0 <= 0; v1 <= 0; fed <= 0; cycles <= 0; vout_d <= 0;
+                    int8_mode <= int8_cmd;   // same AXI write, so coherent
                 end
                 S_CLR: begin
                     cycles <= cycles + 1;
@@ -161,6 +197,7 @@ module axi_gemm_stream #(
     assign start_cmd = aw_fire && (s_axi_awaddr[7:2] == 6'h00) && s_axi_wdata[0];
     assign clear_cmd = aw_fire && (s_axi_awaddr[7:2] == 6'h00) && s_axi_wdata[1];
     assign aptr_cmd  = aw_fire && (s_axi_awaddr[7:2] == 6'h00) && s_axi_wdata[2];
+    assign int8_cmd  = aw_fire && (s_axi_awaddr[7:2] == 6'h00) && s_axi_wdata[3];
 
     always @(posedge clk) begin
         if (!rst_n) begin

@@ -394,6 +394,41 @@ static void bench_mac(int n) {
     bench_out[0] = acc;
 }
 
+
+/* ---- Phase-5: attention on the ternary array ----
+   AMAC computes Q.K^T for 64 keys at once. The bit-sliced K must already be
+   in the weight BRAM (LOADW or ETHLOAD) and Q must be in act_ram, each value
+   written eight times -- see SLOAD8. CTRL bit3 puts the feeder in int8 mode,
+   where it expands one bit-slice per sub-cycle into the array's 2-bit codes
+   and shifts the activation. No multiplier and no DSP anywhere in that path. */
+
+static void cmd_sload8(void) {
+    unsigned long k; int b;
+    IO32(STREAM_BASE + S_CTRL) = 0x4u;                  /* act ptr reset */
+    for (k = 0; k < 128u; k++)
+        for (b = 0; b < 8; b++)
+            IO32(STREAM_BASE + S_ACTWR) = (unsigned int)(unsigned char)activations[k];
+    uart_puts("OK SL8\\n");
+}
+
+static void cmd_amac(void) {
+    int c;
+    long v;
+    unsigned long checksum = 0;
+    IO32(STREAM_BASE + S_CTRL) = 0x9u;                  /* START | INT8 */
+    while (!(IO32(STREAM_BASE + S_STATUS) & 0x2u)) { }
+    IO32(STREAM_BASE + S_CTRL) = 0x2u;                  /* clear done */
+    uart_puts("ACYC "); uart_putdec((long)IO32(STREAM_BASE + S_CYC));
+    uart_puts("\\nAOUT");
+    for (c = 0; c < 64; c++) {
+        IO32(STREAM_BASE + S_RIDX) = (unsigned int)c;
+        v = (long)(int)IO32(STREAM_BASE + S_RDATA);
+        checksum += (unsigned long)v * (unsigned long)(c + 1);
+        if (c < 8) { uart_puts(" "); uart_putdec(v); }
+    }
+    uart_puts("\\nACHK "); uart_puthex(checksum); uart_puts("\\nOK AM\\n");
+}
+
 static void cmd_bench(const char *p) {
     unsigned long op = parse_u(&p), reps = parse_u(&p), n = parse_u(&p), r;
     if (n == 0u || n > (unsigned long)BN) n = 1024u;
@@ -495,7 +530,7 @@ s = s.replace(anchor, anchor +
     '\n        else if (starts(line, "PAGEDMA ")) cmd_pagedma(line + 8);' +
     '\n        else if (starts(line, "PAGE "))  cmd_page(line + 5);' +
     '\n        else if (starts(line, "ETHLINK")) cmd_ethlink();' +
-    '\n        else if (starts(line, "BENCH ")) cmd_bench(line + 6);\n        else if (starts(line, "ETHLOAD ")) cmd_ethload(line + 8);\n        else if (starts(line, "ETHRX")) cmd_ethrx(line + 5);', 1)
+    '\n        else if (starts(line, "SL8")) cmd_sload8();\n        else if (starts(line, "AMAC")) cmd_amac();\n        else if (starts(line, "BENCH ")) cmd_bench(line + 6);\n        else if (starts(line, "ETHLOAD ")) cmd_ethload(line + 8);\n        else if (starts(line, "ETHRX")) cmd_ethrx(line + 5);', 1)
 
 s = s.replace("IO32(UART_RBR_THR) = 54u;", "IO32(UART_RBR_THR) = 44u;", 1)
 s = s.replace("/* DLL: 100e6/(16*115200) */", "/* DLL: 81.25e6/(16*115200) */", 1)
