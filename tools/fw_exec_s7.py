@@ -91,7 +91,11 @@ static void cmd_sm(const char *p) {
         int d = (umax - u[j]) >> sd;
         int t = d * (int)(Km >> 16);
         int idx;
-        if (sh >= 31)            idx = LUTN - 1;
+        /* sh is a RIGHT shift: large sh means the multiplier vanishes and
+           the score difference is negligible, so idx = 0 and exp = 1. The
+           table end is what a large LEFT shift reaches. Inverting these
+           two sent every probability to exp(-63.9) and every key to zero. */
+        if (sh >= 31)            idx = 0;
         else if (sh >= 0)        idx = t >> sh;
         else if ((-sh) >= 31)    idx = LUTN - 1;
         else if (t > (0x7FFFFFFF >> (-sh))) idx = LUTN - 1;
