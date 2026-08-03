@@ -218,6 +218,139 @@ static unsigned long eth_len(unsigned int buf) {
    in any order and retry a page without re-sending the whole model. The byte
    checksum uses the same convention as LOADM, so the fast path can be checked
    against the slow one. */
+
+/* ---- Phase-5 scoping: what do the non-matrix ops actually cost? ----
+   This CPU has no FPU, so everything is fixed point, Q16.16 throughout.
+   BENCH <op> <reps> <n> repeats an op and brackets it with MARK lines, so
+   the host measures the slope and UART latency cancels -- the same trick
+   PAGEDMA needed once a page got faster than one serial line.
+   op 0 = copy baseline (loop overhead, to subtract)
+      1 = RMSNorm     2 = softmax     3 = SiLU                            */
+
+#define BN 1024
+static int bench_buf[BN];
+static int bench_out[BN];
+
+/* 2^f for f in [0,1), Q16.16, 32 entries + linear interpolation */
+static const unsigned int exp2_lut[33] = {
+ 65535,67008,68507,70048,71615,73216,74858,76534,78246,80006,81797,83628,
+ 85507,87421,89380,91384,93430,95522,97662,99845,102079,104358,106688,
+ 109070,111500,113988,116526,119123,121775,124487,127256,130087,65535 };
+
+/* 2^z for z <= 0, Q16.16 in and out. Integer part is a shift, fraction is
+   the table. This is the whole reason softmax is affordable without an FPU. */
+static int fx_exp2(int z) {
+    int i, f, k, r, a, b, v;
+    if (z <= -(31 << 16)) return 0;
+    i = (-z) >> 16;
+    f = z & 0xFFFF;
+    k = f >> 11; r = f & 0x7FF;
+    a = (int)exp2_lut[k]; b = (int)exp2_lut[k + 1];
+    v = a + (((b - a) * r) >> 11);
+    return v >> i;
+}
+
+/* 1/sqrt(v) in Q16.16 via integer sqrt then one divide -- once per norm,
+   so its cost is amortised over the whole vector. */
+static int fx_rsqrt(unsigned int v) {
+    unsigned int s = v, t;
+    if (v == 0u) return 0;
+    for (t = 0; t < 20u; t++) { unsigned int q = v / (s ? s : 1u); s = (s + q) >> 1; if (s == 0u) break; }
+    return (int)((1u << 24) / (s ? s : 1u));
+}
+
+static void bench_copy(int n) {
+    int i;
+    for (i = 0; i < n; i++) bench_out[i] = bench_buf[i];
+}
+
+static void bench_rmsnorm(int n) {
+    unsigned int ss = 0u;
+    int i, x, inv;
+    for (i = 0; i < n; i++) { x = bench_buf[i]; ss += (unsigned int)((x * x) >> 8); }
+    inv = fx_rsqrt(ss / (unsigned int)n);
+    for (i = 0; i < n; i++) bench_out[i] = (int)(((long)bench_buf[i] * inv) >> 16);
+}
+
+static void bench_softmax(int n) {
+    int i, mx = bench_buf[0], e;
+    unsigned int sum = 0u;
+    for (i = 1; i < n; i++) if (bench_buf[i] > mx) mx = bench_buf[i];
+    for (i = 0; i < n; i++) {
+        e = fx_exp2((int)(((long)(bench_buf[i] - mx) * 94548) >> 16));  /* *log2(e) */
+        bench_out[i] = e;
+        sum += (unsigned int)e;
+    }
+    if (sum == 0u) sum = 1u;
+    for (i = 0; i < n; i++)
+        bench_out[i] = (int)((((unsigned int)bench_out[i]) << 12) / (sum >> 4 ? sum >> 4 : 1u));
+}
+
+static void bench_silu(int n) {
+    int i, x, ax, e, s;
+    for (i = 0; i < n; i++) {
+        x  = bench_buf[i];
+        ax = (x < 0) ? -x : x;
+        e  = fx_exp2((int)(((long)(-ax) * 94548) >> 16));      /* exp(-|x|) */
+        s  = (int)((1u << 28) / (unsigned int)(((65536 + e) >> 4) ? ((65536 + e) >> 4) : 1));
+        if (x < 0) s = 65536 - s;
+        bench_out[i] = (int)(((long)x * s) >> 16);
+    }
+}
+
+
+/* Softmax variants, to find where the 88.7 cycles/element actually go.
+   The naive version divides per element; MicroBlaze's hardware divider is
+   ~30+ cycles, so a thousand of them may be most of the cost. */
+
+static void bench_softmax_r(int n) {      /* one reciprocal, then multiply */
+    int i, mx = bench_buf[0], e, inv;
+    unsigned int sum = 0u;
+    for (i = 1; i < n; i++) if (bench_buf[i] > mx) mx = bench_buf[i];
+    for (i = 0; i < n; i++) {
+        e = fx_exp2((int)(((long)(bench_buf[i] - mx) * 94548) >> 16));
+        bench_out[i] = e; sum += (unsigned int)e;
+    }
+    if (sum == 0u) sum = 1u;
+    inv = (int)((1u << 30) / sum);                       /* the only divide */
+    for (i = 0; i < n; i++)
+        bench_out[i] = (int)(((long)bench_out[i] * inv) >> 14);
+}
+
+/* Deferred normalisation: attention never needs normalised weights. Weight
+   the value vectors with raw exponentials and divide the result once per
+   head -- 128 divides instead of one per KV entry. This measures the exp
+   pass alone, which is what that would actually cost. */
+static void bench_softmax_d(int n) {
+    int i, mx = bench_buf[0], e;
+    unsigned int sum = 0u;
+    for (i = 1; i < n; i++) if (bench_buf[i] > mx) mx = bench_buf[i];
+    for (i = 0; i < n; i++) {
+        e = fx_exp2((int)(((long)(bench_buf[i] - mx) * 94548) >> 16));
+        bench_out[i] = e; sum += (unsigned int)e;
+    }
+    bench_out[0] += (int)(sum & 0xFFu);   /* keep sum live */
+}
+
+static void cmd_bench(const char *p) {
+    unsigned long op = parse_u(&p), reps = parse_u(&p), n = parse_u(&p), r;
+    if (n == 0u || n > (unsigned long)BN) n = 1024u;
+    if (reps == 0u) reps = 100u;
+    for (r = 0; r < n; r++)
+        bench_buf[r] = (int)((unsigned int)(r * 2654435761u) & 0x3FFFu) - 8192;
+    uart_puts("MARK BENCH_START\\n");
+    for (r = 0; r < reps; r++) {
+        if      (op == 0u) bench_copy((int)n);
+        else if (op == 1u) bench_rmsnorm((int)n);
+        else if (op == 2u) bench_softmax((int)n);
+        else if (op == 3u) bench_silu((int)n);
+        else if (op == 4u) bench_softmax_r((int)n);
+        else               bench_softmax_d((int)n);
+    }
+    uart_puts("MARK BENCH_END\\nOK B ");
+    uart_puthex((unsigned int)bench_out[0]); uart_puts("\\n");
+}
+
 static void cmd_ethload(const char *p) {
     unsigned long off = parse_u(&p), count = parse_u(&p), chunk = parse_u(&p);
     unsigned long got = 0, sum = 0, spin = 0, i, seq, len, dst;
@@ -296,7 +429,7 @@ s = s.replace(anchor, anchor +
     '\n        else if (starts(line, "PAGEDMA ")) cmd_pagedma(line + 8);' +
     '\n        else if (starts(line, "PAGE "))  cmd_page(line + 5);' +
     '\n        else if (starts(line, "ETHLINK")) cmd_ethlink();' +
-    '\n        else if (starts(line, "ETHLOAD ")) cmd_ethload(line + 8);\n        else if (starts(line, "ETHRX")) cmd_ethrx(line + 5);', 1)
+    '\n        else if (starts(line, "BENCH ")) cmd_bench(line + 6);\n        else if (starts(line, "ETHLOAD ")) cmd_ethload(line + 8);\n        else if (starts(line, "ETHRX")) cmd_ethrx(line + 5);', 1)
 
 s = s.replace("IO32(UART_RBR_THR) = 54u;", "IO32(UART_RBR_THR) = 44u;", 1)
 s = s.replace("/* DLL: 100e6/(16*115200) */", "/* DLL: 81.25e6/(16*115200) */", 1)
