@@ -10,10 +10,12 @@
 
 # ── grow the fabrics ─────────────────────────────────────────────
 set_property -dict [list CONFIG.NUM_SI {3} CONFIG.NUM_MI {1}] [get_bd_cells axi_smc]
-set_property CONFIG.NUM_MI {6} [get_bd_cells periph]
-connect_bd_net $UICLK [get_bd_pins periph/M04_ACLK] [get_bd_pins periph/M05_ACLK]
+set_property CONFIG.NUM_MI {7} [get_bd_cells periph]
+connect_bd_net $UICLK [get_bd_pins periph/M04_ACLK] \
+    [get_bd_pins periph/M05_ACLK] [get_bd_pins periph/M06_ACLK]
 connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] \
-    [get_bd_pins periph/M04_ARESETN] [get_bd_pins periph/M05_ARESETN]
+    [get_bd_pins periph/M04_ARESETN] [get_bd_pins periph/M05_ARESETN] \
+    [get_bd_pins periph/M06_ARESETN]
 
 # ── CDMA with private routing ───────────────────────────────────────
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_cdma:4.1 axi_cdma_0
@@ -49,12 +51,28 @@ connect_bd_intf_net [get_bd_intf_pins bram_ic/M00_AXI] [get_bd_intf_pins weight_
 # silently dropped and the array computed zeros. Private crossbar => each
 # master has exactly ONE route to the BRAM.
 create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 cdma_ic
-set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {2}] [get_bd_cells cdma_ic]
+set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {3}] [get_bd_cells cdma_ic]
 connect_bd_net $UICLK [get_bd_pins cdma_ic/aclk]
 connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] [get_bd_pins cdma_ic/aresetn]
 connect_bd_intf_net [get_bd_intf_pins axi_cdma_0/M_AXI] [get_bd_intf_pins cdma_ic/S00_AXI]
 connect_bd_intf_net [get_bd_intf_pins cdma_ic/M00_AXI] [get_bd_intf_pins axi_smc/S02_AXI]
 connect_bd_intf_net [get_bd_intf_pins cdma_ic/M01_AXI] [get_bd_intf_pins bram_ic/S01_AXI]
+
+# ── fabric RMSNorm + int8 quantizer ───────────────────────────────────
+# Same topology as weight_bram, for the same reason. Two masters reach it
+# -- the MicroBlaze for control, the CDMA for the vectors -- and giving
+# either of them a second route is precisely what made build 12 compute
+# zeros while reporting success. norm_ic is a private merge: one route per
+# master, and the address map asserted below rather than assumed.
+create_bd_cell -type ip -vlnv shepherdscientific.com:user:rmsnorm_quant_axi:1.0 rmsnorm_0
+create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 norm_ic
+set_property -dict [list CONFIG.NUM_SI {2} CONFIG.NUM_MI {1}] [get_bd_cells norm_ic]
+connect_bd_net $UICLK [get_bd_pins norm_ic/aclk] [get_bd_pins rmsnorm_0/clk]
+connect_bd_net [get_bd_pins rst_ui/peripheral_aresetn] \
+    [get_bd_pins norm_ic/aresetn] [get_bd_pins rmsnorm_0/rst_n]
+connect_bd_intf_net [get_bd_intf_pins periph/M06_AXI]  [get_bd_intf_pins norm_ic/S00_AXI]
+connect_bd_intf_net [get_bd_intf_pins cdma_ic/M02_AXI] [get_bd_intf_pins norm_ic/S01_AXI]
+connect_bd_intf_net [get_bd_intf_pins norm_ic/M00_AXI] [get_bd_intf_pins rmsnorm_0/s_axi]
 
 # ── EthernetLite (MII to the DP83848) ─────────────────────────────────
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_ethernetlite:3.0 axi_ethernetlite_0
