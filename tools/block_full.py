@@ -84,12 +84,12 @@ def project(b, W, aq, name=None):
     out, inf = W.shape
     got = np.zeros(out, dtype=np.int64)
     for c in range(0, out, 1024):
-        sub = W[c:c + 1024]
         for s in range(inf // 1024):
             if DDR["on"]:
                 ddr_page(b, name, c // 1024, s)
             else:
-                load_bytes(b, pack_slice(sub[:, s * 1024:(s + 1) * 1024]))
+                load_bytes(b, pack_slice(
+                    W[c:c + 1024, s * 1024:(s + 1) * 1024]))
             loadb(b, 3, aq[s * 1024:(s + 1) * 1024])
             b.send(f"PROJ 3 4 16 {s}\n")
             b.until("OK PJ")
