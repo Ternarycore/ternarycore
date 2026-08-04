@@ -203,17 +203,14 @@ static void cmd_nq(const char *p) {
    what stage 1 reported, and keeping it on the host means this stage can
    be checked against exact integers instead of a float and a tolerance. */
 
-static void cmd_proj(const char *p) {
-    unsigned long asrc = parse_u(&p), dst = parse_u(&p), ntile = parse_u(&p),
-                  seg = parse_u(&p), j;
-    const signed char *a = (const signed char *)VSLOT(asrc);
-    int *o = (int *)VSLOT(dst);
-    unsigned long k;
+/* The activations are a pointer, not a slot index, so the caller can
+   start a segment part-way into a vector. cmd_proj passes offset zero
+   and behaves exactly as before. */
+static void proj_core(const signed char *a, int *o,
+                      unsigned long ntile, unsigned long seg) {
+    unsigned long k, j;
     unsigned int ct;
     int c, v;
-    unsigned long chk = 0;
-
-    if (ntile == 0u || ntile > 16u) { uart_puts("ERR range\n"); return; }
 
     IO32(STREAM_BASE + S_CTRL) = 0x4u;               /* act ptr reset */
     for (k = 0; k < DEPTH; k++)
@@ -228,6 +225,20 @@ static void cmd_proj(const char *p) {
             o[j] = seg ? (o[j] + v) : v;
         }
     }
+}
+
+static void cmd_proj(const char *p) {
+    unsigned long asrc = parse_u(&p), dst = parse_u(&p), ntile = parse_u(&p),
+                  seg = parse_u(&p), j;
+    const int *o;
+    unsigned long chk = 0;
+
+    if (ntile == 0u || ntile > 16u) { uart_puts("ERR range\n"); return; }
+
+    proj_core((const signed char *)VSLOT(asrc), (int *)VSLOT(dst),
+              ntile, seg);
+
+    o = (const int *)VSLOT(dst);
     for (j = 0; j < ntile * 64u; j++)
         chk += (unsigned long)o[j] * (unsigned long)(j + 1u);
     uart_puts("PCHK "); uart_puthex(chk);
