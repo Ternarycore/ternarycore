@@ -33,6 +33,8 @@ module tb_rmsnorm_quant;
     reg               mem_we = 0;
     reg  [AW-1:0]     mem_addr = 0;
     reg signed [31:0] mem_x = 0, mem_g = 0;
+    // the wrapper drives these separately; the datapath check fills both
+    // at once, which is still a legal use of two independent ports
     reg  [AW-1:0]     o8_addr = 0;
     wire signed [7:0] o8_data;
 
@@ -40,7 +42,8 @@ module tb_rmsnorm_quant;
         .clk(clk), .rst_n(rst_n),
         .start(start), .n(n), .busy(busy), .done(done),
         .o_mx(o_mx), .o_ss(o_ss), .o_xs(o_xs),
-        .mem_we(mem_we), .mem_addr(mem_addr), .mem_x(mem_x), .mem_g(mem_g),
+        .xw_en(mem_we), .xw_addr(mem_addr), .xw_data(mem_x),
+        .gw_en(mem_we), .gw_addr(mem_addr), .gw_data(mem_g),
         .o8_addr(o8_addr), .o8_data(o8_data)
     );
 

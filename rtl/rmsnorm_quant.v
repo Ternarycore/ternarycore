@@ -54,14 +54,21 @@ module rmsnorm_quant #(
     output reg  [4:0]         o_xs,
 
     // input vectors, written before start
-    input  wire               mem_we,
-    input  wire [AW-1:0]      mem_addr,
-    input  wire signed [31:0] mem_x,
-    input  wire signed [31:0] mem_g,
+    input  wire               xw_en,
+    input  wire [AW-1:0]      xw_addr,
+    input  wire signed [31:0] xw_data,
+    input  wire               gw_en,
+    input  wire [AW-1:0]      gw_addr,
+    input  wire signed [31:0] gw_data,
 
     // int8 result, readable while done
     input  wire [AW-1:0]      o8_addr,
-    output wire signed [7:0]  o8_data
+    output wire signed [7:0]  o8_data,
+
+    // four packed int8 at a word index, for the AXI read channel: the
+    // CDMA moves the result out 32 bits at a time, not a byte at a time
+    input  wire [AW-3:0]      o8_widx,
+    output wire [31:0]        o8_word
 );
 
     localparam S_IDLE = 4'd0, S_P1 = 4'd1, S_XS  = 4'd2, S_P2 = 4'd3,
@@ -75,13 +82,14 @@ module rmsnorm_quant #(
     reg signed [31:0] tmem [0:MAXN-1];
     reg signed [7:0]  omem [0:MAXN-1];
 
-    always @(posedge clk)
-        if (mem_we) begin
-            xmem[mem_addr] <= mem_x;
-            gmem[mem_addr] <= mem_g;
-        end
+    always @(posedge clk) begin
+        if (xw_en) xmem[xw_addr] <= xw_data;
+        if (gw_en) gmem[gw_addr] <= gw_data;
+    end
 
     assign o8_data = omem[o8_addr];
+    assign o8_word = {omem[{o8_widx, 2'b11}], omem[{o8_widx, 2'b10}],
+                      omem[{o8_widx, 2'b01}], omem[{o8_widx, 2'b00}]};
 
     reg  [3:0]        st;
     reg  [AW-1:0]     i;
