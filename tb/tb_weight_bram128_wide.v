@@ -70,6 +70,7 @@ module tb_weight_bram128_wide;
     task burst(input [AW-1:0] a, input [7:0] len, input [31:0] seed,
                input [15:0] strb);
         integer k;
+        reg [31:0] b0, b1, b2, b3;
         begin
             @(posedge clk);
             awaddr <= a; awlen <= len; awvalid <= 1'b1; awburst <= 2'b01;
@@ -78,8 +79,9 @@ module tb_weight_bram128_wide;
             while (!awready) @(posedge clk);
             awvalid <= 1'b0;
             for (k = 0; k <= len; k = k + 1) begin
-                wdata  <= {seed + 4*k + 3, seed + 4*k + 2,
-                           seed + 4*k + 1, seed + 4*k};
+                b0 = seed + 4*k;      b1 = seed + 4*k + 1;
+                b2 = seed + 4*k + 2;  b3 = seed + 4*k + 3;
+                wdata  <= {b3, b2, b1, b0};
                 wstrb  <= strb;
                 wlast  <= (k == len);
                 wvalid <= 1'b1;
@@ -117,8 +119,7 @@ module tb_weight_bram128_wide;
                          32'h1000_0001, 32'h1000_0000});
         expect_word(15, {32'h1000_003F, 32'h1000_003E,
                          32'h1000_003D, 32'h1000_003C});
-        $display("burst16: %0d ns for 16 words (256 B) = %0.2f cycles/word, "
-                 "%0.1f bytes/cycle", t1 - t0, (t1 - t0) / 10.0 / 16.0,
+        $display("burst16: %0d ns for 16 words (256 B) = %0.2f cycles/word, %0.1f bytes/cycle", t1 - t0, (t1 - t0) / 10.0 / 16.0,
                  256.0 / ((t1 - t0) / 10.0));
 
         // 2. AWLEN=0: a single 128-bit beat
@@ -157,8 +158,7 @@ module tb_weight_bram128_wide;
                           32'h7000_0001, 32'h7000_0000});
         expect_word(511, {32'h7000_03FF, 32'h7000_03FE,
                           32'h7000_03FD, 32'h7000_03FC});
-        $display("burst256: %0d ns for 256 words (4 KB) = %0.2f cycles/word, "
-                 "%0.1f bytes/cycle", t1 - t0, (t1 - t0) / 10.0 / 256.0,
+        $display("burst256: %0d ns for 256 words (4 KB) = %0.2f cycles/word, %0.1f bytes/cycle", t1 - t0, (t1 - t0) / 10.0 / 256.0,
                  4096.0 / ((t1 - t0) / 10.0));
         $display("a 256 KB page at that rate = %0.4f ms",
                  (t1 - t0) / 10.0 / 256.0 * 16384.0 / 100000.0);
