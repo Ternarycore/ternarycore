@@ -72,6 +72,41 @@ def run_blk(b, blk, x, fab, cmd="BLK", pos=0):
     return v * om * (2.0 ** oe), dt
 
 
+def make_xs(blk, n):
+    """One input per position, all different, spikes included."""
+    rng = np.random.default_rng(7000 + blk)
+    return [np.where(np.arange(H) < 0, 0.0, v)
+            for v in (spike(rng) for _ in range(n))]
+
+
+def spike(rng):
+    x = rng.standard_normal(H) * 3.0
+    x[rng.integers(0, H, 8)] *= 40.0
+    return x
+
+
+def board_seq(b, blk, xs, fab):
+    """A fresh sequence from position 0.
+
+    The cache accumulates as it goes, so this always starts at 0 and
+    walks up. Nothing here resets the board's cache: writing position p
+    overwrites what a previous sequence left there, and attention at p
+    only ever reads 0..p, all of which this sequence has just written.
+    """
+    out, t = [], 0.0
+    for pos, x in enumerate(xs):
+        g, dt = run_blk(b, blk, x, fab, pos=pos)
+        out.append(g)
+        t += dt
+    return out, t
+
+
+def ref_seq(r, blk, xs):
+    r.reset()
+    return [r.block(blk, x.copy(), pos, *tc_ref.rope_tables(pos))
+            for pos, x in enumerate(xs)], None
+
+
 def rel(a, w):
     d = np.linalg.norm(a - w)
     return d / max(np.linalg.norm(w), 1e-30)
@@ -86,6 +121,8 @@ def main():
     ap.add_argument("--fab", action="store_true",
                     help="normalize in fabric instead of on the soft CPU")
     ap.add_argument("--tol", type=float, default=0.05)
+    ap.add_argument("--positions", type=int, default=1,
+                    help="how many positions to walk, from 0 upward")
     a = ap.parse_args()
 
     fab = 1 if a.fab else 0
@@ -100,30 +137,34 @@ def main():
 
     ok = True
     for blk in blocks:
-        rng = np.random.default_rng(7000 + blk)
-        x = rng.standard_normal(H) * 3.0
-        x[rng.integers(0, H, 8)] *= 40.0
-
-        r.reset()
-        want = r.block(blk, x.copy(), 0, cos, sin)
-        got, dt = run_blk(b, blk, x, fab)
-        e0 = rel(got, want)
+        xs = make_xs(blk, a.positions)
+        want, _ = ref_seq(r, blk, xs)
+        got, dt = board_seq(b, blk, xs, fab)
 
         # The sensitivity check block_full earned the hard way: scale the
         # input and the output has to follow. A block missing a whole
         # term still tracks a scaled input badly, and that is what
         # separates "close" from "computing the right thing".
-        r.reset()
-        want2 = r.block(blk, (x * 0.25).copy(), 0, cos, sin)
-        got2, _ = run_blk(b, blk, x * 0.25, fab)
-        e1 = rel(got2, want2)
-        sens = rel(got2, want) / max(e0, 1e-12)
+        #
+        # It has to be its own sequence from position 0. Re-running one
+        # position with a scaled input rewrites that position's cache
+        # entry, and every later position then attends over a key that
+        # belongs to neither run.
+        xs2 = [x * 0.25 for x in xs]
+        want2, _ = ref_seq(r, blk, xs2)
+        got2, _ = board_seq(b, blk, xs2, fab)
 
-        good = e0 < a.tol and e1 < a.tol and sens > 5.0
-        ok &= good
-        print(f"  block {blk:2d}   rel {e0:.6f}   x0.25 rel {e1:.6f}   "
-              f"sensitivity {sens:5.1f}x   {dt:5.2f} s   "
-              f"{'ok' if good else 'FAIL'}", flush=True)
+        for pos in range(a.positions):
+            e0 = rel(got[pos], want[pos])
+            e1 = rel(got2[pos], want2[pos])
+            sens = rel(got2[pos], want[pos]) / max(e0, 1e-12)
+            good = e0 < a.tol and e1 < a.tol and sens > 5.0
+            ok &= good
+            print(f"  block {blk:2d} pos {pos:3d}   rel {e0:.6f}   "
+                  f"x0.25 rel {e1:.6f}   sensitivity {sens:6.1f}x   "
+                  f"{'ok' if good else 'FAIL'}", flush=True)
+        print(f"    {dt:5.2f} s for {a.positions} position"
+              f"{'s' if a.positions != 1 else ''}", flush=True)
 
     print(f"\n{'PASS' if ok else 'FAIL'}")
     sys.exit(0 if ok else 1)

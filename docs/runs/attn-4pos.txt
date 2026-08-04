@@ -1,0 +1,9 @@
+block driver on the board, normalizer in fabric
+
+  block  0 pos   0   rel 0.002367   x0.25 rel 0.008127   sensitivity  308.0x   ok
+  block  0 pos   1   rel 0.001094   x0.25 rel 0.003328   sensitivity  677.7x   ok
+  block  0 pos   2   rel 0.006586   x0.25 rel 0.030507   sensitivity  111.6x   ok
+  block  0 pos   3   rel 0.006650   x0.25 rel 0.029588   sensitivity  110.7x   ok
+     0.45 s for 4 positions
+
+PASS
