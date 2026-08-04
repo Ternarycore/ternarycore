@@ -30,14 +30,66 @@ from block_check import (q15v, pack_slice, load_bytes, dumpi32, blockfloat,
 INTER = 3072
 
 
-def project(b, W, aq):
+PAGEB = 256 * 1024
+DDR = {"on": False, "blk": 0, "map": {}, "slot": 0}
+
+
+def ddr_page(b, name, c, s):
+    """Page a DDR-resident weight page, by two independent derivations.
+
+    The table lookup and the positional rule blk*15 + slot are derived
+    from different things -- one from build_ddr_image.py's record of what
+    it wrote, one from the order project() asks. A lookup alone would
+    agree with an image built in the wrong order; the rule alone would
+    agree with a table built in the wrong order. Requiring both is what
+    makes a page landing one slot out a failure rather than a plausible
+    wrong answer.
+    """
+    off = DDR["map"][(DDR["blk"], name, c, s)]
+    want = (DDR["blk"] * 15 + DDR["slot"]) * PAGEB
+    if off != want:
+        sys.exit(f"page order: {name} slice {c} seg {s} is at {off}, "
+                 f"but it is request {DDR['slot']} of block {DDR['blk']} "
+                 f"which the index rule puts at {want}")
+    DDR["slot"] += 1
+    b.send(f"PAGEDMA {off}\n")
+    b.until("OK PD")
+
+
+def preload(b, blk, image):
+    """Push one block's fifteen pages into DDR over UART.
+
+    Only for testing the resident path before the Ethernet loader is
+    available -- 15 pages is six minutes, 420 would be three hours, which
+    is the entire reason eth_load.py exists.
+    """
+    with open(image, "rb") as f:
+        for slot in range(15):
+            off = (blk * 15 + slot) * PAGEB
+            f.seek(off)
+            blob = f.read(PAGEB)
+            t0 = time.time()
+            b.send(f"LOADM {off} {len(blob)}\n")
+            time.sleep(0.3)
+            for i in range(0, len(blob), 4096):
+                b.send(blob[i:i + 4096])
+                time.sleep(0.012)
+            b.until("OK M")
+            print(f"    preload slot {slot:2d} -> off {off:9d}  "
+                  f"{time.time()-t0:5.1f}s", flush=True)
+
+
+def project(b, W, aq, name=None):
     """W @ aq on the board: 1024-output slices, depth segments accumulated."""
     out, inf = W.shape
     got = np.zeros(out, dtype=np.int64)
     for c in range(0, out, 1024):
         sub = W[c:c + 1024]
         for s in range(inf // 1024):
-            load_bytes(b, pack_slice(sub[:, s * 1024:(s + 1) * 1024]))
+            if DDR["on"]:
+                ddr_page(b, name, c // 1024, s)
+            else:
+                load_bytes(b, pack_slice(sub[:, s * 1024:(s + 1) * 1024]))
             loadb(b, 3, aq[s * 1024:(s + 1) * 1024])
             b.send(f"PROJ 3 4 16 {s}\n")
             b.until("OK PJ")
@@ -69,6 +121,11 @@ def main():
     ap.add_argument("--cache",
                     default=os.path.expanduser("~/tc-ckpt/tc-ref-int8.npz"))
     ap.add_argument("--block", type=int, default=0)
+    ap.add_argument("--ddr", action="store_true",
+                    help="page weights from DDR rather than pushing them")
+    ap.add_argument("--preload", action="store_true",
+                    help="with --ddr: push this block's pages over UART first")
+    ap.add_argument("--ddrdir", default=os.path.expanduser("~/tc-ddr"))
     a = ap.parse_args()
 
     z = np.load(a.cache)
@@ -85,6 +142,15 @@ def main():
     b = Board(a.dev)
     b.sync()
     print(f"stage 9: one complete block, block {blk}\n")
+
+    if a.ddr:
+        pg = json.load(open(os.path.join(a.ddrdir, "pages.json")))
+        DDR["on"], DDR["blk"] = True, blk
+        DDR["map"] = {(e["blk"], e["proj"], e["out_slice"], e["seg"]): e["off"]
+                      for e in pg["pages"]}
+        print(f"  DDR-resident weights, {pg['n_pages']} pages in the image")
+        if a.preload:
+            preload(b, blk, os.path.join(a.ddrdir, "weights.bin"))
     t0 = time.time()
 
     rng = np.random.default_rng(7000 + blk)
@@ -100,9 +166,9 @@ def main():
     # ---- attention half --------------------------------------------------
     h1 = tc_ref.rmsnorm(x, z[f"{blk}.in_norm"].astype(np.float64))
     aq, s_a, _ = nq(b, x, z[f"{blk}.in_norm"].astype(np.float64), H)
-    qa = project(b, W["q_proj"], aq) * float(z[f"{blk}.q_proj.s"]) * s_a
-    ka = project(b, W["k_proj"], aq) * float(z[f"{blk}.k_proj.s"]) * s_a
-    va = project(b, W["v_proj"], aq) * float(z[f"{blk}.v_proj.s"]) * s_a
+    qa = project(b, W["q_proj"], aq, "q_proj") * float(z[f"{blk}.q_proj.s"]) * s_a
+    ka = project(b, W["k_proj"], aq, "k_proj") * float(z[f"{blk}.k_proj.s"]) * s_a
+    va = project(b, W["v_proj"], aq, "v_proj") * float(z[f"{blk}.v_proj.s"]) * s_a
     print(f"  q/k/v projections            {time.time()-t0:5.1f}s")
 
     # attention at position 0 collapses to the value vector itself
@@ -115,14 +181,14 @@ def main():
 
     # ---- o_proj + residual ------------------------------------------------
     oa, s_o, _ = nq(b, attn, z[f"{blk}.o_proj.subln"].astype(np.float64), 2048)
-    o = project(b, W["o_proj"], oa) * float(z[f"{blk}.o_proj.s"]) * s_o
+    o = project(b, W["o_proj"], oa, "o_proj") * float(z[f"{blk}.o_proj.s"]) * s_o
     x1 = x + o
     print(f"  o_proj + residual            {time.time()-t0:5.1f}s")
 
     # ---- MLP half ---------------------------------------------------------
     ha, s_h, _ = nq(b, x1, z[f"{blk}.post_norm"].astype(np.float64), H)
-    g = project(b, W["gate_proj"], ha)
-    u = project(b, W["up_proj"], ha)
+    g = project(b, W["gate_proj"], ha, "gate_proj")
+    u = project(b, W["up_proj"], ha, "up_proj")
     s_g = float(z[f"{blk}.gate_proj.s"]) * s_h
     gm, ge = blockfloat(s_g)
     b.loadv(0, g.astype(np.int32))
@@ -156,8 +222,18 @@ def main():
     s_ref = float(np.abs(mt).max()) / max(float(np.abs(m).max()), 1e-30)
     print(f"  MLP out scale   analytic {s_m:.6e}   reference {s_ref:.6e}"
           f"   ratio {s_m / s_ref:.6f}")
-    d = project(b, W["down_proj"], da) * float(z[f"{blk}.down_proj.s"]) \
-        * s_d * s_m
+    # No s_m here, and that is the whole point. nq's scale is invariant
+    # to its input's magnitude -- q15v normalizes by max|x|, so the
+    # returned gmax*mx*max|x| / (Q15^2 * 127 * rms(x)) has the input's
+    # magnitude in both numerator and denominator. Feed it m or s_m*m and
+    # it answers the same, because RMSNorm cancels global gain and SiLU
+    # has already been paid for upstream.
+    #
+    # Multiplying by s_m = 3.3e-05 therefore scaled the MLP's entire
+    # contribution to the residual out of existence: |d| = 0.0000 against
+    # a reference contribution of 4.86, with |x1| = 171.8.
+    d = project(b, W["down_proj"], da, "down_proj") * float(z[f"{blk}.down_proj.s"]) \
+        * s_d
     x2 = x1 + d
     print(f"  down_proj + residual         {time.time()-t0:5.1f}s")
 
@@ -172,11 +248,24 @@ def main():
     # max may well sit where the MLP contributes nothing.
     print(f"    |x1| {np.abs(x1).max():10.3f}   |d| {np.abs(d).max():10.3f}"
           f"   ratio {np.abs(d).max()/max(np.abs(x1).max(), 1e-30):.4f}")
+    rk = {}
     for k in (0.25, 0.5, 1.0, 2.0, 4.0):
-        rk = np.abs(x1 + d * k - want).max() / max(np.abs(want).max(), 1e-30)
-        print(f"    s_m x{k:<5g}  rel {rk:.6f}")
+        rk[k] = np.abs(x1 + d * k - want).max() / max(np.abs(want).max(), 1e-30)
+        print(f"    MLP x{k:<5g}  rel {rk[k]:.6f}")
+    sens = min(rk[0.25], rk[4.0]) / max(r_out, 1e-30)
+    print(f"    sensitivity {sens:6.1f}x")
 
-    ok = r_out < 0.05
+    # Two conditions, because the threshold alone passed a block whose
+    # MLP contributed nothing at all. rel is measured against |x1| = 171.8
+    # and the MLP contributes 4.86, so an absent MLP reads as 0.0283 --
+    # comfortably under 0.05. Three runs printed that as a PASS.
+    #
+    # Requiring the error to move when the MLP's contribution moves is
+    # what makes this check able to fail.
+    ok = r_out < 0.05 and sens > 5.0
+    if not ok and r_out < 0.05:
+        print("\n  FAIL: the block agrees with the reference but the "
+              "comparison cannot see the MLP -- that is not a pass")
     print(f"\n{'PASS' if ok else 'FAIL'}  ({time.time()-t0:.0f}s)")
     sys.exit(0 if ok else 1)
 
