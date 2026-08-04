@@ -123,6 +123,10 @@ module rmsnorm_quant #(
     // ...and the product is registered before the absolute value and the
     // comparison, for the same reason pass 3 is pipelined: multiply, abs,
     // 32-bit compare and a register enable do not fit in 12.3 ns together.
+    // usq is registered too, so the 48-bit accumulate lands in stage 2
+    // rather than sharing a cycle with the BRAM read, the shift and the
+    // squaring DSP. That chain was 13.823 ns: 12 CARRY4 behind a DSP48E1.
+    reg  [21:0]        usq_r;
     reg  signed [31:0] tw_r;
     reg  [AW-1:0]      i_p2;
     reg  [AW+1:0]      p2cnt, p2lim;
@@ -192,10 +196,11 @@ module rmsnorm_quant #(
             // k+1, so the pass runs n+1 cycles; stage one stops feeding at
             // n-1 and the sum of squares only accumulates while it is live.
             S_P2: begin
-                if (p2cnt < {2'b0, n}) ss48 <= ss48 + {16'd0, usq};
+                usq_r <= usq[21:0];
                 tw_r <= tw;
                 i_p2 <= i;
                 if (p2cnt >= {{(AW+1){1'b0}}, 1'b1}) begin
+                    ss48 <= ss48 + {26'd0, usq_r};
                     tmem[i_p2] <= tw_r;
                     if (abstw > mx) mx <= abstw;
                 end
