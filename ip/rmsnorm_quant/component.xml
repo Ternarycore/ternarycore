@@ -320,7 +320,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>99ac6dbb</spirit:value>
+            <spirit:value>30cdcae0</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -336,7 +336,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>99ac6dbb</spirit:value>
+            <spirit:value>30cdcae0</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -984,13 +984,13 @@
       <xilinx:vendorDisplayName>Shepherd Scientific</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://github.com/Ternarycore/ternarycore</xilinx:vendorURL>
       <xilinx:coreRevision>1</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2026-08-04T10:45:19Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2026-08-04T11:09:44Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2025.2</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="81b04013"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="0fe5b35c"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="7fcf0478"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="6ed3e8a5"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="a4ca23c3"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="b8312e70"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="986d9ff8"/>
