@@ -128,18 +128,34 @@ def main():
     b.loadv(0, g.astype(np.int32))
     b.loadv(1, u.astype(np.int32))
     b.send(f"MLP 0 1 2 {gm} {ge + BIAS} {INTER}\n")
-    b.until("OK MLP")
+    mo = b.until("OK MLP")
+    mtok = [l for l in mo.splitlines() if l.startswith("MLP ")][0].split()
+    su_, ss_, sm_ = int(mtok[4]), int(mtok[6]), int(mtok[8])
     m = dumpi32(b, 2, INTER).astype(np.float64)
     print(f"  gate/up + SiLU               {time.time()-t0:5.1f}s")
 
     da, s_d, _ = nq(b, m, z[f"{blk}.down_proj.subln"].astype(np.float64), INTER)
-    # m carries an arbitrary global scale; recover it from the reference's
-    # own SiLU product, since everything downstream is scale invariant
-    # except this one multiply into the residual.
+    # m carries an arbitrary global scale, and everything downstream is
+    # invariant to it except this one multiply into the residual.
+    #
+    # Analytically, from the shifts cmd_mlp reports:
+    #   o[i] = silu(x) * up[i] * 65536 * 2^-(ss + su + sm)
+    # so s_u * 2^(ss+su+sm) / 65536 recovers true magnitude. sa is absent
+    # because it is spent normalizing the table index, not the result.
+    #
+    # The reference-derived value below is kept only to check this one.
+    # It was what the block used to run on, and it is the single number in
+    # the block that the token loop could not have obtained -- it would
+    # have failed at the last step with everything before it working.
+    s_u = float(z[f"{blk}.up_proj.s"]) * s_h
+    s_m = s_u * (2.0 ** (ss_ + su_ + sm_)) / 65536.0
+
     gt = g.astype(np.float64) * s_g
-    ut = u.astype(np.float64) * float(z[f"{blk}.up_proj.s"]) * s_h
+    ut = u.astype(np.float64) * s_u
     mt = (gt / (1.0 + np.exp(-gt))) * ut
-    s_m = float(np.abs(mt).max()) / max(float(np.abs(m).max()), 1e-30)
+    s_ref = float(np.abs(mt).max()) / max(float(np.abs(m).max()), 1e-30)
+    print(f"  MLP out scale   analytic {s_m:.6e}   reference {s_ref:.6e}"
+          f"   ratio {s_m / s_ref:.6f}")
     d = project(b, W["down_proj"], da) * float(z[f"{blk}.down_proj.s"]) \
         * s_d * s_m
     x2 = x1 + d
