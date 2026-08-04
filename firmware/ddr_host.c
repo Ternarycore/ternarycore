@@ -2275,6 +2275,38 @@ static void cmd_nqf(const char *p) {
     nq_xs = (int)IO32(NORM_XS);
     nq_report();
 }
+
+/* NQBENCH <fab> <gidx> <blk> <n> <reps> -- the board times itself.
+
+   One call is ~0.5 ms on the CPU and ~0.05 ms in fabric, and the UART
+   round trip that would report it is 16 ms. Timing a single call over
+   the wire times the wire. Repetitions bracketed by MARK lines let the
+   host take a slope, which is exactly what the pager needed once a page
+   completed faster than one line of serial output could be printed. */
+static void cmd_nqbench(const char *p) {
+    unsigned long fab = parse_u(&p), gi = parse_u(&p), blk = parse_u(&p),
+                  n = parse_u(&p), reps = parse_u(&p), r;
+
+    if (gi >= 6u || blk >= 28u || n != gain_len[gi]) {
+        uart_puts("ERR range\n"); return;
+    }
+    uart_puts("MARK NQB_START\n");
+    for (r = 0; r < reps; r++) {
+        if (fab) {
+            cdma_move(VSLOT(0), NORM_X, (unsigned int)n * 4u);
+            cdma_move(meta_rec(blk) + gain_off[gi], NORM_G,
+                      (unsigned int)n * 4u);
+            IO32(NORM_CTRL) = (unsigned int)n | 0x80000000u;
+            while (!(IO32(NORM_STAT) & 0x2u)) { }
+            cdma_move(NORM_O8, VSLOT(3), (unsigned int)n);
+        } else {
+            nq_core((const int *)VSLOT(0),
+                    (const int *)(meta_rec(blk) + gain_off[gi]),
+                    (signed char *)VSLOT(3), n);
+        }
+    }
+    uart_puts("MARK NQB_END\nOK NQB\n");
+}
 int main(void) {
     uart_init();
     led(0x1);
@@ -2306,6 +2338,7 @@ int main(void) {
         else if (starts(line, "NQD ")) cmd_nqd(line + 4);
         else if (starts(line, "PJO ")) cmd_projo(line + 4);
         else if (starts(line, "NQF ")) cmd_nqf(line + 4);
+        else if (starts(line, "NQBENCH ")) cmd_nqbench(line + 8);
         else if (starts(line, "KVR ")) cmd_kvr(line + 4);
         else if (starts(line, "PROJ ")) cmd_proj(line + 5);
         else if (starts(line, "CACHE")) cmd_cache(line + 5);
