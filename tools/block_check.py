@@ -28,7 +28,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 import tc_ref
 from stage_check import Board
-from stage2_check import unpack, load_page, loadb, PAGE
+from stage2_check import (unpack, load_page, loadb, PAGE,
+                          SCRATCH, scratch_only)
 
 H, NH, NKV, HD = 1024, 16, 8, 128
 BIAS, Q15 = 512, 32767
@@ -58,7 +59,15 @@ def pack_slice(W):
     return packed.astype(np.uint8).tobytes()
 
 
-def load_bytes(b, blob, ddr_off=0):
+def load_bytes(b, blob, ddr_off=SCRATCH):
+    """Host-packed weights into DDR and then into the array.
+
+    ddr_off defaults to scratch, not to 0. It used to default to 0, which
+    is block 0's q_proj page, so this function -- called by block_check,
+    block_multi and patch_block_ddr -- corrupted the resident image on
+    every run. See stage2_check.scratch_only.
+    """
+    scratch_only(ddr_off, len(blob))
     t0 = time.time()
     b.send(f"LOADM {ddr_off} {len(blob)}\n")
     time.sleep(0.3)

@@ -22,10 +22,53 @@ from stage_check import Board
 
 PAGE = 262144
 
+#  Where a test's own weights go, and it is not zero.
+#
+#  This default used to be 0, and 0 is the first page of the resident
+#  image -- block 0's q_proj. So every run of block_check.py or
+#  block_multi.py quietly overwrote it with host-packed bytes in a
+#  different layout, and left it that way.
+#
+#  It went unseen for months for the reason article 05 gives: until
+#  attention was wired in the block driver computed q and threw it away,
+#  so the one page the suite corrupted was the one page nothing read.
+#  The moment q started mattering, the test suite began breaking the
+#  thing it was there to verify, once per run, and the failure looked
+#  exactly like an arithmetic bug in attention.
+#
+#  0x0D800000 is 8 MB clear of the scratch vector slots at 0x0D000000 and
+#  8 MB short of the benchmark buffer at 0x0E000000. The weight image ends
+#  at 0x068F0000 and the KV cache lives above that, so a 256 KB page here
+#  overlaps nothing that anything reads.
+SCRATCH = 0x0D800000
 
-def load_page(b, path, byte_off=0, nbytes=PAGE, ddr_off=0):
+#  The image is 420 pages of 256 KB = 0x068F0000, rounded up. Anything a
+#  test writes below this line is writing over weights.
+IMAGE_END = 0x06900000
+
+
+def scratch_only(ddr_off, n):
+    """Refuse to LOADM a test's weights into the resident image.
+
+    Being loud here is the whole point. The alternative -- which is what
+    happened -- is that the write succeeds, the audit is not run, and the
+    corruption is discovered weeks later as a wrong answer somewhere with
+    no visible connection to the tool that caused it.
+    """
+    if ddr_off < IMAGE_END:
+        raise SystemExit(
+            f"\n  refusing to write {n} bytes at 0x{ddr_off:08X}.\n"
+            f"  That is inside the resident weight image (0 .. "
+            f"0x{IMAGE_END:08X}).\n"
+            f"  Tests load their weights at SCRATCH = 0x{SCRATCH:08X}.\n"
+            f"  If you really mean to rewrite a resident page, use\n"
+            f"  tools/eth_load.py, which checksums what it wrote.\n")
+
+
+def load_page(b, path, byte_off=0, nbytes=PAGE, ddr_off=SCRATCH):
     """UART one 256 KB page of packed weights into DDR, then DMA it in."""
     blob = open(path, "rb").read()[byte_off:byte_off + nbytes]
+    scratch_only(ddr_off, len(blob))
     t0 = time.time()
     b.send(f"LOADM {ddr_off} {len(blob)}\n")
     time.sleep(0.3)
