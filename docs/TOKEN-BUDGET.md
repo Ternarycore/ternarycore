@@ -58,18 +58,44 @@ Six of the nine operators in a block do not depend on position and three
 do, so the flat part is everything except attention and the slope is
 Q·Kᵀ, softmax and P·V walking 0..pos.
 
-**The table below predicted 4469 ms at context 512. The board does it in
-4656.** That is 4.2% out, from a budget assembled before the thing it
-describes could run, and it is the strongest evidence that measuring
-fused operators rather than micro-loops was the right correction.
+**This table predicted 4469 ms at context 512 and the agreement was
+reported as 4.2%. It is not, and the mistake is instructive.**
 
-At position 0 the agreement is worse and the gap is informative: 2634 ms
-predicted against 2880 measured, 9.3% out. The missing 246 ms is the
-driver's own bookkeeping, which no operator row covers -- the residual
-adds' per-element block-float multiply, bringing sixteen attention heads
-onto one exponent, copying a gain out of the DDR record and a query head
-into place, and a checksum loop inside the QK-norm that the block driver
-does not need and still pays for. So the operators are 91% of a token at
+4469 is the total with NQD, the soft-CPU normalizer. 4656 was measured
+with the fabric one, because `fab` defaults to 1 in every host tool. A
+prediction for one configuration was graded against a measurement of a
+different one, and the fabric normalizer's saving happened to cancel most
+of the error.
+
+tools/tokrep.py settles it. It runs one position many times and reports
+the minimum, and the board is repeatable to 0.5 ms in 4600, so these are
+not estimates:
+
+| | position 0 | position 511 |
+|---|---:|---:|
+| soft-CPU normalizer (what this table models) | 3247.3 | 5023.9 |
+| fabric normalizer (what the board ships with) | 2863.5 | 4639.9 |
+
+Like for like, **the table is 11% low, not 4.2%.** And it reconciles
+exactly, which is how we know the 11% is one thing and not several:
+
+    operators 4469.0  +  driver glue 554.9  -  fabric normalizer 384.0
+      =  4639.9 ms          (measured: 4639.9)
+
+Two more numbers move with it. **The driver's glue is 554.9 ms, not 246**
+-- the 246 was the same mispairing, with the normalizer's 384 ms hiding
+inside it. It is the residual adds' per-element block-float multiply,
+bringing sixteen attention heads onto one exponent, copying a gain out of
+the DDR record and a query head into place. That makes it the third
+largest item in the machine, ahead of the whole 128-bit weight bus
+campaign, and it was invisible for as long as the two configurations were
+being compared to each other.
+
+**And the fabric normalizer saves 384 ms, not the 484 the row below
+claims.** NQF in isolation is 21.4 ms a token; in the driver it costs
+about 100 ms more than that. Nobody has looked at why.
+
+So the operators are 89% of a token at
 position 0 and 96% at 512; the rest is glue, and glue is now the second
 largest unmeasured thing in this document.
 
@@ -101,7 +127,7 @@ attributable to a row below.
 | Projections (PJO) | 345.9 | OPB slope: 0.824 ms × 420 |
 | KV append, bit-sliced (KVW) | 268.7 | OPB slope: 9.598 ms × 28 |
 | **Total** | **4469.0** | **→ 0.22 tok/s** |
-| Same, with the fabric normalizer in place of NQD | 3985.0 | NQF measured at 0.121 / 0.214 / 0.306 ms — 21.4 ms a token, 23.6× |
+| Same, with the fabric normalizer in place of NQD | 3985.0 | NQF measured at 0.121 / 0.214 / 0.306 ms — 21.4 ms a token, 23.6×. **In the driver it is worth 384 ms, not 484** (tokrep, 5023.9 → 4639.9), so this row is ~100 ms optimistic. |
 
 Call counts come from the block structure, not from assumption: 28
 blocks, four normalizations a block at 1024, 1024, 2048 and 3072, one

@@ -4,6 +4,7 @@
     python tools/shape_budget.py                 # the candidate shapes
     python tools/shape_budget.py --ctx 128
     python tools/shape_budget.py --shape 18,1024,2048,8,8,128
+    python tools/shape_budget.py --ladder      # the campaign ladder
 
 The next student's shape is a training decision and a hardware decision at
 the same time, and the second half of that is computable right now. This
@@ -157,10 +158,104 @@ REJECTED = [
 ]
 
 
+
+
+# ---- the campaign ladder ---------------------------------------------
+#
+#  The shape is one lever. These are the others, and they multiply, so the
+#  order they are listed in is not the order they are worth.
+#
+#  The anchors here are measurements, not the budget's totals, because
+#  pairing those two up wrongly is what produced the "the budget held to
+#  4.2%" claim in article 05. It did not. tools/tokrep.py, minimum of
+#  several runs, repeatability 0.5 ms:
+#
+#      soft-CPU normalizer  pos 0  3247.3    pos 511  5023.9
+#      fabric  normalizer   pos 0  2863.5    pos 511  4639.9
+#
+#  docs/TOKEN-BUDGET.md's operator total is 4469.0 at context 512 with the
+#  soft-CPU normalizer. The machine does 5023.9. The 554.9 ms difference
+#  is the block driver's own bookkeeping, and it reconciles exactly:
+#
+#      operators 4469.0 + glue 554.9 - fabric normalizer 384.0 = 4639.9
+#
+#  Three corrections fall out of that line, all of them to numbers this
+#  project has published:
+#
+#    * The budget is 11% low against the machine, not 4.2%. The 4.2%
+#      compared a soft-CPU prediction against a fabric measurement.
+#    * The driver's glue is 554.9 ms, not 246. The 246 was the same
+#      mispairing: the fabric normalizer's 384 ms saving was hiding
+#      inside it.
+#    * The fabric normalizer saves 384 ms and not the 484 the operator
+#      benchmark predicts. NQF in isolation is 21.4 ms a token; in the
+#      driver it costs about 100 ms more than that. Worth finding.
+#
+#  And it is already switched on -- `fab` defaults to 1 everywhere -- so
+#  it is banked in the 4639.9 baseline and is not available to spend
+#  again.
+BASE = 4639.9              # measured, fabric normalizer, context 512
+GLUE = 554.9               # measured, and position-independent
+GROUPS = {                 # docs/TOKEN-BUDGET.md, regrouped by what fixes them
+    "feed": 1954.8,        # projections + Q.Kᵀ + P.V, poked in a word at a time
+    "cpu":  2162.0 - 384.0,   # elementwise, with the fabric normalizer applied
+    "mem":  352.4,         # weight paging
+}
+#  Fraction of each group that is the walk over the KV cache, from the
+#  position curve: 1835.0 ms of the 2226.3 attention rows at context 512.
+WALK = {"feed": 1835.0 * (1035.0 + 573.9) / 2226.3,
+        "cpu":  1835.0 * 617.4 / 2226.3, "mem": 0.0}
+
+#  DMA factor: PROJ is 827 us of which the array is 12.7. 2048 words at
+#  about a word a clock is ~20 us, plus the ~24 us CDMA setup the pager
+#  already measures. That is a projection and nothing else -- the honest
+#  first move is to DMA one PROJ call and time it before believing this
+#  row, because this budget has now been wrong twice by not doing that.
+STEPS = [
+    ("the recommended shape (a training run, no FPGA work)",
+     dict(shape=True)),
+    ("DMA the array's operands and results",     dict(feed=0.07)),
+    ("halve the driver's glue",                  dict(glue=0.5)),
+    ("128-bit weight bus",                       dict(mem=0.25)),
+    ("interleaved 128 window, 1 full layer in 4", dict(window=0.4375)),
+    ("SiLU and QK-norm/RoPE into fabric",        dict(cpu=0.606)),
+    ("KV append and softmax into fabric",        dict(cpu=0.606 * 0.47)),
+]
+
+
+def ladder(shape_factor):
+    f = {"feed": 1.0, "cpu": 1.0, "mem": 1.0}
+    glue, window, sh = 1.0, 1.0, 1.0
+    print(f"\n  {'':52s} {'ms':>8s} {'tok/s':>8s} {'vs today':>9s}")
+    print("  " + "-" * 82)
+
+    def total():
+        t = glue * GLUE * sh
+        for g, v in GROUPS.items():
+            walk = WALK[g]
+            t += ((v - walk) + walk * window) * f[g] * sh
+        return t
+
+    print(f"  {'today, as it ships':52s} {total():8.1f} "
+          f"{1000/total():8.3f} {1.0:8.2f}x")
+    for name, kw in STEPS:
+        if kw.pop("shape", False):
+            sh = shape_factor
+        glue *= kw.pop("glue", 1.0)
+        window *= kw.pop("window", 1.0)
+        for g, v in kw.items():
+            f[g] *= v
+        t = total()
+        print(f"  + {name:50s} {t:8.1f} {1000/t:8.3f} {BASE/t:8.2f}x")
+    print("\n  4-6 tok/s, the figure in the published plan, is 167-250 ms.")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ctx", type=int, default=512)
     ap.add_argument("--shape", default="", help="L,H,I,NH,NKV,HD")
+    ap.add_argument("--ladder", action="store_true",
+                    help="the campaign ladder, on measured anchors")
     a = ap.parse_args()
 
     print(f"predicted board cost at a {a.ctx}-token context")
@@ -170,6 +265,14 @@ def main():
     if a.shape:
         keys = ["L", "H", "I", "NH", "NKV", "HD"]
         show("--shape", dict(zip(keys, map(int, a.shape.split(",")))), a.ctx)
+        return
+
+    if a.ladder:
+        _, _, p = predict(REF, a.ctx)
+        rec = dict(L=18, H=1024, I=2048, NH=8, NKV=8, HD=128)
+        t_ref, _, _ = predict(REF, 512)
+        t_rec, _, _ = predict(rec, 512)
+        ladder(t_rec / t_ref)
         return
 
     for name, s in SHAPES:

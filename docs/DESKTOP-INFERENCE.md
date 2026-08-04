@@ -69,10 +69,12 @@ s**. Almost nothing that went away was arithmetic. It was about 130 KB of
 operands and accumulators crossing 115200 baud per block.
 
 The measured budget in `docs/TOKEN-BUDGET.md` predicted 4469 ms at a
-512-token context against 4656 measured — 4.2% out, from a table
+512-token context against 4656 measured — but that compared a soft-CPU
+prediction against a fabric run. Like for like it is 11% out, from a table
 assembled before the thing it describes could run. At position 0 the gap
 is wider and more useful: 2634 predicted against 2880 measured, 9.3% out.
-The missing 246 ms is not in any operator row because it is not an
+The missing 554.9 ms (measured by tools/tokrep.py, not the 246 first
+reported) is not in any operator row because it is not an
 operator. It is the driver's own bookkeeping — the residual adds' 64-bit
 multiply per element, sixteen attention heads brought onto a common
 exponent, a gain copied out of DDR, a query head copied into place, and a
@@ -219,7 +221,7 @@ So, in measured order of value:
 2. **DMA the array's operands and results** instead of poking registers.
    Order 1500 ms of a token, and now by some distance the largest single
    item.
-3. **The driver's own glue**, 246 ms at position 0 and unmeasured until
+3. **The driver's own glue**, 554.9 ms and unmeasured until
    the budget was graded against the machine. The checksum loop inside
    the QK-norm is free to delete and also buys LMB, which is at
    64,292 of 65,536 bytes and is now the binding constraint on firmware
