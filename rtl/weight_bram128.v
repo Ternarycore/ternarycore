@@ -15,7 +15,11 @@
 
 module weight_bram128 #(
     parameter ADDR_WIDTH = 18,           // byte-address width (256 KB)
-    parameter ID_WIDTH   = 4
+    parameter ID_WIDTH   = 4,
+    // 32 keeps the original, verified narrow path. 128 matches both the
+    // block RAM behind this port and the MIG user interface in front of
+    // it, and is the only reason paging costs 341 ms rather than 85.
+    parameter DATA_WIDTH = 32
 ) (
     input  wire                     clk,
     input  wire                     rst_n,
@@ -34,8 +38,8 @@ module weight_bram128 #(
     output wire                     s_axi_awready,
 
     // AXI4 write data / response
-    input  wire [31:0]              s_axi_wdata,
-    input  wire [3:0]               s_axi_wstrb,
+    input  wire [DATA_WIDTH-1:0]    s_axi_wdata,
+    input  wire [DATA_WIDTH/8-1:0]  s_axi_wstrb,
     input  wire                     s_axi_wlast,
     input  wire                     s_axi_wvalid,
     output wire                     s_axi_wready,
@@ -59,7 +63,7 @@ module weight_bram128 #(
 
     // AXI4 read data
     output wire [ID_WIDTH-1:0]      s_axi_rid,
-    output wire [31:0]              s_axi_rdata,
+    output wire [DATA_WIDTH-1:0]    s_axi_rdata,
     output wire [1:0]               s_axi_rresp,
     output wire                     s_axi_rlast,
     output reg                      s_axi_rvalid,
@@ -99,9 +103,23 @@ module weight_bram128 #(
     wire w_beat = (wstate == W_DATA) && s_axi_wvalid;
 
     wire [ADDR_WIDTH-5:0] wr_word = waddr[ADDR_WIDTH-1:4];
-    wire [1:0]            wr_lane = waddr[3:2];
-    wire [15:0]  wstrb16  = {12'b0, s_axi_wstrb} << {wr_lane, 2'b00};
-    wire [127:0] wdata128 = {4{s_axi_wdata}};
+    wire [15:0]  wstrb16;
+    wire [127:0] wdata128;
+
+    // A narrow beat lands in one of four lanes of a 128-bit word, so the
+    // data is replicated and the strobes shifted to pick the lane. A beat
+    // that is already a whole word needs neither: this is one of the rare
+    // cases where the faster path is also the smaller one.
+    generate
+        if (DATA_WIDTH == 128) begin : g_wide
+            assign wstrb16  = s_axi_wstrb;
+            assign wdata128 = s_axi_wdata;
+        end else begin : g_narrow
+            wire [1:0] wr_lane = waddr[3:2];
+            assign wstrb16  = {12'b0, s_axi_wstrb} << {wr_lane, 2'b00};
+            assign wdata128 = {4{s_axi_wdata}};
+        end
+    endgenerate
 
     integer bi;
     always @(posedge clk) begin
@@ -149,7 +167,7 @@ module weight_bram128 #(
 
     assign s_axi_arready = !s_axi_rvalid && (rbeats == 8'd0);
     assign s_axi_rresp   = 2'b00;
-    assign s_axi_rdata   = 32'hDEADBEEF;
+    assign s_axi_rdata   = {(DATA_WIDTH/32){32'hDEADBEEF}};
     assign s_axi_rid     = rid_r;
     assign s_axi_rlast   = (rbeats == 8'd1);
 
