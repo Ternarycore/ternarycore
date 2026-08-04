@@ -1,8 +1,9 @@
 # Desktop inference: where it actually stands
 
-Short version: the model runs on the board and predicts the right token.
-It does not yet generate a second one, and the reason is specific rather
-than general.
+Short version: the model runs on the board and generates. Prompt tokens
+are prefilled, each position writes the KV cache on the board as it goes,
+and the sequence that comes out matches the float64 reference token for
+token.
 
 ## What works
 
@@ -14,23 +15,25 @@ What crosses the serial line is one vector each way and one block-float
 scale.
 
 ```
-$ python tools/ternary.py "The" --compare
+$ python tools/ternary.py "The movie was" -n 6 --compare
 
-  'The' -> token 785 ('The')
+  'The movie was' -> 3 tokens, then 6 generated
 
-     1. ' positive'                 16.7912
-     2. ' negative'                 15.7042
-     3. ' '                          8.2909
-     4. ' Positive'                  7.7847
-     5. ' positives'                 7.5937
+    The movie was positive positive positive positive positive positive
 
-  next token   ' positive'
-  28 blocks on the board   1.50 s   (54 ms/block, normalizer in fabric)
-  total incl. the wire and the host's lm_head   1.90 s
+  generated    ' positive positive positive positive positive positive'
+  8 positions x 28 blocks   37.06 s   (4.63 s/token, normalizer in fabric)
 
-  float64 reference on the host: ' positive'
-  logits rel 0.009246   argmax agrees
+  float64 reference on the host: ' positive positive positive positive positive positive'
+  token ids  board [6785, 6785, 6785, 6785, 6785, 6785]
+             host  [6785, 6785, 6785, 6785, 6785, 6785]
+  AGREE
 ```
+
+The output is degenerate -- it repeats one word -- and that is the model,
+not the machine. The student was distilled on SST-2 and this is what it
+has to say. The claim here is that the board reproduces the reference
+exactly, token for token, not that the reference is interesting.
 
 The model is a Qwen3-0.6B-shaped student: 28 blocks, hidden 1024, 16
 query heads over 8 key/value heads at head_dim 128, MLP intermediate
@@ -82,41 +85,49 @@ three blocks. Stage 11 proved they matched on five distributions in
 isolation; this is the same equality holding inside a block that feeds
 its own output through fifteen more operators.
 
-## What does not work
+## What broke, and why nothing caught it
 
-**Generation.** This predicts one token, at position 0.
+Attention was written, verified at position 0, and then failed at every
+position after it -- 4 to 6% out on the block output, with the worst head
+orthogonal to the reference. Three days of the diagnosis are worth one
+paragraph because the shape recurs.
 
-At position 0 attention over a single key is the value vector itself, so
-the KV cache, the softmax and P·V contribute nothing to the result above
-— they are not exercised, and they are not wired into the block driver.
-Each of them is verified separately at four positions by
-`block_multi.py`, which passes: probabilities exact, head output rel
-0.000047. What is missing is the plumbing between them and the driver,
-and one derivation.
+The attention code was correct as written. The DDR weight image was not:
+it held q_proj's page 1 bytes at page 0's address, so both of that
+projection's output blocks were computed from the same weights. What
+separated data from code was running the same test through both pagers --
+the DMA engine and the original CPU for-loop -- and getting identical
+aliasing. That single comparison eliminated the DMA, the page loader and
+the projection loop at once, and pointed at the bytes.
 
-The derivation is the interesting part. The KV cache stores a block-float
-scale per key and per value, and today the *host* computes those from the
-float64 reference and hands them to the board. On-board they have to come
-out of what QKN already knows:
+Position 0 hid it completely, because a softmax over one key returns 1.0
+regardless of what q says. And nothing else had ever looked: **q_proj's
+pages are the only pages in the image no test reads**, since the old block
+driver computed q and discarded it -- attention over a single key is the
+value vector. `block_check` verifies q_proj against host-packed weights
+sent over the wire, never out of DDR.
+
+So the audit now exists, and it is the real lesson:
 
 ```
-scale = mx * 2^(s1+st) * (gmax/32768) / (127 * sqrt(ss * 4^(s1+sq) / hd))
+$ python tools/ddr_audit.py --meta
+  420 pages in 13.9 s
+  28 constant records checked
+  every page matches the file
 ```
 
-with the accumulator's own scale cancelling for q and k, because the
-QK-norm defers its division by the root-mean-square — and *not*
-cancelling for v, which is absmax-quantized without normalization. `st`
-is the gain-product shift; QKN computes it and does not currently report
-it.
+`eth_load` has always verified each transfer as it writes it. That is a
+check on the wire -- it says the bytes arrived, and nothing about what is
+in memory an hour later. DSUM computes the same weighted sum on the
+board, so 110 MB can be checked against the file in fourteen seconds.
 
-That formula is where this will go wrong if it goes wrong. A scale that
-is off by a constant factor corrupts a term that is small, passes a
-relative-error threshold, and looks like rounding. It has happened here
-three times — the MLP's spurious multiply, the QK-norm's fixed shift
-sized for a theoretical maximum rather than for the data, and the
-truncate-versus-round mismatch in the auto-range. So it gets accepted
-against `block_multi` at four positions with a sensitivity check, not
-against a single number.
+Two smaller corrections from the same hunt, recorded because both were
+reported as facts before they were checked. The board is fully
+deterministic; an apparent non-determinism came from comparing two probe
+runs whose *host* code differed. And three separate probes read a slot
+after `BLK` returned and got whatever wrote that slot last -- the driver
+reuses them, which is a property of the driver and a trap for anything
+that inspects it.
 
 ## Where the time goes, and where it goes next
 
@@ -139,8 +150,9 @@ for the CPU to hand it bytes.
 
 So, in measured order of value:
 
-1. **Attention and the KV cache** — worth more than any of the below,
-   because without it there is no second token at any speed.
+1. ~~**Attention and the KV cache**~~ — done. The block output is within
+   0.0011 to 0.0106 of the golden model at four positions on three
+   blocks, sensitivity 73x to 678x throughout.
 2. **DMA the array's operands and results** instead of poking registers.
    Order 320 ms of the current 1.46 s.
 3. **Widen the weight bus 32 → 128 bit.** The RTL and testbench pass at
