@@ -33,11 +33,27 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tc_ref
 from stage_check import Board
-from block_check import dumpi32, blockfloat, q15v, H, BIAS
+from block_check import dumpi32, blockfloat, q15v, H, BIAS, Q15
 
 
-def run_blk(b, blk, x, fab, cmd="BLK"):
+def rope_slot(pos):
+    """The rotation for this position, 64 cosines then 64 sines in Q15.
+
+    512 bytes, and the same for all twenty-eight blocks, so the host
+    sends it once a token rather than the board holding a 512-entry
+    table. That table is a better idea and can wait until something is
+    measured to want it."""
+    cos, sin = tc_ref.rope_tables(pos)
+    ci = np.clip(np.rint(cos[:64] * 32768), -Q15, Q15).astype(np.int32)
+    si = np.clip(np.rint(sin[:64] * 32768), -Q15, Q15).astype(np.int32)
+    return np.concatenate([ci, si])
+
+
+def run_blk(b, blk, x, fab, cmd="BLK", pos=0):
     """One block on the board. Returns the output vector in true units."""
+    b.loadv(16, rope_slot(pos))
+    b.send(f"POS {pos}\n")
+    b.until("OK POS")
     xi, xf = q15v(x)
     m, e = blockfloat(xf)
     b.loadv(0, xi.astype(np.int32))

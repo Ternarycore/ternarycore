@@ -1013,7 +1013,11 @@ static void cmd_ethrx(const char *p) {
 
 #define VS_BASE   (DDR_BASE + 0x0D000000u)
 #define VS_STRIDE 0x4000u
-#define VS_SLOTS  16u
+/* Thirty-two. VSLOT still takes its index modulo this, so every host
+   command ever written against slots 0..15 addresses the same memory it
+   always did; the driver uses 16..29 for the intermediates the host used
+   to hold on its side of the wire. */
+#define VS_SLOTS  32u
 #define VSLOT(s)  (VS_BASE + ((unsigned int)(s) % VS_SLOTS) * VS_STRIDE)
 #define VS_TMP    (VS_BASE + VS_SLOTS * VS_STRIDE)
 #define VS_MAX    4096u
@@ -1131,6 +1135,35 @@ static int          qkn_ge = 0,  qkn_ae = 0;
 static int          qkn_norm = 1;
 static unsigned int qkn_sm[16];
 static int          qkn_se[16];
+
+/* ---- Stage 16 slots and forward declarations -------------------------
+   Sixteen scratch slots were enough while the host held every
+   intermediate. The block driver holds them all at once: q, k and v
+   int8, their scales, the cache's scale record, the dot products, the
+   probabilities and the numerator, all live together. */
+#define S_CS   16u   /* cos and sin, 64 + 64, from the host once a token */
+#define S_Q8   17u   /* q int8, 16 heads x 128                           */
+#define S_K8   18u   /* k int8, 8 heads x 128                            */
+#define S_V8   19u   /* v int8, 8 heads x 128                            */
+#define S_QS   20u   /* per-head q scale, (mantissa, exponent) pairs     */
+#define S_KVS  21u   /* the cache's record: km, ke, vm, ve per kv head   */
+#define S_DOT  22u   /* Q.K^T, one int per key; QKN's scalars before it  */
+#define S_PR   23u   /* probabilities, int8                              */
+#define S_SO   24u   /* wmax, vemax, sume, npos                          */
+#define S_NUM  25u   /* P.V numerator, 128 ints                          */
+#define S_GN   26u   /* a gain copied out of the DDR record              */
+#define S_ONE  27u   /* unit gain, for v                                 */
+#define S_ID   28u   /* identity rotation, for v                         */
+#define S_QH   29u   /* one query head, where qk_core expects it         */
+
+static void attn_init(void);
+static void qkn_run(unsigned long blk, unsigned long gi, unsigned long src,
+                    unsigned long dst, unsigned long nh, int norm,
+                    unsigned int am, int ae);
+static int  attn_heads(unsigned long blk, unsigned long pos);
+
+/* The position this token is being written at. Sticky, set by POS. */
+static unsigned long blk_pos = 0;
 static int nq_mx, nq_xs, nq_amx;
 static unsigned int nq_ss;
 
@@ -2668,33 +2701,61 @@ static void resid_add(const int *x, unsigned int xm, int xe,
 
 /* One transformer block at position 0, reading everything it needs from
    DDR and leaving the result in S_X with blk_xm/blk_xe updated. */
-static int run_block(unsigned long blk, int fab) {
+static int run_block(unsigned long blk, unsigned long pos, int fab) {
     int *x   = (int *)VSLOT(S_X);
     int *x1  = (int *)VSLOT(S_X1);
     int *p0  = (int *)VSLOT(S_P0);
     int *p1  = (int *)VSLOT(S_P1);
     int *m   = (int *)VSLOT(S_M);
     int *att = (int *)VSLOT(S_ATT);
+    int *qs  = (int *)VSLOT(S_QS);
+    int *kvs = (int *)VSLOT(S_KVS);
     signed char *a8 = (signed char *)VSLOT(S_A8);
     unsigned int sa, sw, tm;
     int ea, ew, te;
-    unsigned long h, i;
+    unsigned long h;
+
+    attn_init();
 
     if (!nq_run(fab, x, blk, 0u, a8, 1024u)) return 0;
+    nq_scale(blk, 0u, 1024u, &sa, &ea);
 
-    /* q and k are discarded at position 0 -- attention over one key is
-       the value vector -- but their pages are still fetched, so the page
-       sequence and the cost are the ones a real token pays. */
+    /* q and k through the QK-norm and the rotation; v through the same
+       operator with a gain of one, so it gets a per-head absmax on the
+       same terms and there is no second quantizer to keep in step.
+
+       The scales are saved as each is produced, because qkn_core writes
+       them into one set of globals and the next call overwrites them. */
     if (!blk_proj(blk, P_Q, 2048u, 1024u, a8, p0)) return 0;
-    if (!blk_proj(blk, P_K, 1024u, 1024u, a8, p0)) return 0;
-    if (!blk_proj(blk, P_V, 1024u, 1024u, a8, p0)) return 0;
+    qkn_run(blk, 2u, S_P0, S_Q8, 16u, 1, 0u, 0);
+    for (h = 0; h < 16u; h++) {
+        qs[h * 2u]      = (int)qkn_sm[h];
+        qs[h * 2u + 1u] = qkn_se[h];
+    }
 
-    /* GQA is 2:1, so each kv head serves two query heads. No scale is
-       applied to v: the next thing that reads att is a normalization,
-       and RMSNorm cancels any global factor in front of it. */
-    for (h = 0; h < 16u; h++)
-        for (i = 0; i < 128u; i++)
-            att[(h << 7) + i] = p0[((h >> 1) << 7) + i];
+    if (!blk_proj(blk, P_K, 1024u, 1024u, a8, p0)) return 0;
+    qkn_run(blk, 3u, S_P0, S_K8, 8u, 1, 0u, 0);
+    for (h = 0; h < 8u; h++) {
+        kvs[h * 4u]      = (int)qkn_sm[h];
+        kvs[h * 4u + 1u] = qkn_se[h];
+    }
+
+    /* v is the one that needs its input's scale handed in, because
+       nothing normalizes it away again. */
+    if (!blk_proj(blk, P_V, 1024u, 1024u, a8, p0)) return 0;
+    meta_bf(blk, META_SCALES, 2u, &sw, &ew);            /* v_proj */
+    sc_mul(sw, ew, sa, ea, &tm, &te);
+    qkn_run(blk, 0u, S_P0, S_V8, 8u, 0, tm, te);
+    for (h = 0; h < 8u; h++) {
+        kvs[h * 4u + 2u] = (int)qkn_sm[h];
+        kvs[h * 4u + 3u] = qkn_se[h];
+    }
+
+    core_ok = 0;
+    kvw_core(blk, pos, S_K8, S_V8, S_KVS, 8u, 128u);
+    if (!core_ok) { uart_puts("ERR kvw\n"); return 0; }
+
+    if (!attn_heads(blk, pos)) return 0;
 
     if (!nq_run(fab, att, blk, 4u, a8, 2048u)) return 0;
     nq_scale(blk, 4u, 2048u, &sa, &ea);
@@ -2740,7 +2801,7 @@ static void blk_report(const char *tag) {
 static void cmd_blk(const char *p) {
     unsigned long blk = parse_u(&p), fab = parse_u(&p);
     if (blk >= 28u) { uart_puts("ERR range\n"); return; }
-    if (!run_block(blk, (int)fab)) return;
+    if (!run_block(blk, blk_pos, (int)fab)) return;
     blk_report("BLK");
     uart_puts("OK BLK\n");
 }
@@ -2749,7 +2810,7 @@ static void cmd_tok(const char *p) {
     unsigned long nb = parse_u(&p), fab = parse_u(&p), b;
     if (nb == 0u || nb > 28u) { uart_puts("ERR range\n"); return; }
     for (b = 0; b < nb; b++)
-        if (!run_block(b, (int)fab)) {
+        if (!run_block(b, blk_pos, (int)fab)) {
             uart_puts("ERR at block "); uart_putdec((long)b);
             uart_puts("\n"); return;
         }
@@ -2783,6 +2844,134 @@ static void cmd_qsc(const char *p) {
         uart_puts("\n");
     }
     uart_puts("OK QSC\n");
+}
+
+/* ---- Stage 16: attention on the board -------------------------------- */
+
+static int attn_ready = 0;
+
+/* v is quantized by the same operator as q and k, with a gain of one and
+   a rotation that does nothing -- which is how it gets a per-head absmax
+   and a scale in the same units, with no second operator to keep in step
+   with this one. Q15 is 32767, not 32768, because that is what q15v
+   clips to and the scale derivation is written against it. */
+static void attn_init(void) {
+    int *o = (int *)VSLOT(S_ONE);
+    int *r = (int *)VSLOT(S_ID);
+    unsigned long i;
+    if (attn_ready) return;
+    for (i = 0; i < 128u; i++) o[i] = 32767;          /* gain of one    */
+    for (i = 0; i < 64u; i++)  r[i] = 32767;          /* cos = 1        */
+    for (i = 0; i < 64u; i++)  r[64u + i] = 0;        /* sin = 0        */
+    attn_ready = 1;
+}
+
+/* One gain out of the block's DDR record and into a slot, because
+   qkn_core addresses its operands by slot index. 128 words. */
+static void meta_gain(unsigned long blk, unsigned long gi) {
+    const int *g = (const int *)(meta_rec(blk) + gain_off[gi]);
+    int *o = (int *)VSLOT(S_GN);
+    unsigned long i;
+    for (i = 0; i < gain_len[gi]; i++) o[i] = g[i];
+}
+
+/* q, k or v through the QK-norm, carrying stage 14b's scale bookkeeping.
+   norm is 1 for q and k, whose deferred root-mean-square makes the result
+   absolute, and 0 for v -- absmax quantized, never normalized, so the
+   accumulator's own scale survives and has to be handed in. */
+static void qkn_run(unsigned long blk, unsigned long gi, unsigned long src,
+                    unsigned long dst, unsigned long nh, int norm,
+                    unsigned int am, int ae) {
+    unsigned int gm;
+    int ge;
+    if (norm) {
+        meta_gain(blk, gi);
+        meta_bf(blk, META_GMAX, gi, &gm, &ge);
+        qkn_gm = gm; qkn_ge = ge;
+    } else {
+        qkn_gm = 1u << 30; qkn_ge = -30;              /* a gain of one */
+    }
+    qkn_norm = norm;
+    qkn_am = am; qkn_ae = ae;
+    qkn_core(src, norm ? S_GN : S_ONE, norm ? S_CS : S_ID,
+             dst, S_DOT, nh, 128u);
+}
+
+/* All sixteen query heads at `pos`, over a cache already written there.
+   Leaves the result in S_ATT on one common scale, which the o_proj
+   normalization downstream is then free to ignore. */
+static int attn_heads(unsigned long blk, unsigned long pos) {
+    int *att = (int *)VSLOT(S_ATT);
+    const int *num = (const int *)VSLOT(S_NUM);
+    const int *so  = (const int *)VSLOT(S_SO);
+    const int *qs  = (const int *)VSLOT(S_QS);
+    const signed char *q8 = (const signed char *)VSLOT(S_Q8);
+    signed char *qh = (signed char *)VSLOT(S_QH);
+    unsigned int fm[16], Mm, t, dm;
+    int fe[16], Me, te, de, amx, v;
+    unsigned long h, i;
+
+    for (h = 0; h < 16u; h++) {
+        for (i = 0; i < 128u; i++) qh[i] = q8[(h << 7) + i];
+
+        core_ok = 0; qk_core(blk, h >> 1, pos, S_QH, S_DOT);
+        if (!core_ok) { uart_puts("ERR qk\n"); return 0; }
+
+        core_ok = 0;
+        sm_core(blk, h >> 1, pos, S_DOT,
+                (unsigned long)(unsigned int)qs[h * 2u],
+                (unsigned long)(long)(qs[h * 2u + 1u] + 512),
+                S_PR, S_SO);
+        if (!core_ok) { uart_puts("ERR sm\n"); return 0; }
+
+        core_ok = 0; pv_core(blk, h >> 1, pos, S_PR, S_NUM);
+        if (!core_ok) { uart_puts("ERR pv\n"); return 0; }
+
+        /* num * wmax * 2^vemax / (127 * sume / 65536): the softmax
+           denominator stage 7 deferred, in block float rather than in
+           the host's float64. sume reaches 2^25 over a full context, so
+           127*sume would not fit 32 bits and the product is formed as a
+           block float instead of as an integer. */
+        sc_mul((unsigned int)so[2], 0, 127u, 0, &dm, &de);
+        sc_div((unsigned int)so[0], so[1] + 16, dm, de, &fm[h], &fe[h]);
+
+        for (i = 0; i < 128u; i++) att[(h << 7) + i] = num[i];
+    }
+
+    /* One exponent for all sixteen. */
+    Mm = 0u; Me = 0;
+    for (h = 0; h < 16u; h++) {
+        amx = 0;
+        for (i = 0; i < 128u; i++) {
+            v = att[(h << 7) + i]; if (v < 0) v = -v;
+            if (v > amx) amx = v;
+        }
+        sc_mul((unsigned int)amx, 0, fm[h], fe[h], &t, &te);
+        sc_max2(Mm, Me, t, te, &Mm, &Me);
+    }
+    if (Mm == 0u) {
+        for (i = 0; i < 2048u; i++) att[i] = 0;
+        return 1;
+    }
+    Me += 1 - 29;
+    for (h = 0; h < 16u; h++) {
+        sc_div(fm[h], fe[h], Mm, Me, &t, &te);
+        for (i = 0; i < 128u; i++)
+            att[(h << 7) + i] = mul_bf(att[(h << 7) + i], t, te);
+    }
+    return 1;
+}
+
+/* POS <p> -- the position the next BLK or TOK writes the cache at. The
+   rotation for it goes into slot 16 with an ordinary LOADV: it is 512
+   bytes, it is the same for all twenty-eight blocks, and a 512-entry
+   table in DDR is a better idea that can wait until something is
+   measured to want it. */
+static void cmd_pos(const char *p) {
+    unsigned long v = parse_u(&p);
+    if (v >= KV_MAXP) { uart_puts("ERR range\n"); return; }
+    blk_pos = v;
+    uart_puts("OK POS\n");
 }
 int main(void) {
     uart_init();
@@ -2822,6 +3011,7 @@ int main(void) {
         else if (starts(line, "TOK ")) cmd_tok(line + 4);
         else if (starts(line, "QGX ")) cmd_qgx(line + 4);
         else if (starts(line, "QSC ")) cmd_qsc(line + 4);
+        else if (starts(line, "POS ")) cmd_pos(line + 4);
         else if (starts(line, "KVR ")) cmd_kvr(line + 4);
         else if (starts(line, "PROJ ")) cmd_proj(line + 5);
         else if (starts(line, "CACHE")) cmd_cache(line + 5);

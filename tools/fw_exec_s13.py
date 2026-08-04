@@ -240,33 +240,61 @@ static void resid_add(const int *x, unsigned int xm, int xe,
 
 /* One transformer block at position 0, reading everything it needs from
    DDR and leaving the result in S_X with blk_xm/blk_xe updated. */
-static int run_block(unsigned long blk, int fab) {
+static int run_block(unsigned long blk, unsigned long pos, int fab) {
     int *x   = (int *)VSLOT(S_X);
     int *x1  = (int *)VSLOT(S_X1);
     int *p0  = (int *)VSLOT(S_P0);
     int *p1  = (int *)VSLOT(S_P1);
     int *m   = (int *)VSLOT(S_M);
     int *att = (int *)VSLOT(S_ATT);
+    int *qs  = (int *)VSLOT(S_QS);
+    int *kvs = (int *)VSLOT(S_KVS);
     signed char *a8 = (signed char *)VSLOT(S_A8);
     unsigned int sa, sw, tm;
     int ea, ew, te;
-    unsigned long h, i;
+    unsigned long h;
+
+    attn_init();
 
     if (!nq_run(fab, x, blk, 0u, a8, 1024u)) return 0;
+    nq_scale(blk, 0u, 1024u, &sa, &ea);
 
-    /* q and k are discarded at position 0 -- attention over one key is
-       the value vector -- but their pages are still fetched, so the page
-       sequence and the cost are the ones a real token pays. */
+    /* q and k through the QK-norm and the rotation; v through the same
+       operator with a gain of one, so it gets a per-head absmax on the
+       same terms and there is no second quantizer to keep in step.
+
+       The scales are saved as each is produced, because qkn_core writes
+       them into one set of globals and the next call overwrites them. */
     if (!blk_proj(blk, P_Q, 2048u, 1024u, a8, p0)) return 0;
-    if (!blk_proj(blk, P_K, 1024u, 1024u, a8, p0)) return 0;
-    if (!blk_proj(blk, P_V, 1024u, 1024u, a8, p0)) return 0;
+    qkn_run(blk, 2u, S_P0, S_Q8, 16u, 1, 0u, 0);
+    for (h = 0; h < 16u; h++) {
+        qs[h * 2u]      = (int)qkn_sm[h];
+        qs[h * 2u + 1u] = qkn_se[h];
+    }
 
-    /* GQA is 2:1, so each kv head serves two query heads. No scale is
-       applied to v: the next thing that reads att is a normalization,
-       and RMSNorm cancels any global factor in front of it. */
-    for (h = 0; h < 16u; h++)
-        for (i = 0; i < 128u; i++)
-            att[(h << 7) + i] = p0[((h >> 1) << 7) + i];
+    if (!blk_proj(blk, P_K, 1024u, 1024u, a8, p0)) return 0;
+    qkn_run(blk, 3u, S_P0, S_K8, 8u, 1, 0u, 0);
+    for (h = 0; h < 8u; h++) {
+        kvs[h * 4u]      = (int)qkn_sm[h];
+        kvs[h * 4u + 1u] = qkn_se[h];
+    }
+
+    /* v is the one that needs its input's scale handed in, because
+       nothing normalizes it away again. */
+    if (!blk_proj(blk, P_V, 1024u, 1024u, a8, p0)) return 0;
+    meta_bf(blk, META_SCALES, 2u, &sw, &ew);            /* v_proj */
+    sc_mul(sw, ew, sa, ea, &tm, &te);
+    qkn_run(blk, 0u, S_P0, S_V8, 8u, 0, tm, te);
+    for (h = 0; h < 8u; h++) {
+        kvs[h * 4u + 2u] = (int)qkn_sm[h];
+        kvs[h * 4u + 3u] = qkn_se[h];
+    }
+
+    core_ok = 0;
+    kvw_core(blk, pos, S_K8, S_V8, S_KVS, 8u, 128u);
+    if (!core_ok) { uart_puts("ERR kvw\n"); return 0; }
+
+    if (!attn_heads(blk, pos)) return 0;
 
     if (!nq_run(fab, att, blk, 4u, a8, 2048u)) return 0;
     nq_scale(blk, 4u, 2048u, &sa, &ea);
@@ -312,7 +340,7 @@ static void blk_report(const char *tag) {
 static void cmd_blk(const char *p) {
     unsigned long blk = parse_u(&p), fab = parse_u(&p);
     if (blk >= 28u) { uart_puts("ERR range\n"); return; }
-    if (!run_block(blk, (int)fab)) return;
+    if (!run_block(blk, blk_pos, (int)fab)) return;
     blk_report("BLK");
     uart_puts("OK BLK\n");
 }
@@ -321,7 +349,7 @@ static void cmd_tok(const char *p) {
     unsigned long nb = parse_u(&p), fab = parse_u(&p), b;
     if (nb == 0u || nb > 28u) { uart_puts("ERR range\n"); return; }
     for (b = 0; b < nb; b++)
-        if (!run_block(b, (int)fab)) {
+        if (!run_block(b, blk_pos, (int)fab)) {
             uart_puts("ERR at block "); uart_putdec((long)b);
             uart_puts("\n"); return;
         }
