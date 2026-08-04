@@ -108,7 +108,14 @@ static void cmd_pagedma(const char *p) {
     while (IO32(CDMA_CR) & 0x04u)
         if (++spin > 1000000u) { uart_puts("ERR cdma reset\\n"); return; }
 
-    dcache_flush_range(DDR_BASE + off, PAGE_BYTES);
+    /* No flush of the source. It cost 0.744 ms of a 1.537 ms page --
+       8192 wdc.flush instructions over 256 KB -- which is 312 ms of every
+       token, and it was protecting against a dirty line that cannot
+       exist: the weight image is written by the Ethernet DMA and read by
+       this CDMA, and the CPU never touches it. That is the whole
+       argument, and it stops holding the moment anything on the CPU
+       writes or reads DDR below 0x068F0000. Proven by a block check
+       against the golden model, not by this comment. */
 
     uart_puts("MARK PAGEDMA_START\\n");
     for (k = 0; k < n; k++) {

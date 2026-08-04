@@ -1,0 +1,21 @@
+PAGEDMA 0 1: 0.839 ms/call
+PAGEDMA 0 5: 4.120 ms/call
+PAGEDMA 0 9: 7.360 ms/call
+
+one transfer      0.815 ms   (321.6 MB/s, bus is 325.0)
+per-call overhead 0.024 ms   (CDMA soft reset + 256 KB dcache flush)
+per token, 420 pages: 352.2 ms of which 9.9 is overhead
+  gate/up + SiLU                16.4s
+  MLP out scale   analytic 3.279147e-05   reference 3.294801e-05   ratio 0.995249
+  down_proj + residual          20.7s
+
+  block output vs golden model  rel 0.000546
+    |x1|    171.845   |d|      4.870   ratio 0.0283
+    MLP x0.25   rel 0.021175
+    MLP x0.5    rel 0.014098
+    MLP x1      rel 0.000546
+    MLP x2      rel 0.028361
+    MLP x4      rel 0.084973
+    sensitivity   38.8x
+
+PASS  (21s)
