@@ -1113,6 +1113,24 @@ static void cmd_dumpr(const char *p) {
    checks, which are untouched -- reads as failure. */
 static int core_ok;
 static unsigned long core_chk, core_n, core_p;
+
+/* Stage 5's block-float helpers, declared early because QKN needs them
+   and QKN is two stages older. */
+static void sc_mul(unsigned int ma, int ea, unsigned int mb, int eb,
+                   unsigned int *mo, int *eo);
+static void sc_div(unsigned int ma, int ea, unsigned int mb, int eb,
+                   unsigned int *mo, int *eo);
+static void sc_sqrt(unsigned int m, int e, unsigned int *mo, int *eo);
+
+/* What qkn_core needs and cannot parse for itself, and what it returns
+   beyond the int8. qkn_norm picks which of the two operators this call
+   is: 1 divides by the deferred root-mean-square and the input's own
+   scale cancels, 0 does not and it does not. */
+static unsigned int qkn_gm = 1u, qkn_am = 1u;
+static int          qkn_ge = 0,  qkn_ae = 0;
+static int          qkn_norm = 1;
+static unsigned int qkn_sm[16];
+static int          qkn_se[16];
 static int nq_mx, nq_xs, nq_amx;
 static unsigned int nq_ss;
 
@@ -1373,6 +1391,29 @@ static void qkn_core(unsigned long src, unsigned long gsl,
         sc[h * 4u + 1u] = s1;
         sc[h * 4u + 2u] = sq;
         sc[h * 4u + 3u] = mx;
+
+        /* This head's int8 in true units. See the stage 15 note: one
+           unit of o8 is mx * 2^(s1+st) * (gmax/32767) / 127 of the
+           unnormalized product, then divided by the deferred rms for q
+           and k -- against which the input's own scale cancels -- or
+           multiplied by that input scale for v, which is absmax
+           quantized and never normalized at all. */
+        {
+            unsigned int t, r;
+            int te, re;
+            sc_mul(qkn_gm, qkn_ge, (unsigned int)mx, s1 + st, &t, &te);
+            sc_div(t, te, 4161409u, 0, &t, &te);       /* 32767 * 127 */
+            if (qkn_norm) {
+                sc_div((unsigned int)ss, 2 * (s1 + sq),
+                       (unsigned int)hd, 0, &r, &re);
+                sc_sqrt(r, re, &r, &re);
+                sc_div(t, te, r, re, &t, &te);
+            } else {
+                sc_mul(t, te, qkn_am, qkn_ae, &t, &te);
+            }
+            qkn_sm[h] = t;
+            qkn_se[h] = te;
+        }
     }
 
     for (i = 0; i < nh * hd; i++)
@@ -2715,6 +2756,34 @@ static void cmd_tok(const char *p) {
     blk_report("TOK");
     uart_puts("OK TOK\n");
 }
+
+/* ---- Stage 15: reading the QK-norm scales back ----------------------- */
+
+/* QGX <gm> <ge+512> <norm> <am> <ae+512> -- the inputs qkn_core cannot
+   parse for itself. The exponent bias keeps it unsigned on the wire, the
+   same convention MLP, SM and XSC already use. */
+static void cmd_qgx(const char *p) {
+    qkn_gm   = (unsigned int)parse_u(&p);
+    qkn_ge   = (int)(long)parse_u(&p) - 512;
+    qkn_norm = (int)parse_u(&p);
+    qkn_am   = (unsigned int)parse_u(&p);
+    qkn_ae   = (int)(long)parse_u(&p) - 512;
+    uart_puts("OK QGX\n");
+}
+
+/* QSC <nh> -- the per-head scales, so the host can check a derivation
+   against the float64 one it has been computing all along. */
+static void cmd_qsc(const char *p) {
+    unsigned long nh = parse_u(&p), h;
+    if (nh == 0u || nh > 16u) { uart_puts("ERR range\n"); return; }
+    for (h = 0; h < nh; h++) {
+        uart_puts("QSC "); uart_putdec((long)h);
+        uart_puts(" m "); uart_puthex(qkn_sm[h]);
+        uart_puts(" e "); uart_putdec((long)qkn_se[h]);
+        uart_puts("\n");
+    }
+    uart_puts("OK QSC\n");
+}
 int main(void) {
     uart_init();
     led(0x1);
@@ -2751,6 +2820,8 @@ int main(void) {
         else if (starts(line, "XSC ")) cmd_xsc(line + 4);
         else if (starts(line, "BLK ")) cmd_blk(line + 4);
         else if (starts(line, "TOK ")) cmd_tok(line + 4);
+        else if (starts(line, "QGX ")) cmd_qgx(line + 4);
+        else if (starts(line, "QSC ")) cmd_qsc(line + 4);
         else if (starts(line, "KVR ")) cmd_kvr(line + 4);
         else if (starts(line, "PROJ ")) cmd_proj(line + 5);
         else if (starts(line, "CACHE")) cmd_cache(line + 5);

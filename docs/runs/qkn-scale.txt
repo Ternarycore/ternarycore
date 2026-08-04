@@ -1,0 +1,14 @@
+QK-norm scale derivation vs float64
+
+  case                    worst rel  scale drift   heads
+  --------------------------------------------------------------
+  q  tiny,   pos 0         5.02e-05     0.00e+00   ok   (vs tc_ref with EPS: 4.4e-02)
+  q  small,  pos 0         5.08e-04     0.00e+00   ok
+  q  medium, pos 7         1.52e-04     0.00e+00   ok
+  q  large,  pos 63        1.08e-04     0.00e+00   ok
+  q  spiky,  pos 3         3.49e-04     0.00e+00   ok
+  v  small                 9.01e-05                ok
+  v  large                 8.48e-05                ok
+  v  large, A*1024         8.39e-05                ok
+
+PASS

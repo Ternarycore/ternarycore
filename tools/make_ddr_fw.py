@@ -645,6 +645,13 @@ for old, new in fw_exec_s14.EDITS:
     assert s.count(old) == 1, "s14 anchor not unique:\n" + old[:90]
     s = s.replace(old, new, 1)
 
+import fw_exec_s15
+assert fw_exec_s15.DEFS_ANCHOR in s
+s = s.replace(fw_exec_s15.DEFS_ANCHOR,
+              fw_exec_s15.DEFS + fw_exec_s15.DEFS_ANCHOR, 1)
+assert s.count(fw_exec_s15.SCALE_OLD) == 1
+s = s.replace(fw_exec_s15.SCALE_OLD, fw_exec_s15.SCALE_NEW, 1)
+
 import fw_exec_s13
 for old, new in ((fw_exec_s13.MLP_OLD, fw_exec_s13.MLP_NEW),
                  (fw_exec_s13.MLP_TAIL_OLD, fw_exec_s13.MLP_TAIL_NEW),
@@ -653,6 +660,10 @@ for old, new in ((fw_exec_s13.MLP_OLD, fw_exec_s13.MLP_NEW),
     assert old in s, old[:60]
     s = s.replace(old, new, 1)
 s = s.replace(fw_exec_s13.ANCHOR, fw_exec_s13.EXEC13 + fw_exec_s13.ANCHOR, 1)
+
+s = s.replace(fw_exec_s15.ANCHOR, fw_exec_s15.EXEC15 + fw_exec_s15.ANCHOR, 1)
+assert fw_exec_s15.CMD_OLD in s
+s = s.replace(fw_exec_s15.CMD_OLD, fw_exec_s15.CMD_NEW, 1)
 
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)
 
