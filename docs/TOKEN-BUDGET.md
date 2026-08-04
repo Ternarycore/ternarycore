@@ -40,14 +40,14 @@ Everything got worse. The token is 4.76 seconds, not 744 ms.
 | RMSNorm + absmax quantize, fused (NQD) | 505.4 | OPB slope: 3.307 ms × 56 at n=1024, 4.233 × 28 at 2048, 7.204 × 28 at 3072 |
 | P·V (PV) | 1035.0 | OPB slope: 2.310 ms × 448 |
 | Softmax, table-driven (SM) | 617.4 | OPB slope: 1.378 ms × 448 |
-| Weight paging (PAGEDMA) | 645.7 | OPB slope: 1.537 ms × 420 |
+| Weight paging (PAGEDMA) | 352.4 | OPB slope: 0.839 ms × 420 |
 | Q·Kᵀ (QKD) | 573.9 | OPB slope: 1.281 ms × 448 |
 | QK-norm + RoPE + quantize, fused (QKN) | 401.8 | OPB slope: 9.537 ms × 28 for 16 q-heads, 4.815 × 28 for 8 kv-heads |
 | SiLU + gate product (MLP) | 368.5 | OPB slope: 13.160 ms × 28 |
 | Projections (PJO) | 345.9 | OPB slope: 0.824 ms × 420 |
 | KV append, bit-sliced (KVW) | 268.7 | OPB slope: 9.598 ms × 28 |
-| **Total** | **4762.3** | **→ 0.21 tok/s** |
-| Same, with the fabric normalizer in place of NQD | 4278.3 | NQF measured at 0.121 / 0.214 / 0.306 ms — 21.4 ms a token, 23.6× |
+| **Total** | **4469.0** | **→ 0.22 tok/s** |
+| Same, with the fabric normalizer in place of NQD | 3985.0 | NQF measured at 0.121 / 0.214 / 0.306 ms — 21.4 ms a token, 23.6× |
 
 Call counts come from the block structure, not from assumption: 28
 blocks, four normalizations a block at 1024, 1024, 2048 and 3072, one
@@ -94,7 +94,9 @@ the published claim that the pager runs at 99.2% of the bus is true — of
 the transfer, which is 53% of the call. The other 0.744 ms is a CDMA
 soft reset and 8,192 `wdc.flush` instructions over a 256 KB range. Per
 token that is 342.3 ms of transfer and **312.4 ms of setup that has
-never appeared in any version of this table.**
+never appeared in any version of this table.** It has since been
+deleted -- item 1 below -- and the PAGEDMA row above is already the
+post-fix number.
 
 **The projections.** PJO computes 1,048,576 ternary MACs and takes 827
 µs. Measured against tile count, that is 143 µs to push 1024 activation
@@ -141,11 +143,11 @@ The old version put the 32→128 bit weight bus first. On these numbers it
 is fifth, and it is the most expensive of the five to build. That
 reversal is the point of having measured.
 
-1. **Delete the per-page cache flush.** 312 ms, one line, no new
-   hardware. The weight image is written by the Ethernet DMA and read by
-   the CDMA; the CPU never touches it, so no line can be dirty. That
-   argument has to be proven against a block check rather than asserted,
-   which is the whole cost of this item.
+1. ~~**Delete the per-page cache flush.**~~ **Done**, an hour after this
+   table was measured. A page went 1.537 ms to 0.839 and the token lost
+   293 ms. No line can be dirty -- proven against block 0 and the golden
+   model at rel 0.000546, stage 9's number unchanged, rather than
+   asserted in a comment.
 2. **DMA the array's operands and results.** PJO 345.9 → order 30, and
    QKD and PV are the same change. Order 1500 ms — by far the largest
    single item, and it is the identical argument that justified moving
@@ -161,5 +163,5 @@ reversal is the point of having measured.
 5. **Widen the weight bus 32 → 128 bit.** The transfer goes 342.3 → 85.6,
    saving 257 ms. Real, but smaller than item 1, which is a line of code.
 
-Items 1 through 3 are 2296 ms of a 4762 ms token and require no new
+Item 1 is done. Items 2 and 3 are 2003 ms of the 4469 that remain, and require no new
 RTL. That is where this goes next.
