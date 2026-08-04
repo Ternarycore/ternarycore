@@ -42,7 +42,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tc_ref
 from stage_check import Board
-from block_check import dumpi32, blockfloat, H, NH, NKV, HD, BIAS
+from block_check import dumpi32, blockfloat, q15v, H, NH, NKV, HD, BIAS
 from block_full import DDR, PAGEB, nq, project
 
 INTER = 3072
@@ -172,6 +172,11 @@ def main():
     ap.add_argument("--block", type=int, default=0)
     ap.add_argument("--blocks", type=int, default=NB)
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--board", action="store_true",
+                    help="all 28 blocks with TOK, instead of driving "
+                         "them one operator at a time over the wire")
+    ap.add_argument("--fab", type=int, default=1,
+                    help="1 normalizes in fabric, 0 on the soft CPU")
     a = ap.parse_args()
 
     z = np.load(a.cache)
@@ -191,10 +196,29 @@ def main():
     embed = z["embed"].astype(np.float64)
     x = embed[tok].copy()
     t0 = time.time()
-    for blk in range(a.blocks):
-        x = run_block(b, z, blk, x)
-        print(f"  block {blk:2d}/{a.blocks}   |x| {np.abs(x).max():9.3f}   "
-              f"{time.time()-t0:6.1f}s", flush=True)
+    if a.board:
+        # The whole stack on the board. What crosses the wire is the
+        # embedding vector in, the hidden state out, and one block-float
+        # scale -- which is the entire difference between 574.8 seconds
+        # a token and one and a half.
+        xi, xf = q15v(x)
+        m, e = blockfloat(xf)
+        b.loadv(0, xi.astype(np.int32))
+        b.send(f"XSC {m} {e + BIAS}\n")
+        b.until("OK XSC")
+        b.send(f"TOK {a.blocks} {a.fab}\n")
+        out = b.until("OK TOK", timeout=600)
+        t = [l for l in out.splitlines() if l.startswith("TOK m")][0].split()
+        om, oe = int(t[2], 16), int(t[4])
+        x = dumpi32(b, 0, H).astype(np.float64) * om * (2.0 ** oe)
+        print(f"  {a.blocks} blocks on the board   |x| "
+              f"{np.abs(x).max():9.3f}   {time.time()-t0:6.2f}s", flush=True)
+    else:
+        for blk in range(a.blocks):
+            x = run_block(b, z, blk, x)
+            print(f"  block {blk:2d}/{a.blocks}   |x| "
+                  f"{np.abs(x).max():9.3f}   {time.time()-t0:6.1f}s",
+                  flush=True)
 
     xf = tc_ref.rmsnorm(x, z["final_norm"].astype(np.float64))
     logits = embed @ xf

@@ -354,7 +354,14 @@ MLP_OLD = """static void cmd_mlp(const char *p) {
     const int *up = (const int *)VSLOT(usl);
     int *o = (int *)VSLOT(osl);"""
 
-MLP_NEW = """static void mlp_core(const int *g, const int *up, int *o,
+MLP_NEW = """/* mlp_core reports through globals rather than the UART, because the
+   block driver calls it twenty-eight times a token and twenty-eight
+   thirty-character lines is 73 ms of a 1.5-second token spent telling
+   nobody what the shifts were. cmd_mlp still prints them, so every host
+   parser written against MLP is unchanged. */
+static int mlp_sa, mlp_su, mlp_ss, mlp_sm;
+
+static void mlp_core(const int *g, const int *up, int *o,
                      unsigned long gmu, long geb, unsigned long n) {
     unsigned long i;"""
 
@@ -365,11 +372,7 @@ MLP_TAIL_OLD = """    uart_puts("MLP sa "); uart_putdec((long)sa);
     uart_puts("\\nOK MLP\\n");
 }"""
 
-MLP_TAIL_NEW = """    uart_puts("MLP sa "); uart_putdec((long)sa);
-    uart_puts(" su "); uart_putdec((long)su);
-    uart_puts(" ss "); uart_putdec((long)ss);
-    uart_puts(" sm "); uart_putdec((long)sm);
-    uart_puts("\\nOK MLP\\n");
+MLP_TAIL_NEW = """    mlp_sa = sa; mlp_su = su; mlp_ss = ss; mlp_sm = sm;
 }
 
 static void cmd_mlp(const char *p) {
@@ -377,6 +380,11 @@ static void cmd_mlp(const char *p) {
                   gmu = parse_u(&p), geb = parse_u(&p), n = parse_u(&p);
     mlp_core((const int *)VSLOT(gsl), (const int *)VSLOT(usl),
              (int *)VSLOT(osl), gmu, (long)geb, n);
+    uart_puts("MLP sa "); uart_putdec((long)mlp_sa);
+    uart_puts(" su "); uart_putdec((long)mlp_su);
+    uart_puts(" ss "); uart_putdec((long)mlp_ss);
+    uart_puts(" sm "); uart_putdec((long)mlp_sm);
+    uart_puts("\\nOK MLP\\n");
 }"""
 
 #  geb arrives biased on the wire and mlp_core now takes it already

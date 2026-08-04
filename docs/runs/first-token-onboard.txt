@@ -1,0 +1,15 @@
+  DDR-resident weights: 420 pages, 110.1 MB
+
+prompt 'The' -> token 785 ('The'), position 0
+
+  28 blocks on the board   |x|  1140.856     2.45s
+
+  board     token   6785  ' positive'
+  reference token   6785  ' positive'
+  logits rel 0.009246
+  top-5 board     [6785, 8225, 220, 43903, 63656]
+  top-5 reference [6785, 8225, 220, 43903, 63656]
+
+  3.2s for 28 blocks
+
+PASS -- first token on silicon

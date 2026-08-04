@@ -1,0 +1,7 @@
+fab=0  1.856 s for 28 blocks  (66.3 ms/block)  TOK m 0x40000000 e 0
+fab=1  1.456 s for 28 blocks  (52.0 ms/block)  TOK m 0x40000000 e 0
+block driver on the board, normalizer in fabric
+
+  block  0   rel 0.003136   x0.25 rel 0.014635   sensitivity 232.5x    0.06 s   ok
+
+PASS
