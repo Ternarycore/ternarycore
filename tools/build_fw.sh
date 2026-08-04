@@ -25,10 +25,10 @@ PY="${PY_BIN:-$HOME/tc-train/bin/python3}"
 "$PY" "$ROOT/tools/make_ddr_fw.py"
 
 cd "$ROOT/firmware"
-"$MB/mb-gcc" -O2 -Wall \
+"$MB/mb-gcc" -O2 -Wall -ffunction-sections -fdata-sections \
     -mlittle-endian -mcpu=v11.0 -mxl-barrel-shift -mxl-pattern-compare \
     -mno-xl-soft-mul -mno-xl-soft-div \
-    -Wl,--defsym=_STACK_SIZE=0x1000 -L. \
+    -Wl,--gc-sections -Wl,--defsym=_STACK_SIZE=0x1000 -L. \
     -o ddr_host.elf ddr_host.c stubs.c 2>&1 \
   | grep -Ev 'multi-line comment|^ *[0-9]+ \||^ *\^|^ *\|' || true
 
