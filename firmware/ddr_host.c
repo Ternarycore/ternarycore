@@ -100,7 +100,10 @@ static void uart_init(void) {
     IO32(UART_FCR) = 0x07u;
 }
 
+static int uart_mute = 0;
+
 static void uart_putc(char c) {
+    if (uart_mute) return;
     while (!(IO32(UART_LSR) & LSR_THRE)) { }
     IO32(UART_RBR_THR) = (unsigned int)(unsigned char)c;
 }
@@ -2307,6 +2310,51 @@ static void cmd_nqbench(const char *p) {
     }
     uart_puts("MARK NQB_END\nOK NQB\n");
 }
+
+/* ---- Stage 12: OPB, the board times its own operators ----------------
+
+   The rule this exists to enforce: a number in the token budget must
+   come from the code that runs in the token, not from a micro-loop
+   written to resemble it. Every operator below is reached by the same
+   name and the same argument string the host would send normally.
+
+   Handlers that transform their input in place -- NQD's auto-range
+   shift -- see different data on the second repetition. That is
+   acceptable here and only here: these loops are fixed-trip with no
+   data-dependent branch beyond a max comparison, so cycles per element
+   do not move with the values. An operator that later gains a
+   data-dependent branch stops being measurable this way, and the honest
+   thing then is to say so rather than keep quoting the slope.        */
+static void cmd_opb(const char *p) {
+    unsigned long reps = parse_u(&p), r;
+    const char *c = skip_ws(p);
+
+    if (reps == 0u || reps > 100000u) { uart_puts("ERR reps\n"); return; }
+
+    uart_puts("MARK OPB_START\n");
+    for (r = 0; r <= reps; r++) {
+        uart_mute = (r < reps);              /* the last pass speaks */
+        if      (starts(c, "NQD "))  cmd_nqd(c + 4);
+        else if (starts(c, "NQF "))  cmd_nqf(c + 4);
+        else if (starts(c, "NQ "))   cmd_nq(c + 3);
+        else if (starts(c, "QKN "))  cmd_qkn(c + 4);
+        else if (starts(c, "SM "))   cmd_sm(c + 3);
+        else if (starts(c, "PV "))   cmd_pv(c + 3);
+        else if (starts(c, "MLP "))  cmd_mlp(c + 4);
+        else if (starts(c, "SCT "))  cmd_sct(c + 4);
+        else if (starts(c, "QKD "))  cmd_qk(c + 4);
+        else if (starts(c, "KVW "))  cmd_kvw(c + 4);
+        else if (starts(c, "PJO "))  cmd_projo(c + 4);
+        else if (starts(c, "PAGEDMA ")) cmd_pagedma(c + 8);
+        else { uart_mute = 0; uart_puts("ERR opb cmd\n"); return; }
+
+        /* The bracket closes before the one call allowed to print, so
+           the operator's own report never lands inside the timing. */
+        if (r + 1u == reps) { uart_mute = 0; uart_puts("MARK OPB_END\n"); }
+    }
+    uart_mute = 0;
+    uart_puts("OK OPB\n");
+}
 int main(void) {
     uart_init();
     led(0x1);
@@ -2339,6 +2387,7 @@ int main(void) {
         else if (starts(line, "PJO ")) cmd_projo(line + 4);
         else if (starts(line, "NQF ")) cmd_nqf(line + 4);
         else if (starts(line, "NQBENCH ")) cmd_nqbench(line + 8);
+        else if (starts(line, "OPB ")) cmd_opb(line + 4);
         else if (starts(line, "KVR ")) cmd_kvr(line + 4);
         else if (starts(line, "PROJ ")) cmd_proj(line + 5);
         else if (starts(line, "CACHE")) cmd_cache(line + 5);

@@ -1,0 +1,54 @@
+fused operator budget -- 28 blocks, context 512, 1024 hidden, 16/8 heads x 128
+
+operator        ms/call  calls/tok  ms/token   what it is
+--------------------------------------------------------------------------------------
+NQD n=1024        3.307         56     185.2   RMSNorm + absmax int8, fused, on the CPU
+NQD n=2048        4.233         28     118.5   same, o_proj SubLN
+NQD n=3072        7.204         28     201.7   same, down_proj SubLN
+NQF n=1024        0.121         56       6.8   the same operator in fabric
+NQF n=2048        0.214         28       6.0   the same operator in fabric
+NQF n=3072        0.306         28       8.6   the same operator in fabric
+QKN q  x16        9.537         28     267.0   QK-norm + RoPE + quantize, fused, 16 heads
+QKN k  x8         4.815         28     134.8   the same, 8 kv-heads
+KVW               9.598         28     268.7   bit-slice and append K and V
+QKD pos=511       1.281        448     573.9   Q.K^T on the array, 512 keys
+SM  pos=511       1.378        448     617.4   softmax, table-driven, over 512 scores
+PV  pos=511       2.310        448    1035.0   P.V on the array, 512 keys
+MLP n=3072       13.160         28     368.5   SiLU + the gate product
+PJO               0.824        420     345.9   1024 x 1024 ternary MACs on the array
+PAGEDMA           1.537        420     645.7   one 256 KB weight page, DDR to BRAM
+--------------------------------------------------------------------------------------
+total                                 4762.4   = 0.21 tok/s
+
+with the fabric normalizer instead of the CPU one: 4278.3 ms = 0.23 tok/s
+
+Caveats, so they travel with the numbers:
+  * repeated calls see drifting data where a handler works in
+    place; every loop here is fixed-trip, which is why that is
+    allowed, and it stops being allowed the moment one is not.
+  * QKD/SM/PV run over whatever the KV cache holds. The trip
+    counts over 512 positions are real; the values are not.
+PAGEDMA 0 1: 1.559 ms/call
+PAGEDMA 0 5: 4.800 ms/call
+PAGEDMA 0 9: 8.080 ms/call
+
+one transfer      0.815 ms   (321.6 MB/s, bus is 325.0)
+per-call overhead 0.744 ms   (CDMA soft reset + 256 KB dcache flush)
+per token, 420 pages: 654.8 ms of which 312.4 is overhead
+PJO ntile=1     0.186 ms/call
+PJO ntile=4     0.375 ms/call
+PJO ntile=16    0.827 ms/call
+
+per tile (64 result reads + one array pass)   42.71 us
+fixed (1024 activation bytes into S_ACTWR)   143.32 us
+1024 IO32 writes ->  11.4 cycles each at 81.25 MHz
+the array itself, 1024x1024 ternary MACs in 1031 cycles: 12.7 us
+QKD  pos=0      0.236 ms/call     105.5 ms/token
+QKD  pos=127    0.399 ms/call     178.6 ms/token
+QKD  pos=511    1.280 ms/call     573.6 ms/token
+SM   pos=0      0.080 ms/call      35.7 ms/token
+SM   pos=127    0.400 ms/call     179.3 ms/token
+SM   pos=511    1.360 ms/call     609.4 ms/token
+PV   pos=0      0.558 ms/call     250.2 ms/token
+PV   pos=127    0.560 ms/call     251.0 ms/token
+PV   pos=511    2.240 ms/call    1003.5 ms/token
