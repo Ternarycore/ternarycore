@@ -1,0 +1,17 @@
+auditing the resident image against /home/yoda/tc-ddr/weights.bin
+  420 pages, 110.1 MB
+
+  page    0 ok     0.0 s
+  page   60 ok     2.0 s
+  page  120 ok     3.9 s
+  page  180 ok     5.8 s
+  page  240 ok     7.7 s
+  page  300 ok     9.6 s
+  page  360 ok    11.6 s
+
+  28 constant records checked
+
+  420 pages in 13.9 s
+  every page matches the file
+
+PASS

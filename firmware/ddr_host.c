@@ -2973,6 +2973,26 @@ static void cmd_pos(const char *p) {
     blk_pos = v;
     uart_puts("OK POS\n");
 }
+
+/* ---- Stage 17: DSUM, the resident image's own checksum ---------------
+
+   sum += w * ((addr >> 2) + 1) over 32-bit words, truncated to 32 bits
+   at every step -- identical to fw_checksum in eth_load.py, and it has
+   to stay identical or the comparison means nothing. */
+static void cmd_dsum(const char *p) {
+    unsigned long off = parse_u(&p), len = parse_u(&p), i;
+    unsigned int sum = 0u, idx;
+
+    if ((off | len) & 3u) { uart_puts("ERR align\n"); return; }
+    if (len == 0u || off + len > 224u * 1024u * 1024u) {
+        uart_puts("ERR range\n"); return;
+    }
+    idx = (unsigned int)(off >> 2) + 1u;
+    for (i = 0; i < len; i += 4u)
+        sum += IO32(DDR_BASE + off + i) * idx++;
+
+    uart_puts("DSUM "); uart_puthex(sum); uart_puts("\nOK DS\n");
+}
 int main(void) {
     uart_init();
     led(0x1);
@@ -3012,6 +3032,7 @@ int main(void) {
         else if (starts(line, "QGX ")) cmd_qgx(line + 4);
         else if (starts(line, "QSC ")) cmd_qsc(line + 4);
         else if (starts(line, "POS ")) cmd_pos(line + 4);
+        else if (starts(line, "DSUM ")) cmd_dsum(line + 5);
         else if (starts(line, "KVR ")) cmd_kvr(line + 4);
         else if (starts(line, "PROJ ")) cmd_proj(line + 5);
         else if (starts(line, "CACHE")) cmd_cache(line + 5);
