@@ -163,6 +163,19 @@ def main():
 
     r_out = np.abs(x2 - want).max() / max(np.abs(want).max(), 1e-30)
     print(f"\n  block output vs golden model  rel {r_out:.6f}")
+
+    # Is this comparison actually sensitive to the MLP's output scale?
+    # Switching s_m from reference-derived to analytic moved rel by
+    # nothing, to six decimals. Either it is right or the metric cannot
+    # see it, and those want opposite responses. rel is a max over the
+    # vector and the input carries eight deliberate 40x spikes, so the
+    # max may well sit where the MLP contributes nothing.
+    print(f"    |x1| {np.abs(x1).max():10.3f}   |d| {np.abs(d).max():10.3f}"
+          f"   ratio {np.abs(d).max()/max(np.abs(x1).max(), 1e-30):.4f}")
+    for k in (0.25, 0.5, 1.0, 2.0, 4.0):
+        rk = np.abs(x1 + d * k - want).max() / max(np.abs(want).max(), 1e-30)
+        print(f"    s_m x{k:<5g}  rel {rk:.6f}")
+
     ok = r_out < 0.05
     print(f"\n{'PASS' if ok else 'FAIL'}  ({time.time()-t0:.0f}s)")
     sys.exit(0 if ok else 1)
