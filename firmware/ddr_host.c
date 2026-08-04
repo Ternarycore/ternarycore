@@ -299,8 +299,8 @@ static void cmd_srun(const char *p) {
     uart_puts("MARK STREAM_END\n");
     for (ct = 0; ct < 16; ct++) {
         stream_tile(ct);
+        IO32(STREAM_BASE + S_RIDX) = 0u;
         for (c = 0; c < 64; c++) {
-            IO32(STREAM_BASE + S_RIDX) = (unsigned int)c;
             accel_out[(int)ct*64 + c] = (long)(int)IO32(STREAM_BASE + S_RDATA);
         }
     }
@@ -1280,8 +1280,8 @@ static void proj_core(const signed char *a, int *o,
 
     for (ct = 0; ct < (unsigned int)ntile; ct++) {
         stream_tile(ct);
+        IO32(STREAM_BASE + S_RIDX) = 0u;   /* reads walk it from here */
         for (c = 0; c < 64; c++) {
-            IO32(STREAM_BASE + S_RIDX) = (unsigned int)c;
             v = (int)IO32(STREAM_BASE + S_RDATA);
             j = (unsigned long)ct * 64u + (unsigned long)c;
             o[j] = seg ? (o[j] + v) : v;
@@ -1839,8 +1839,8 @@ static void qk_core(unsigned long blk, unsigned long kvh,
         IO32(STREAM_BASE + S_CTRL) = 0x9u;               /* START | INT8 */
         while (!(IO32(STREAM_BASE + S_STATUS) & 0x2u)) { }
         IO32(STREAM_BASE + S_CTRL) = 0x2u;
+        IO32(STREAM_BASE + S_RIDX) = 0u;
         for (i = 0; i < 64u; i++) {
-            IO32(STREAM_BASE + S_RIDX) = (unsigned int)i;
             o[c * 64u + i] = (int)IO32(STREAM_BASE + S_RDATA);
         }
     }
@@ -2064,8 +2064,8 @@ static void pv_core(unsigned long blk, unsigned long kvh,
             IO32(STREAM_BASE + S_CTRL) = 0x9u;           /* START | INT8 */
             while (!(IO32(STREAM_BASE + S_STATUS) & 0x2u)) { }
             IO32(STREAM_BASE + S_CTRL) = 0x2u;
+            IO32(STREAM_BASE + S_RIDX) = 0u;
             for (i = 0; i < 64u; i++) {
-                IO32(STREAM_BASE + S_RIDX) = (unsigned int)i;
                 o[dch * 64u + i] += (int)IO32(STREAM_BASE + S_RDATA);
             }
         }

@@ -202,7 +202,7 @@ module axi_gemm_stream #(
     always @(posedge clk) begin
         if (!rst_n) begin
             s_axi_bvalid <= 0; ct <= 0; depth <= DEPTH_MAX[10:0];
-            ridx <= 0; act_wptr <= 0;
+            act_wptr <= 0;
         end else begin
             if (aw_fire) begin
                 case (s_axi_awaddr[7:2])
@@ -212,7 +212,7 @@ module axi_gemm_stream #(
                     end
                     6'h03: ct    <= s_axi_wdata[3:0];  // CT
                     6'h04: depth <= s_axi_wdata[10:0]; // DEPTH
-                    6'h05: ridx  <= s_axi_wdata[5:0];  // RIDX
+                    /* 6'h05 RIDX is driven below -- it has two writers */
                     default: ;
                 endcase
                 if (aptr_cmd) act_wptr <= 0;
@@ -226,6 +226,31 @@ module axi_gemm_stream #(
     wire ar_fire = s_axi_arvalid && !s_axi_rvalid;
     assign s_axi_arready = ar_fire;
     assign s_axi_rresp   = 2'b00;
+
+    // -- RIDX walks itself ----------------------------------------------------
+    //  Reading a result used to cost two AXI-Lite accesses: write the index,
+    //  then read the data. 1024 results, 2048 accesses. tools/pph.py timed the
+    //  reads on their own against the pair and the index writes are 106.5 us
+    //  of an 827 us projection -- 12.9% of the call, for nothing the caller
+    //  did not already know.
+    //
+    //  So a read of RDATA advances the index. Writing RIDX still sets it, so
+    //  every caller ever written keeps working unchanged; a caller that writes
+    //  it once and then reads N times gets N consecutive accumulators. The
+    //  index is six bits and COLS is 64, so it wraps exactly at the end of a
+    //  pass and needs no explicit reset between tiles.
+    //
+    //  Non-blocking assignment matters here: s_axi_rdata is registered from
+    //  acc_out[ridx] on the same edge that ridx advances, so the read returns
+    //  the accumulator the caller asked for and not its successor.
+    always @(posedge clk) begin
+        if (!rst_n)
+            ridx <= 0;
+        else if (aw_fire && (s_axi_awaddr[7:2] == 6'h05))
+            ridx <= s_axi_wdata[5:0];
+        else if (ar_fire && (s_axi_araddr[7:2] == 6'h06))
+            ridx <= ridx + 1'b1;
+    end
 
     always @(posedge clk) begin
         if (!rst_n) begin

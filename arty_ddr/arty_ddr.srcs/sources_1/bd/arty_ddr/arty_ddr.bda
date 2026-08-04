@@ -358,6 +358,42 @@
             },
             "V12": {
                 "VT": "AC",
+                "BA": "0x44400000",
+                "HA": "0x4441FFFF",
+                "BP": "C_BASEADDR",
+                "HP": "C_HIGHADDR",
+                "MA": "Data",
+                "MX": "/axi_cdma_0",
+                "MI": "M_AXI",
+                "MS": "SEG_rmsnorm_0_reg0",
+                "MV": "xilinx.com:ip:axi_cdma:4.1",
+                "SX": "/rmsnorm_0",
+                "SI": "s_axi",
+                "SS": "reg0",
+                "SV": "shepherdscientific.com:user:rmsnorm_quant_axi:1.0",
+                "TM": "both",
+                "TU": "register"
+            },
+            "V13": {
+                "VT": "AC",
+                "BA": "0x44400000",
+                "HA": "0x4441FFFF",
+                "BP": "C_BASEADDR",
+                "HP": "C_HIGHADDR",
+                "MA": "Data",
+                "MX": "/microblaze_0",
+                "MI": "M_AXI_DP",
+                "MS": "SEG_rmsnorm_0_reg0",
+                "MV": "xilinx.com:ip:microblaze:11.0",
+                "SX": "/rmsnorm_0",
+                "SI": "s_axi",
+                "SS": "reg0",
+                "SV": "shepherdscientific.com:user:rmsnorm_quant_axi:1.0",
+                "TM": "data",
+                "TU": "register"
+            },
+            "V14": {
+                "VT": "AC",
                 "BA": "0x80000000",
                 "HA": "0x8FFFFFFF",
                 "BP": "C_BASEADDR",
@@ -375,7 +411,7 @@
                 "TM": "both",
                 "TU": "memory"
             },
-            "V13": {
+            "V15": {
                 "VT": "AC",
                 "BA": "0x80000000",
                 "HA": "0x8FFFFFFF",
@@ -394,7 +430,7 @@
                 "TM": "data",
                 "TU": "memory"
             },
-            "V14": {
+            "V16": {
                 "VT": "AC",
                 "BA": "0x80000000",
                 "HA": "0x8FFFFFFF",
@@ -480,6 +516,16 @@
             },
             {
                 "src": "V14",
+                "trg": "V2",
+                "EH": "2"
+            },
+            {
+                "src": "V15",
+                "trg": "V2",
+                "EH": "2"
+            },
+            {
+                "src": "V16",
                 "trg": "V2",
                 "EH": "2"
             }

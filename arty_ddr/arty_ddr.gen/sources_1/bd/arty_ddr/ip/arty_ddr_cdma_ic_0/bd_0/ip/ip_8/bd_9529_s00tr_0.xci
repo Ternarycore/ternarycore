@@ -20,7 +20,7 @@
         "M_ID_WIDTH": [ { "value": "3", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "WDATA_WIDTH": [ { "value": "32", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "RDATA_WIDTH": [ { "value": "32", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
-        "SEP_ROUTE_WIDTH": [ { "value": "2", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
+        "SEP_ROUTE_WIDTH": [ { "value": "3", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "HAS_ACLKEN": [ { "value": "0", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "READ_ACCEPTANCE": [ { "value": "32", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "WRITE_ACCEPTANCE": [ { "value": "32", "resolve_type": "user", "format": "long", "usage": "all" } ],
@@ -39,7 +39,7 @@
         "C_NUM_WRITE_THREADS": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_MEP_IDENTIFIER_WIDTH": [ { "value": "3", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_MEP_IDENTIFIER": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
-        "C_SEP_ROUTE_WIDTH": [ { "value": "2", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_SEP_ROUTE_WIDTH": [ { "value": "3", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_RDATA_WIDTH": [ { "value": "32", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_WDATA_WIDTH": [ { "value": "32", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_S_ID_WIDTH": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
@@ -358,5 +358,5 @@
       }
     }
   },
-  "checksum": "c6350b8d"
+  "checksum": "a5a5e233"
 }

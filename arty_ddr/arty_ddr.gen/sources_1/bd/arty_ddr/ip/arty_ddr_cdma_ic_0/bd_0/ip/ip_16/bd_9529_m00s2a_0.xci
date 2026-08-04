@@ -22,7 +22,7 @@
         "SC_BUSER_WIDTH": [ { "value": "0", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "SC_WUSER_BITS_PER_BYTE": [ { "value": "0", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "SC_RUSER_BITS_PER_BYTE": [ { "value": "0", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
-        "MSC_ROUTE_WIDTH": [ { "value": "2", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
+        "MSC_ROUTE_WIDTH": [ { "value": "3", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "SSC_ROUTE_WIDTH": [ { "value": "1", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
         "Component_Name": [ { "value": "bd_9529_m00s2a_0", "resolve_type": "user", "usage": "all" } ]
       },
@@ -40,11 +40,11 @@
         "C_SC_ARUSER_WIDTH": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_SC_AWUSER_WIDTH": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_SC_BUSER_WIDTH": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
-        "C_MSC_ROUTE_WIDTH": [ { "value": "2", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_MSC_ROUTE_WIDTH": [ { "value": "3", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_SSC_ROUTE_WIDTH": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
-        "C_AWPAYLD_WIDTH": [ { "value": "143", "resolve_type": "dependent", "format": "long", "usage": "all" } ],
-        "C_ARPAYLD_WIDTH": [ { "value": "143", "resolve_type": "dependent", "format": "long", "usage": "all" } ],
-        "C_WPAYLD_WIDTH": [ { "value": "161", "resolve_type": "dependent", "format": "long", "usage": "all" } ],
+        "C_AWPAYLD_WIDTH": [ { "value": "144", "resolve_type": "dependent", "format": "long", "usage": "all" } ],
+        "C_ARPAYLD_WIDTH": [ { "value": "144", "resolve_type": "dependent", "format": "long", "usage": "all" } ],
+        "C_WPAYLD_WIDTH": [ { "value": "162", "resolve_type": "dependent", "format": "long", "usage": "all" } ],
         "C_RPAYLD_WIDTH": [ { "value": "149", "resolve_type": "dependent", "format": "long", "usage": "all" } ],
         "C_BPAYLD_WIDTH": [ { "value": "7", "resolve_type": "dependent", "format": "long", "usage": "all" } ]
       },
@@ -89,17 +89,17 @@
         "s_sc_ar_info": [ { "direction": "in", "size_left": "0", "size_right": "0", "driver_value": "0" } ],
         "s_sc_ar_send": [ { "direction": "in", "driver_value": "0" } ],
         "s_sc_ar_recv": [ { "direction": "out", "driver_value": "0" } ],
-        "s_sc_ar_payld": [ { "direction": "in", "size_left": "142", "size_right": "0", "driver_value": "0" } ],
+        "s_sc_ar_payld": [ { "direction": "in", "size_left": "143", "size_right": "0", "driver_value": "0" } ],
         "s_sc_aw_req": [ { "direction": "in", "driver_value": "0" } ],
         "s_sc_aw_info": [ { "direction": "in", "size_left": "0", "size_right": "0", "driver_value": "0" } ],
         "s_sc_aw_send": [ { "direction": "in", "driver_value": "0" } ],
         "s_sc_aw_recv": [ { "direction": "out", "driver_value": "0" } ],
-        "s_sc_aw_payld": [ { "direction": "in", "size_left": "142", "size_right": "0", "driver_value": "0" } ],
+        "s_sc_aw_payld": [ { "direction": "in", "size_left": "143", "size_right": "0", "driver_value": "0" } ],
         "s_sc_w_req": [ { "direction": "in", "driver_value": "0" } ],
         "s_sc_w_info": [ { "direction": "in", "size_left": "0", "size_right": "0", "driver_value": "0" } ],
         "s_sc_w_send": [ { "direction": "in", "driver_value": "0" } ],
         "s_sc_w_recv": [ { "direction": "out", "driver_value": "0" } ],
-        "s_sc_w_payld": [ { "direction": "in", "size_left": "160", "size_right": "0", "driver_value": "0" } ],
+        "s_sc_w_payld": [ { "direction": "in", "size_left": "161", "size_right": "0", "driver_value": "0" } ],
         "m_axi_awid": [ { "direction": "out", "size_left": "2", "size_right": "0" } ],
         "m_axi_awaddr": [ { "direction": "out", "size_left": "31", "size_right": "0" } ],
         "m_axi_awlen": [ { "direction": "out", "size_left": "7", "size_right": "0" } ],
@@ -299,5 +299,5 @@
       }
     }
   },
-  "checksum": "920f2605"
+  "checksum": "caa2fce6"
 }

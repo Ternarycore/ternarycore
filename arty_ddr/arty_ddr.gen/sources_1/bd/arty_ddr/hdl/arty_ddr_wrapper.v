@@ -2,7 +2,7 @@
 //Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
 //--------------------------------------------------------------------------------
 //Tool Version: Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
-//Date        : Mon Aug  3 14:19:51 2026
+//Date        : Tue Aug  4 23:08:59 2026
 //Host        : fort-silicon running 64-bit Ubuntu 24.04.4 LTS
 //Command     : generate_target arty_ddr_wrapper.bd
 //Design      : arty_ddr_wrapper

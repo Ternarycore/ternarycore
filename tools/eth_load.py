@@ -96,7 +96,15 @@ def send_region(b, sock, src, off, blob, chunk=CHUNK, gap=0.0, tries=3):
                 sock.send(f)
         out = b.until("OK E", timeout=30)
         dt = time.time() - t0
-        line = [l for l in out.splitlines() if l.startswith("OK E")][0].split()
+        #  A short or split read is a wire problem, not a data problem, and
+        #  this loop already exists to retry wire problems. Parsing it as
+        #  an index error instead threw away 100 pages of a 420-page load.
+        line = [l for l in out.splitlines() if l.startswith("OK E")]
+        line = line[0].split() if line else []
+        if len(line) < 5:
+            if attempt == tries - 1:
+                raise RuntimeError(f"off {off}: unparseable reply {out!r}")
+            continue
         got_sum, got_n = int(line[2], 16), int(line[4])
         if got_n == n and got_sum == want:
             return dt, len(blob) * 8 / dt / 1e6
