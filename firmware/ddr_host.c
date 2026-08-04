@@ -606,8 +606,8 @@ static void bench_softmax_d(int n) {
    implementation is a lookup built once at startup. Same principle as the
    ternary weights: replace expensive arithmetic with cheap structure. */
 #define LUTN 1024
-static int exp_lut[LUTN];    /* exp(-i/16), Q16.16              */
-static int silu_lut[LUTN];   /* silu(x), x = (i-512)/16, Q16.16 */
+static int * const exp_lut = (int *)(DDR_BASE + 0x0E050000u);    /* exp(-i/16), Q16.16              */
+static int * const silu_lut = (int *)(DDR_BASE + 0x0E060000u);   /* silu(x), x = (i-512)/16, Q16.16 */
 static int luts_ready = 0;
 
 static void build_luts(void) {
@@ -1992,12 +1992,9 @@ static void cmd_pv(const char *p) {
    Ranges: accumulators reach 17 bits, both operands are normalized into
    16, and the product lands at 30. Nothing here is 64-bit. */
 
-static void cmd_mlp(const char *p) {
-    unsigned long gsl = parse_u(&p), usl = parse_u(&p), osl = parse_u(&p),
-                  gmu = parse_u(&p), geb = parse_u(&p), n = parse_u(&p), i;
-    const int *g = (const int *)VSLOT(gsl);
-    const int *up = (const int *)VSLOT(usl);
-    int *o = (int *)VSLOT(osl);
+static void mlp_core(const int *g, const int *up, int *o,
+                     unsigned long gmu, long geb, unsigned long n) {
+    unsigned long i;
     int *m = (int *)VS_TMP;
     int v, t, ixf, idx, frac, sa = 0, su = 0, ss = 0, sm = 0, sh;
     int gmx = 0, umx = 0, svmx = 0, mmx = 0;
@@ -2014,7 +2011,7 @@ static void cmd_mlp(const char *p) {
     while ((umx >> su) > 32767) su++;
 
     /* x * 256: the table's index units (x*16) plus four fractional bits. */
-    sc_mul((unsigned int)gmu, (int)(long)geb - 512, 1u << 30, -30, &Gm, &Ge);
+    sc_mul((unsigned int)gmu, (int)(geb - 512), 1u << 30, -30, &Gm, &Ge);
     Ge += 8;
     sh = -(sa + 16 + Ge);
 
@@ -2053,6 +2050,13 @@ static void cmd_mlp(const char *p) {
     uart_puts(" ss "); uart_putdec((long)ss);
     uart_puts(" sm "); uart_putdec((long)sm);
     uart_puts("\nOK MLP\n");
+}
+
+static void cmd_mlp(const char *p) {
+    unsigned long gsl = parse_u(&p), usl = parse_u(&p), osl = parse_u(&p),
+                  gmu = parse_u(&p), geb = parse_u(&p), n = parse_u(&p);
+    mlp_core((const int *)VSLOT(gsl), (const int *)VSLOT(usl),
+             (int *)VSLOT(osl), gmu, (long)geb, n);
 }
 
 
@@ -2362,6 +2366,296 @@ static void cmd_opb(const char *p) {
     uart_mute = 0;
     uart_puts("OK OPB\n");
 }
+
+/* ---- Stage 13: the block driver --------------------------------------
+
+   Page slots within a block, in the order build_ddr_image.py wrote them
+   and the order blk_proj must request them: q takes two (2048 outputs),
+   k and v one each, o two (2048 inputs), gate and up three each (3072
+   outputs), down three (3072 inputs). Fifteen, and the image's rule is
+   page = blk*15 + slot.                                              */
+#define P_Q    0u
+#define P_K    2u
+#define P_V    3u
+#define P_O    4u
+#define P_G    6u
+#define P_U    9u
+#define P_D   12u
+
+/* Scratch slots. Sixteen exist at 16 KB each; these are the seven the
+   block needs, named rather than numbered because a projection writing
+   into the slot still holding the residual stream would be silent. */
+#define S_X    0u          /* residual stream, int32, 1024             */
+#define S_X1   1u          /* after the attention residual             */
+#define S_A8   2u          /* int8 activations, up to 3072             */
+#define S_P0   3u          /* projection output, up to 3072            */
+#define S_P1   4u          /* up_proj, so gate and up coexist          */
+#define S_M    5u          /* the MLP product, 3072                    */
+#define S_ATT  6u          /* attention output, 2048                   */
+
+/* The residual stream's scale. A global because it is the one piece of
+   state that survives from block to block, and threading it through
+   every signature would only give it more places to be dropped. */
+static unsigned int blk_xm = 1u;
+static int          blk_xe = 0;
+
+/* One 256 KB page, DDR to weight BRAM. cmd_pagedma with the parsing,
+   the repeat count and the reporting taken out -- and, as of the
+   measurement that found it, without the 8192-instruction cache flush
+   that used to be 312 ms of every token. */
+static int page_load(unsigned long page) {
+    unsigned long spin = 0;
+    IO32(CDMA_CR) = 0x04u;
+    while (IO32(CDMA_CR) & 0x04u)
+        if (++spin > 1000000u) { uart_puts("ERR page reset\n"); return 0; }
+    IO32(CDMA_SA)  = DDR_BASE + (unsigned int)page * PAGE_BYTES;
+    IO32(CDMA_DA)  = WEIGHT_BRAM;
+    IO32(CDMA_BTT) = PAGE_BYTES;
+    spin = 0;
+    while (!(IO32(CDMA_SR) & 0x02u))
+        if (++spin > 40000000u) { uart_puts("ERR page dma\n"); return 0; }
+    return 1;
+}
+
+/* A whole projection: every output block against every input slice.
+   Input slices accumulate (seg != 0 on all but the first), output blocks
+   land in their own thousand of the destination. proj_core takes a
+   pointer rather than a slot index precisely so this can offset both
+   ends without copying. */
+static int blk_proj(unsigned long blk, unsigned long slot0,
+                    unsigned long nout, unsigned long nin,
+                    const signed char *a, int *o) {
+    unsigned long nc = nout >> 10, ns = nin >> 10, c, s;
+    for (c = 0; c < nc; c++)
+        for (s = 0; s < ns; s++) {
+            if (!page_load(blk * 15u + slot0 + c * ns + s)) return 0;
+            proj_core(a + (s << 10), o + (c << 10), 16u, s != 0u);
+        }
+    return 1;
+}
+
+/* RMSNorm and quantize, either path, with the auto-range shift in front
+   of both. cmd_nqf does not shift -- stage 11 fed it vectors already
+   inside 16 bits and verified against that precondition -- but a
+   projection accumulator reaches 1024*127, and the fabric's pass 2 takes
+   x as sixteen signed bits. Shifting first is what makes the two paths
+   interchangeable on real data rather than only on the test vectors. */
+static int nq_run(int fab, const int *x, unsigned long blk,
+                  unsigned long gi, signed char *o8, unsigned long n) {
+    int *w = (int *)VS_TMP;
+    unsigned long i;
+    int v, amx = 0, sh = 0;
+
+    for (i = 0; i < n; i++) { v = x[i]; if (v < 0) v = -v;
+                              if (v > amx) amx = v; }
+    while (sh < 31 && rsh(amx, sh) > 32767) sh++;
+
+    /* The shift goes to scratch, not in place. cmd_nqd applies it to the
+       caller's vector and says so -- "safe only because every vector this
+       runs on is scratch the host does not read afterwards" -- and the
+       block driver is the first caller for which that is false. x here is
+       the residual stream, which is normalized and then added to fifteen
+       operators later; shifting it in place divided it by 2^14 behind the
+       add's back and cost a whole block. */
+    for (i = 0; i < n; i++) w[i] = rsh(x[i], sh);
+
+    if (fab) {
+        cdma_move((unsigned int)(unsigned long)w, NORM_X,
+                  (unsigned int)n * 4u);
+        cdma_move(meta_rec(blk) + gain_off[gi], NORM_G,
+                  (unsigned int)n * 4u);
+        IO32(NORM_CTRL) = (unsigned int)n | 0x80000000u;
+        i = 0;
+        while (!(IO32(NORM_STAT) & 0x2u))
+            if (++i > 20000000u) { uart_puts("ERR nqf hang\n"); return 0; }
+        cdma_move(NORM_O8, (unsigned int)(unsigned long)o8, (unsigned int)n);
+        nq_mx = (int)IO32(NORM_MX);
+        nq_ss = IO32(NORM_SS);
+        nq_xs = (int)IO32(NORM_XS);
+        return 1;
+    }
+    if (!nq_core(w, (const int *)(meta_rec(blk) + gain_off[gi]), o8, n)) {
+        uart_puts("ERR nq range "); uart_putdec((long)nq_amx);
+        uart_puts("\n"); return 0;
+    }
+    return 1;
+}
+
+/* The scale of what nq just wrote:  gmax * mx / (32768 * 127 * rms),
+   rms = sqrt(ss * 4^xs / n).
+
+   This is absolute, and that is the whole reason the block driver can
+   forget its input's scale at every normalization. RMSNorm divides by
+   the vector's own root-mean-square, so its output does not depend on
+   how the input was scaled, and neither does the absmax quantizer in
+   front of it. Getting that wrong in the other direction -- multiplying
+   by a scale that had already cancelled -- is what made the MLP
+   contribute nothing while the block still reported a pass. */
+static void nq_scale(unsigned long blk, unsigned long gi, unsigned long n,
+                     unsigned int *sm, int *se) {
+    unsigned int gm, t, r;
+    int ge, te, re;
+
+    if (nq_ss == 0u || nq_mx == 0) { *sm = 0u; *se = 0; return; }
+    meta_bf(blk, META_GMAX, gi, &gm, &ge);
+    sc_div(nq_ss, 2 * nq_xs, (unsigned int)n, 0, &t, &te);
+    sc_sqrt(t, te, &r, &re);
+    sc_mul(r, re, 4161536u, 0, &r, &re);              /* 32768 * 127 */
+    sc_mul(gm, ge, (unsigned int)nq_mx, 0, &t, &te);
+    sc_div(t, te, r, re, sm, se);
+}
+
+/* round(v * m * 2^e), for m normalized and the product known to fit.
+   |v| < 2^31 and m < 2^31, so the 64-bit product cannot overflow. */
+static int mul_bf(int v, unsigned int m, int e) {
+    long long p;
+    int sh = -e;
+    if (m == 0u || v == 0) return 0;
+    if (sh >= 63) return 0;
+    p = (long long)v * (long long)(unsigned long long)m;
+    if (sh <= 0) return (int)(p << (-sh));
+    p = (p >= 0) ? ((p + ((long long)1 << (sh - 1))) >> sh)
+                 : -((((-p) + ((long long)1 << (sh - 1))) >> sh));
+    return (int)p;
+}
+
+static void sc_max2(unsigned int am, int ae, unsigned int bm, int be,
+                    unsigned int *om, int *oe) {
+    sc_norm(&am, &ae); sc_norm(&bm, &be);
+    if (am == 0u)      { *om = bm; *oe = be; return; }
+    if (bm == 0u)      { *om = am; *oe = ae; return; }
+    if (ae > be || (ae == be && am >= bm)) { *om = am; *oe = ae; }
+    else                                   { *om = bm; *oe = be; }
+}
+
+/* o = x*Sx + d*Sd, renormalized so the result peaks near 2^29.
+
+   Both terms are carried, not the larger one: the attention residual is
+   often an order of magnitude below the stream it is added to, and a
+   scheme that aligned on the larger exponent and let the smaller fall
+   off the bottom would produce a block that passes every shape check
+   and contributes nothing. Choosing the output scale from twice the
+   larger magnitude leaves each term at most 2^28 and their sum at most
+   2^29, so nothing saturates and the smaller term keeps every bit that
+   fits under it. */
+static void resid_add(const int *x, unsigned int xm, int xe,
+                      const int *d, unsigned int dm, int de,
+                      int *o, unsigned long n,
+                      unsigned int *om, int *oe) {
+    unsigned long i;
+    int v, ax = 0, ad = 0;
+    unsigned int Mx, Md, M, Rx, Rd;
+    int Ex, Ed, E, ex, ed;
+
+    for (i = 0; i < n; i++) {
+        v = x[i]; if (v < 0) v = -v; if (v > ax) ax = v;
+        v = d[i]; if (v < 0) v = -v; if (v > ad) ad = v;
+    }
+    sc_mul((unsigned int)ax, 0, xm, xe, &Mx, &Ex);
+    sc_mul((unsigned int)ad, 0, dm, de, &Md, &Ed);
+    sc_max2(Mx, Ex, Md, Ed, &M, &E);
+    if (M == 0u) {
+        for (i = 0; i < n; i++) o[i] = 0;
+        *om = 0u; *oe = 0; return;
+    }
+    E += 1 - 29;                                   /* So = 2M / 2^29 */
+    sc_div(xm, xe, M, E, &Rx, &ex);
+    sc_div(dm, de, M, E, &Rd, &ed);
+    for (i = 0; i < n; i++)
+        o[i] = mul_bf(x[i], Rx, ex) + mul_bf(d[i], Rd, ed);
+    *om = M; *oe = E;
+}
+
+/* One transformer block at position 0, reading everything it needs from
+   DDR and leaving the result in S_X with blk_xm/blk_xe updated. */
+static int run_block(unsigned long blk, int fab) {
+    int *x   = (int *)VSLOT(S_X);
+    int *x1  = (int *)VSLOT(S_X1);
+    int *p0  = (int *)VSLOT(S_P0);
+    int *p1  = (int *)VSLOT(S_P1);
+    int *m   = (int *)VSLOT(S_M);
+    int *att = (int *)VSLOT(S_ATT);
+    signed char *a8 = (signed char *)VSLOT(S_A8);
+    unsigned int sa, sw, tm;
+    int ea, ew, te;
+    unsigned long h, i;
+
+    if (!nq_run(fab, x, blk, 0u, a8, 1024u)) return 0;
+
+    /* q and k are discarded at position 0 -- attention over one key is
+       the value vector -- but their pages are still fetched, so the page
+       sequence and the cost are the ones a real token pays. */
+    if (!blk_proj(blk, P_Q, 2048u, 1024u, a8, p0)) return 0;
+    if (!blk_proj(blk, P_K, 1024u, 1024u, a8, p0)) return 0;
+    if (!blk_proj(blk, P_V, 1024u, 1024u, a8, p0)) return 0;
+
+    /* GQA is 2:1, so each kv head serves two query heads. No scale is
+       applied to v: the next thing that reads att is a normalization,
+       and RMSNorm cancels any global factor in front of it. */
+    for (h = 0; h < 16u; h++)
+        for (i = 0; i < 128u; i++)
+            att[(h << 7) + i] = p0[((h >> 1) << 7) + i];
+
+    if (!nq_run(fab, att, blk, 4u, a8, 2048u)) return 0;
+    nq_scale(blk, 4u, 2048u, &sa, &ea);
+    if (!blk_proj(blk, P_O, 1024u, 2048u, a8, p0)) return 0;
+    meta_bf(blk, META_SCALES, 3u, &sw, &ew);            /* o_proj */
+    sc_mul(sw, ew, sa, ea, &tm, &te);
+    resid_add(x, blk_xm, blk_xe, p0, tm, te, x1, 1024u, &blk_xm, &blk_xe);
+
+    if (!nq_run(fab, x1, blk, 1u, a8, 1024u)) return 0;
+    nq_scale(blk, 1u, 1024u, &sa, &ea);
+    if (!blk_proj(blk, P_G, 3072u, 1024u, a8, p0)) return 0;
+    if (!blk_proj(blk, P_U, 3072u, 1024u, a8, p1)) return 0;
+    meta_bf(blk, META_SCALES, 4u, &sw, &ew);            /* gate_proj */
+    sc_mul(sw, ew, sa, ea, &tm, &te);
+    mlp_core(p0, p1, m, tm, (long)te + 512, 3072u);
+
+    if (!nq_run(fab, m, blk, 5u, a8, 3072u)) return 0;
+    nq_scale(blk, 5u, 3072u, &sa, &ea);
+    if (!blk_proj(blk, P_D, 1024u, 3072u, a8, p0)) return 0;
+    meta_bf(blk, META_SCALES, 6u, &sw, &ew);            /* down_proj */
+    sc_mul(sw, ew, sa, ea, &tm, &te);
+    resid_add(x1, blk_xm, blk_xe, p0, tm, te, x, 1024u, &blk_xm, &blk_xe);
+    return 1;
+}
+
+/* XSC <mantissa> <exponent+512> -- the scale of the vector in slot 0.
+   The bias keeps the exponent unsigned on the wire, the same convention
+   MLP and SM already use for theirs. */
+static void cmd_xsc(const char *p) {
+    blk_xm = (unsigned int)parse_u(&p);
+    blk_xe = (int)(long)parse_u(&p) - 512;
+    uart_puts("OK XSC\n");
+}
+
+static void blk_report(const char *tag) {
+    uart_puts(tag);
+    uart_puts(" m "); uart_puthex(blk_xm);
+    uart_puts(" e "); uart_putdec((long)blk_xe);
+    uart_puts("\n");
+}
+
+/* BLK <blk> <fab> -- one block. TOK <nblk> <fab> -- all of them. */
+static void cmd_blk(const char *p) {
+    unsigned long blk = parse_u(&p), fab = parse_u(&p);
+    if (blk >= 28u) { uart_puts("ERR range\n"); return; }
+    if (!run_block(blk, (int)fab)) return;
+    blk_report("BLK");
+    uart_puts("OK BLK\n");
+}
+
+static void cmd_tok(const char *p) {
+    unsigned long nb = parse_u(&p), fab = parse_u(&p), b;
+    if (nb == 0u || nb > 28u) { uart_puts("ERR range\n"); return; }
+    for (b = 0; b < nb; b++)
+        if (!run_block(b, (int)fab)) {
+            uart_puts("ERR at block "); uart_putdec((long)b);
+            uart_puts("\n"); return;
+        }
+    blk_report("TOK");
+    uart_puts("OK TOK\n");
+}
 int main(void) {
     uart_init();
     led(0x1);
@@ -2395,6 +2689,9 @@ int main(void) {
         else if (starts(line, "NQF ")) cmd_nqf(line + 4);
         else if (starts(line, "NQBENCH ")) cmd_nqbench(line + 8);
         else if (starts(line, "OPB ")) cmd_opb(line + 4);
+        else if (starts(line, "XSC ")) cmd_xsc(line + 4);
+        else if (starts(line, "BLK ")) cmd_blk(line + 4);
+        else if (starts(line, "TOK ")) cmd_tok(line + 4);
         else if (starts(line, "KVR ")) cmd_kvr(line + 4);
         else if (starts(line, "PROJ ")) cmd_proj(line + 5);
         else if (starts(line, "CACHE")) cmd_cache(line + 5);

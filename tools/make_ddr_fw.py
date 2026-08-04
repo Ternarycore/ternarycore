@@ -627,6 +627,24 @@ s = s.replace(fw_exec_s12.ANCHOR, fw_exec_s12.EXEC12 + fw_exec_s12.ANCHOR, 1)
 assert fw_exec_s12.CMD_OLD in s
 s = s.replace(fw_exec_s12.CMD_OLD, fw_exec_s12.CMD_NEW, 1)
 
+# The two interpolation tables are 4 KB each of local memory holding
+# constants that are read and never written, and the data cache keeps
+# them resident after the first touch. LMB is 64 KB and the block driver
+# needs the room more than they do.
+s = s.replace('static int exp_lut[LUTN];',
+              'static int * const exp_lut = (int *)(DDR_BASE + 0x0E050000u);', 1)
+s = s.replace('static int silu_lut[LUTN];',
+              'static int * const silu_lut = (int *)(DDR_BASE + 0x0E060000u);', 1)
+
+import fw_exec_s13
+for old, new in ((fw_exec_s13.MLP_OLD, fw_exec_s13.MLP_NEW),
+                 (fw_exec_s13.MLP_TAIL_OLD, fw_exec_s13.MLP_TAIL_NEW),
+                 (fw_exec_s13.MLP_BIAS_OLD, fw_exec_s13.MLP_BIAS_NEW),
+                 (fw_exec_s13.CMD_OLD, fw_exec_s13.CMD_NEW)):
+    assert old in s, old[:60]
+    s = s.replace(old, new, 1)
+s = s.replace(fw_exec_s13.ANCHOR, fw_exec_s13.EXEC13 + fw_exec_s13.ANCHOR, 1)
+
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)
 
 open(dst, "w").write(s)
