@@ -681,6 +681,11 @@ s = s.replace(fw_exec_s17.ANCHOR, fw_exec_s17.EXEC17 + fw_exec_s17.ANCHOR, 1)
 assert fw_exec_s17.CMD_OLD in s
 s = s.replace(fw_exec_s17.CMD_OLD, fw_exec_s17.CMD_NEW, 1)
 
+import fw_exec_s18
+for _old, _new in fw_exec_s18.EDITS:
+    assert s.count(_old) == 1, _old[:60]
+    s = s.replace(_old, _new, 1)
+
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)
 
 open(dst, "w").write(s)

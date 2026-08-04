@@ -1116,6 +1116,9 @@ static void cmd_dumpr(const char *p) {
    core runs to completion, so every early return -- including the range
    checks, which are untouched -- reads as failure. */
 static int core_ok;
+/* Set by a caller that will not read core_chk, so the cores can skip
+   computing it. The driver sets it; every command handler clears it. */
+static int core_quiet;
 static unsigned long core_chk, core_n, core_p;
 
 /* Stage 5's block-float helpers, declared early because QKN needs them
@@ -1449,8 +1452,9 @@ static void qkn_core(unsigned long src, unsigned long gsl,
         }
     }
 
-    for (i = 0; i < nh * hd; i++)
-        chk += (unsigned long)(long)o8[i] * (unsigned long)(i + 1u);
+    if (!core_quiet)
+        for (i = 0; i < nh * hd; i++)
+            chk += (unsigned long)(long)o8[i] * (unsigned long)(i + 1u);
     core_chk = chk; core_ok = 1;
 }
 
@@ -1458,7 +1462,7 @@ static void cmd_qkn(const char *p) {
     unsigned long src = parse_u(&p), gsl = parse_u(&p), cs = parse_u(&p),
                   dst = parse_u(&p), ssl = parse_u(&p),
                   nh = parse_u(&p), hd = parse_u(&p);
-    core_ok = 0;
+    core_ok = 0; core_quiet = 0;
     qkn_core(src, gsl, cs, dst, ssl, nh, hd);
     if (!core_ok) return;
     uart_puts("QCHK "); uart_puthex(core_chk); uart_puts("\nOK QK\n");
@@ -2893,6 +2897,7 @@ static void qkn_run(unsigned long blk, unsigned long gi, unsigned long src,
     }
     qkn_norm = norm;
     qkn_am = am; qkn_ae = ae;
+    core_quiet = 1;
     qkn_core(src, norm ? S_GN : S_ONE, norm ? S_CS : S_ID,
              dst, S_DOT, nh, 128u);
 }
