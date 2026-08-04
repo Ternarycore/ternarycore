@@ -1,0 +1,221 @@
+// rmsnorm_quant.v -- fused RMSNorm + absmax int8 quantizer, in fabric
+// SPDX-License-Identifier: CERN-OHL-S-2.0
+//
+// This replaces nq_core, which measured 32.05 cycles per element for the sum
+// of squares and 18.02 for the quantizer -- 183 ms of a 744 ms token, and
+// about 9 seconds of a 20 second MNLI classification, where the per-token CPU
+// work scales with prompt length and the weight paging does not.
+//
+// Three streaming passes at one element per cycle:
+//
+//   pass 1   amx = max|x|,  then xs from the 2047 rule
+//   pass 2   u = x >>> xs ; ss += u*u ; t = x*g ; mx = max|t|
+//   divide   r = (127 << RECIP_SH) / mxs                once per vector
+//   pass 3   o8 = clip(round(ts * r >> RECIP_SH), -128, 127)
+//
+// On the reciprocal. nq_core forms (127 << 46)/mx and multiplies a 32-bit t
+// by that 53-bit value -- a 54-bit product, three or four DSP slices. That
+// precision cannot reach the output: the result is eight bits, so an error of
+// one part in 2^20 moves it by 1e-4 of a level. Reducing mx and t by a common
+// shift first makes the multiply 21 x 44, and the bits that matter fit in
+// LUTs. The "zero DSP slices" claim is about the ternary MAC array and holds
+// either way, but there is no reason to spend DSPs computing bits that are
+// discarded.
+//
+// RECIP_SH and MXS_W are parameters because their right values are a question
+// for the testbench rather than for me: it compares against vectors captured
+// from the board running nq_core, and counts the elements that disagree.
+//
+// The sum of squares is 48-bit and renormalized the way the fixed nq_core
+// does -- ss >>= 2 with xs += 1, which leaves ss * 4^xs unchanged. The
+// original 32-bit accumulator only bounded n = 1024, and two of the four
+// RMSNorms in every block are wider than that.
+
+`default_nettype none
+
+module rmsnorm_quant #(
+    parameter MAXN     = 4096,
+    parameter AW       = 13,     // address width, covers MAXN
+    parameter MXS_W    = 20,     // mx is reduced to this width before dividing
+    parameter RECIP_SH = 36      // fractional bits held in the reciprocal
+)(
+    input  wire               clk,
+    input  wire               rst_n,
+
+    // control
+    input  wire               start,
+    input  wire [AW-1:0]      n,
+    output reg                busy,
+    output reg                done,
+
+    // reductions, valid while done
+    output reg  [31:0]        o_mx,
+    output reg  [31:0]        o_ss,
+    output reg  [4:0]         o_xs,
+
+    // input vectors, written before start
+    input  wire               mem_we,
+    input  wire [AW-1:0]      mem_addr,
+    input  wire signed [31:0] mem_x,
+    input  wire signed [31:0] mem_g,
+
+    // int8 result, readable while done
+    input  wire [AW-1:0]      o8_addr,
+    output wire signed [7:0]  o8_data
+);
+
+    localparam S_IDLE = 4'd0, S_P1 = 4'd1, S_XS  = 4'd2, S_P2 = 4'd3,
+               S_NORM = 4'd4, S_DIV = 4'd5, S_P3 = 4'd6, S_END = 4'd7;
+
+    localparam NUM_W = 7 + RECIP_SH;             // 127 needs 7 bits
+    localparam PW    = MXS_W + NUM_W + 2;        // room for ts * recip
+
+    reg signed [31:0] xmem [0:MAXN-1];
+    reg signed [31:0] gmem [0:MAXN-1];
+    reg signed [31:0] tmem [0:MAXN-1];
+    reg signed [7:0]  omem [0:MAXN-1];
+
+    always @(posedge clk)
+        if (mem_we) begin
+            xmem[mem_addr] <= mem_x;
+            gmem[mem_addr] <= mem_g;
+        end
+
+    assign o8_data = omem[o8_addr];
+
+    reg  [3:0]        st;
+    reg  [AW-1:0]     i;
+    reg  [31:0]       amx;
+    reg  [4:0]        xs;
+    reg  [47:0]       ss48;
+    reg  [31:0]       mx;
+    reg  [5:0]        ks;
+    reg  [MXS_W-1:0]  mxs;
+
+    reg  [NUM_W-1:0]  dnum, dquo, recip;
+    reg  [NUM_W:0]    drem;
+    reg  [7:0]        dcnt;
+
+    wire signed [31:0] xv = xmem[i];
+    wire signed [31:0] gv = gmem[i];
+    wire signed [31:0] tv = tmem[i];
+
+    wire [31:0] absx = xv[31] ? (~xv + 32'd1) : xv;
+
+    // pass 2. |u| <= 2047 by the xs rule, so u*u is 22 bits and non-negative;
+    // the square is taken on the signed value, not on its low bits.
+    wire signed [31:0] u   = xv >>> xs;
+    wire signed [31:0] usq = u * u;
+    wire signed [31:0] tw  = xv * gv;            // 16x16 into 32, as in C
+
+    // max|t| must come from the value being written this cycle, not from the
+    // memory it is being written into -- tmem[i] still holds the last pass.
+    wire [31:0] abstw = tw[31] ? (~tw + 32'd1) : tw;
+
+    // pass 3, at the reduced width
+    wire signed [MXS_W:0]  ts   = tv >>> ks;
+    wire signed [PW-1:0]   prod = ts * $signed({1'b0, recip});
+    wire signed [PW-1:0]   half = {{(PW-1){1'b0}}, 1'b1} << (RECIP_SH - 1);
+    // round half away from zero, exactly as nq_core does
+    wire signed [PW-1:0]   rnd  = (prod >= 0)
+                                ? ((prod + half) >>> RECIP_SH)
+                                : -(((-prod) + half) >>> RECIP_SH);
+    wire signed [7:0] clipped = (rnd >  127) ?  8'sd127
+                              : (rnd < -128) ? -8'sd128 : rnd[7:0];
+
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            st <= S_IDLE; busy <= 1'b0; done <= 1'b0;
+        end else begin
+            case (st)
+            S_IDLE: begin
+                done <= 1'b0;
+                if (start) begin
+                    busy <= 1'b1; i <= {AW{1'b0}};
+                    amx  <= 32'd0; ss48 <= 48'd0; mx <= 32'd0;
+                    xs   <= 5'd0;  ks   <= 6'd0;
+                    st   <= S_P1;
+                end
+            end
+
+            // pass 1: the maximum, which decides xs
+            S_P1: begin
+                if (absx > amx) amx <= absx;
+                if (i == n - 1'b1) begin i <= {AW{1'b0}}; st <= S_XS; end
+                else i <= i + 1'b1;
+            end
+
+            // xs is at most 4: amx <= 32767 and 32767 >> 4 = 2047
+            S_XS: if ((amx >> xs) > 32'd2047) xs <= xs + 1'b1;
+                  else st <= S_P2;
+
+            // pass 2: sum of squares, the gain product, and its maximum
+            S_P2: begin
+                ss48 <= ss48 + {16'd0, usq};
+                tmem[i] <= tw;
+                if (abstw > mx) mx <= abstw;
+                if (i == n - 1'b1) begin i <= {AW{1'b0}}; st <= S_NORM; end
+                else i <= i + 1'b1;
+            end
+
+            // Renormalize ss into 32 bits, then reduce mx for the divide.
+            // ss >>= 2 with xs += 1 leaves ss * 4^xs unchanged, and that
+            // product is the only thing the host does with either number.
+            S_NORM: begin
+                if (ss48 >= (48'd1 << 32)) begin
+                    ss48 <= ss48 >> 2; xs <= xs + 1'b1;
+                end else if ((mx >> ks) >= (32'd1 << MXS_W)) begin
+                    ks <= ks + 1'b1;
+                end else begin
+                    mxs  <= (mx == 32'd0) ? {{(MXS_W-1){1'b0}}, 1'b1}
+                                          : (mx >> ks);
+                    dnum <= {7'd127, {RECIP_SH{1'b0}}};
+                    dquo <= {NUM_W{1'b0}};
+                    drem <= {(NUM_W+1){1'b0}};
+                    dcnt <= NUM_W;
+                    st   <= S_DIV;
+                end
+            end
+
+            // restoring division, one bit per cycle. Once per vector, so its
+            // NUM_W cycles vanish beside the 3n of the passes.
+            S_DIV: begin
+                if (dcnt == 0) begin
+                    recip <= dquo; i <= {AW{1'b0}}; st <= S_P3;
+                end else begin
+                    if ({drem[NUM_W-1:0], dnum[NUM_W-1]}
+                        >= {{(NUM_W+1-MXS_W){1'b0}}, mxs}) begin
+                        drem <= {drem[NUM_W-1:0], dnum[NUM_W-1]}
+                                - {{(NUM_W+1-MXS_W){1'b0}}, mxs};
+                        dquo <= {dquo[NUM_W-2:0], 1'b1};
+                    end else begin
+                        drem <= {drem[NUM_W-1:0], dnum[NUM_W-1]};
+                        dquo <= {dquo[NUM_W-2:0], 1'b0};
+                    end
+                    dnum <= {dnum[NUM_W-2:0], 1'b0};
+                    dcnt <= dcnt - 1'b1;
+                end
+            end
+
+            // pass 3: scale, round away from zero, clip
+            S_P3: begin
+                omem[i] <= clipped;
+                if (i == n - 1'b1) st <= S_END;
+                else i <= i + 1'b1;
+            end
+
+            S_END: begin
+                o_mx <= (mx == 32'd0) ? 32'd1 : mx;
+                o_ss <= ss48[31:0];
+                o_xs <= xs;
+                busy <= 1'b0; done <= 1'b1; st <= S_IDLE;
+            end
+
+            default: st <= S_IDLE;
+            endcase
+        end
+    end
+
+endmodule
+
+`default_nettype wire
