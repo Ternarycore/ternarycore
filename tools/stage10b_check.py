@@ -7,16 +7,18 @@ were both given. What has to be true is that a raw projection
 accumulator, handed over with no host arithmetic at all, produces the
 same int8 the reference produces from the same numbers in float64.
 
-PJO is checked against PROJ on the same data at offset zero -- exactly,
-not approximately. It is the same core function with a pointer moved, so
+The magnitude is swept, and the shift predicted rather than accepted.
+The first version of this check drew every vector at 130048, so all
+twelve cases reported sh=2 -- the auto-ranging that is NQD's whole
+purpose got one branch exercised twelve times, under a PASS. Reading
+back an operator's own decision is not checking it.
+
+PJO is checked against PROJ on the same data -- exactly, not
+approximately. It is the same core function with a pointer moved, so
 anything other than bit-identical means the offset went somewhere it
 should not have.
 
   python tools/stage10b_check.py
-
-Accumulator magnitudes on purpose: 1024*127 = 130048 is the largest a
-projection can produce, and NQD's whole job is that the host no longer
-has to know that.
 
 SPDX-License-Identifier: CERN-OHL-S-2.0
 """
@@ -42,26 +44,46 @@ def nqd(b, slot, gi, dst, blk, n):
     return b.dumpr(dst, n), sh
 
 
+def one_nqd(b, z, blk, gi, name, n, x):
+    """One NQD case, including whether it chose the shift we predict."""
+    b.loadv(0, x.astype(np.int32))
+    got, sh = nqd(b, 0, gi, 1, blk, n)
+
+    amx = int(np.abs(x).max())
+    want_sh = 0
+    while (amx >> want_sh) > 32767:
+        want_sh += 1
+
+    g = z[f"{blk}.{name}"].astype(np.float64)
+    want, _ = tc_ref.quant_a(tc_ref.rmsnorm(x.astype(np.float64), g))
+    d = got.astype(int) - want.astype(int)
+    worst, nd = int(np.abs(d).max()), int(np.count_nonzero(d))
+
+    good = worst <= 1 and sh == want_sh
+    print(f"  blk {blk:2d} {name:16s} n={n:<5d} |x|max {amx:>8d}  "
+          f"sh={sh} (want {want_sh})  {nd:4d}/{n} differ, max |d| {worst}"
+          f"{'' if good else '   FAIL'}")
+    return good
+
+
 def check_nqd(b, z):
     ok = True
     rng = np.random.default_rng(31)
+
+    # 32767 and 32768 are the boundary: one fits nq_core's 16x16 product
+    # and the other does not, and they must choose different shifts.
+    print("  -- magnitude sweep, in_norm on block 0 --")
+    for mag in (1000, 32767, 32768, 65535, 130048, 2000000):
+        x = rng.integers(-mag, mag + 1, 1024).astype(np.int64)
+        x[0] = mag                  # pin the maximum so the shift is decided
+        ok &= one_nqd(b, z, 0, 0, "in_norm", 1024, x)
+
+    print("\n  -- every gain, both ends of the model --")
     for blk in (0, 27):
         for gi, (name, n, _) in enumerate(GAINS):
             # A projection accumulator, at the magnitude one really has.
             x = rng.integers(-130048, 130049, n).astype(np.int64)
-            b.loadv(0, x.astype(np.int32))
-            got, sh = nqd(b, 0, gi, 1, blk, n)
-
-            g = z[f"{blk}.{name}"].astype(np.float64)
-            want, _ = tc_ref.quant_a(tc_ref.rmsnorm(x.astype(np.float64), g))
-            d = got.astype(int) - want.astype(int)
-            worst = int(np.abs(d).max())
-            nd = int(np.count_nonzero(d))
-            good = worst <= 1
-            ok &= good
-            print(f"  NQD blk {blk:2d} {name:16s} n={n:<5d} sh={sh:<2d} "
-                  f"{nd:4d}/{n} differ, max |d| {worst}"
-                  f"{'' if good else '   FAIL'}")
+            ok &= one_nqd(b, z, blk, gi, name, n, x)
     return ok
 
 
