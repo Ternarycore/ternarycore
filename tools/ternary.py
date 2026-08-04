@@ -11,12 +11,16 @@ turn the prompt into a token, look up its embedding, and turn the final
 hidden state back into logits through the tied embedding table. What
 crosses the serial line is one vector each way and one block-float scale.
 
-What this does NOT do yet, stated plainly because the number below looks
-like generation and is not: it predicts ONE token, at position 0. The
-board's attention path -- KV cache, softmax, P.V -- is verified at four
-positions by block_multi.py but is not yet wired into the block driver,
-and at position 0 attention over a single key collapses to the value
-vector, so none of it is exercised here. A second token needs that work.
+    python tools/ternary.py "The movie was" -n 6 --compare
+
+Prompt tokens are prefilled one position at a time and each writes the KV
+cache on the board as it goes, so the sequence runs from position 0 -- the
+only order a language model can be evaluated in anyway. --compare runs the
+float64 reference on the host and reports whether the token ids agree.
+
+The output repeating one word is the model, not the machine: this student
+was distilled on a sentiment task. The claim is that the board reproduces
+the reference exactly, not that the reference is interesting.
 
 Prerequisites, checked before anything is run:
   * the board is programmed and responding on --dev
