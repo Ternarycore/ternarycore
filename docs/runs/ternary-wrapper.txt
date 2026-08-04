@@ -1,0 +1,14 @@
+  'The' -> token 785 ('The')
+
+     1. ' positive'                 16.7912
+     2. ' negative'                 15.7042
+     3. ' '                          8.2909
+     4. ' Positive'                  7.7847
+     5. ' positives'                 7.5937
+
+  next token   ' positive'
+  28 blocks on the board   1.50 s   (54 ms/block, normalizer in fabric)
+  total incl. the wire and the host's lm_head   1.90 s
+
+  float64 reference on the host: ' positive'
+  logits rel 0.009246   argmax agrees

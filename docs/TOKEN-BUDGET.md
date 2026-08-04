@@ -119,15 +119,15 @@ word at a time. Same shape, same cause.
 
 | | ms | share |
 |---|---|---|
-| Soft CPU, elementwise (NQD, QKN, KVW, SM, MLP) | 2161.8 | 45.4% |
-| Feeding the array through AXI-lite (PJO, QKD, PV) | 1954.8 | 41.0% |
-| Weight memory (PAGEDMA) | 645.7 | 13.6% |
-| The array doing arithmetic | ~5.3 | 0.11% |
+| Soft CPU, elementwise (NQD, QKN, KVW, SM, MLP) | 2161.8 | 48.4% |
+| Feeding the array through AXI-lite (PJO, QKD, PV) | 1954.8 | 43.7% |
+| Weight memory (PAGEDMA) | 352.4 | 7.9% |
+| The array doing arithmetic | ~5.3 | 0.12% |
 
 The previous version of this document said the array no longer waits for
 weights, it waits for the CPU. That was right and the split it gave —
 46% memory, 45% CPU, 9% array — was wrong in a way that flattered the
-design. Memory is 14%, not 46%. The array's 9% was never the array; it
+design. Memory is 8%, not 46%. The array's 9% was never the array; it
 was the CPU handing bytes to the array one AXI-lite word at a time.
 
 This also corrects the equation in article 05. **Parameters ×
