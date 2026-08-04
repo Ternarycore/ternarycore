@@ -89,6 +89,7 @@ def main():
     # --- QK-norm, RoPE, V quantize, cache write, per position ------------
     ones = np.full(HD, Q15, dtype=np.int32)
     kref, vref, qref, qq_all = {}, {}, {}, {}
+    kq_all, vq_all = {}, {}
     for p in range(npos):
         cos, sin = tc_ref.rope_tables(p)
         ci = np.clip(np.rint(cos[:HD // 2] * 32768), -Q15, Q15).astype(np.int32)
@@ -113,6 +114,7 @@ def main():
             if name == "k":
                 kq = out["k"]
         qq_all[p] = out["q"]
+        kq_all[p] = kq
 
         # V: per-head absmax via QKN with unit gain and identity rotation
         b.loadv(1, ones)
@@ -123,6 +125,7 @@ def main():
         b.until("OK QK")
         vq = b.dumpr(5, NKV * HD)
         vref[p] = accs["v_proj"][p].astype(np.float64)
+        vq_all[p] = vq
 
         sc = np.zeros(NKV * 4, dtype=np.int32)
         for h in range(NKV):
@@ -159,11 +162,11 @@ def main():
         num = dumpi32(b, 14, HD)
 
         # reference: the same deferred-normalization form, on the same ints
-        K = np.stack([tc_ref.quant_a(kref[p][kv * HD:(kv + 1) * HD])[0]
+        K = np.stack([kq_all[p].reshape(NKV, HD)[kv]
                       for p in range(npos)])
         ks = np.array([tc_ref.quant_a(kref[p][kv * HD:(kv + 1) * HD])[1]
                        for p in range(npos)])
-        V = np.stack([tc_ref.quant_a(vref[p][kv * HD:(kv + 1) * HD])[0]
+        V = np.stack([vq_all[p].reshape(NKV, HD)[kv]
                       for p in range(npos)])
         vs = np.array([tc_ref.quant_a(vref[p][kv * HD:(kv + 1) * HD])[1]
                        for p in range(npos)])
