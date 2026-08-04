@@ -33,6 +33,60 @@ it and prints the table.
 
 Everything got worse. The token is 4.76 seconds, not 744 ms.
 
+## The board, measured directly
+
+Everything below this section was measured operator by operator, before
+the block driver existed and before attention was wired into it. The
+driver now runs a whole token, so the token can simply be timed -- and
+the first thing to do with a budget once the machine it predicts exists
+is to check it.
+
+`TOK` is the board alone: one command in, one line out, no operands on
+the wire.
+
+| position | s/token | ms/block | vs position 0 |
+|---:|---:|---:|---:|
+| 0 | 2.880 | 102.8 | 1.00x |
+| 1 | 2.880 | 102.9 | 1.00x |
+| 15 | 2.816 | 100.6 | 0.98x |
+| 63 | 2.880 | 102.8 | 1.00x |
+| 127 | 3.023 | 108.0 | 1.05x |
+| 255 | 3.568 | 127.4 | 1.24x |
+| 511 | 4.656 | 166.3 | 1.62x |
+
+Six of the nine operators in a block do not depend on position and three
+do, so the flat part is everything except attention and the slope is
+Q·Kᵀ, softmax and P·V walking 0..pos.
+
+**The table below predicted 4469 ms at context 512. The board does it in
+4656.** That is 4.2% out, from a budget assembled before the thing it
+describes could run, and it is the strongest evidence that measuring
+fused operators rather than micro-loops was the right correction.
+
+At position 0 the agreement is worse and the gap is informative: 2634 ms
+predicted against 2880 measured, 9.3% out. The missing 246 ms is the
+driver's own bookkeeping, which no operator row covers -- the residual
+adds' per-element block-float multiply, bringing sixteen attention heads
+onto one exponent, copying a gain out of the DDR record and a query head
+into place, and a checksum loop inside the QK-norm that the block driver
+does not need and still pays for. So the operators are 91% of a token at
+position 0 and 96% at 512; the rest is glue, and glue is now the second
+largest unmeasured thing in this document.
+
+### What the wire costs
+
+`tools/ternary.py` reports 4.63 s/token generating from a short prompt,
+and the board at those positions costs 2.88. The difference — about 1.75
+seconds — is a 4 KB vector each way plus the rotation at 115200 baud,
+and roughly 0.4 s of it is deliberate settling delay in the host's
+loader rather than transmission at all. None of that is the machine. It
+is worth separating because it is the number most likely to be quoted by
+accident.
+
+**596M parameters at 0.215 tok/s is 0.128 billion**, against the 3.6
+billion memory-bandwidth ceiling. The gap is 28x and every bit of it is
+attributable to a row below.
+
 ## Per token, 596M parameters, context 512
 
 | | ms | source |

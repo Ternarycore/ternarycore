@@ -1,0 +1,15 @@
+twenty-eight blocks on the board, by position
+
+   pos   s/token  ms/block  vs pos 0
+  ------------------------------------
+     0     2.880     102.8     1.00x
+     1     2.880     102.9     1.00x
+    15     2.816     100.6     0.98x
+    63     2.880     102.8     1.00x
+   127     3.023     108.0     1.05x
+   255     3.568     127.4     1.24x
+   511     4.656     166.3     1.62x
+
+  the wire is not in these numbers: TOK is one command in and
+  one 'OK TOK' out. ternary.py's per-token figure adds a 4 KB
+  vector each way plus the rotation, at 115200 baud.
