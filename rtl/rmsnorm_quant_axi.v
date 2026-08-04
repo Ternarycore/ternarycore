@@ -150,7 +150,16 @@ module rmsnorm_quant_axi #(
     assign s_axi_rid     = rid_r;
     assign s_axi_rresp   = 2'b00;
 
-    wire [AW-3:0] o8_widx = raddr[13:2];
+    // rdata is registered, so the mux must read the address that will be
+    // current NEXT cycle. Reading raddr instead puts stale data on the
+    // first beat of every burst -- correct for beats 1..n, wrong for beat 0,
+    // which is the shape of bug that survives a casual eyeball.
+    wire [ADDR_WIDTH-1:0] raddr_nxt =
+          (rstate == R_IDLE)               ? s_axi_araddr
+        : (s_axi_rvalid && s_axi_rready)   ? (raddr + 3'd4)
+                                           : raddr;
+
+    wire [AW-3:0] o8_widx = raddr_nxt[13:2];
     wire [31:0]   o8_word;
 
     // The result region is the only readable memory. Everything else in the
@@ -158,13 +167,13 @@ module rmsnorm_quant_axi #(
     // nowhere returns 0 rather than stalling, because a slave that never
     // answers is indistinguishable from a hung bus, and this design has
     // already lost days to a bus nobody was checking.
-    wire [31:0] rmux = raddr[16]
-        ? ((raddr[7:0] == 8'h04) ? {30'd0, done, busy}
-         : (raddr[7:0] == 8'h08) ? o_mx
-         : (raddr[7:0] == 8'h0C) ? o_ss
-         : (raddr[7:0] == 8'h10) ? {27'd0, o_xs}
+    wire [31:0] rmux = raddr_nxt[16]
+        ? ((raddr_nxt[7:0] == 8'h04) ? {30'd0, done, busy}
+         : (raddr_nxt[7:0] == 8'h08) ? o_mx
+         : (raddr_nxt[7:0] == 8'h0C) ? o_ss
+         : (raddr_nxt[7:0] == 8'h10) ? {27'd0, o_xs}
          : 32'd0)
-        : ((raddr[15:14] == 2'b10) ? o8_word : 32'd0);
+        : ((raddr_nxt[15:14] == 2'b10) ? o8_word : 32'd0);
 
     always @(posedge clk) begin
         if (!rst_n) begin

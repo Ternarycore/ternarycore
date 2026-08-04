@@ -68,7 +68,11 @@ module tb_rmsnorm_quant;
             @(posedge clk);
             t0 = $time;
             start <= 1'b1; @(posedge clk); start <= 1'b0;
-            while (!done) @(posedge clk);
+            // done latches until the next start, so waiting on it alone
+            // would pass instantly on the previous case's flag. Wait for
+            // this run to actually begin, then to finish.
+            while (!busy) @(posedge clk);
+            while (busy)  @(posedge clk);
             cyc = ($time - t0) / 10;
 
             bad = 0;

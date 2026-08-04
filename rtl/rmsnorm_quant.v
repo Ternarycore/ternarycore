@@ -136,9 +136,13 @@ module rmsnorm_quant #(
             st <= S_IDLE; busy <= 1'b0; done <= 1'b0;
         end else begin
             case (st)
+            // done stays asserted until the next start, not for one cycle.
+            // A status register polled over AXI is read every several cycles
+            // at best, and a flag that is true for exactly one of them is a
+            // flag nobody can observe.
             S_IDLE: begin
-                done <= 1'b0;
                 if (start) begin
+                    done <= 1'b0;
                     busy <= 1'b1; i <= {AW{1'b0}};
                     amx  <= 32'd0; ss48 <= 48'd0; mx <= 32'd0;
                     xs   <= 5'd0;  ks   <= 6'd0;
