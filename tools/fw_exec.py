@@ -113,28 +113,29 @@ static void cmd_dumpr(const char *p) {
    affordable here and nowhere else: this operator measured 18.02
    cycles/element in both 32- and 64-bit form, while RoPE paid 6x. */
 
-static void cmd_nq(const char *p) {
-    unsigned long src = parse_u(&p), gsl = parse_u(&p), dst = parse_u(&p),
-                  n = parse_u(&p), i;
-    const int *x = (const int *)VSLOT(src);
-    const int *g = (const int *)VSLOT(gsl);
+/* What nq_core computed, where a caller can reach it. The host used to
+   read these off a UART line; the block driver cannot, because by then
+   there is no round trip left to read them from. */
+static int nq_mx, nq_xs, nq_amx;
+static unsigned int nq_ss;
+
+/* Returns 0 if the input does not fit 16 bits, having set nq_amx so the
+   caller can say by how much. Body identical to what cmd_nq did. */
+static int nq_core(const int *x, const int *g, signed char *o8,
+                   unsigned long n) {
     int *t = (int *)VS_TMP;
-    signed char *o8 = (signed char *)VSLOT(dst);
     int v, u, w, q, mx = 0, amx = 0, xs = 0;
     unsigned int ss = 0u;
     long long inv, qq;
-
-    if (n == 0u || n > VS_MAX) { uart_puts("ERR range\n"); return; }
+    unsigned long i;
 
     for (i = 0; i < n; i++) {
         v = x[i];
         if (v < 0) v = -v;
         if (v > amx) amx = v;
     }
-    if (amx > 32767) {
-        uart_puts("ERR x not 16-bit, max "); uart_putdec((long)amx);
-        uart_puts("\n"); return;
-    }
+    nq_amx = amx;
+    if (amx > 32767) return 0;
     while ((amx >> xs) > 2047) xs++;      /* n squares must fit 32 bits */
 
     for (i = 0; i < n; i++) {
@@ -159,10 +160,28 @@ static void cmd_nq(const char *p) {
         o8[i] = (signed char)q;
     }
 
-    uart_puts("NQ mx "); uart_putdec((long)mx);
-    uart_puts(" ss "); uart_puthex(ss);
-    uart_puts(" xs "); uart_putdec((long)xs);
+    nq_mx = mx; nq_ss = ss; nq_xs = xs;
+    return 1;
+}
+
+static void nq_report(void) {
+    uart_puts("NQ mx "); uart_putdec((long)nq_mx);
+    uart_puts(" ss "); uart_puthex(nq_ss);
+    uart_puts(" xs "); uart_putdec((long)nq_xs);
     uart_puts("\nOK NQ\n");
+}
+
+static void cmd_nq(const char *p) {
+    unsigned long src = parse_u(&p), gsl = parse_u(&p), dst = parse_u(&p),
+                  n = parse_u(&p);
+
+    if (n == 0u || n > VS_MAX) { uart_puts("ERR range\n"); return; }
+    if (!nq_core((const int *)VSLOT(src), (const int *)VSLOT(gsl),
+                 (signed char *)VSLOT(dst), n)) {
+        uart_puts("ERR x not 16-bit, max "); uart_putdec((long)nq_amx);
+        uart_puts("\n"); return;
+    }
+    nq_report();
 }
 
 /* ---- Stage 2: a projection through the array -------------------------
