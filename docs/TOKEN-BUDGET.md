@@ -179,16 +179,39 @@ deleted -- item 1 below -- and the PAGEDMA row above is already the
 post-fix number.
 
 **The projections.** PJO computes 1,048,576 ternary MACs and takes 827
-µs. Measured against tile count, that is 143 µs to push 1024 activation
-bytes in — one AXI-lite write each, 11.4 cycles apiece — and 16 × 42.7
-µs for the tiles, each of which is 64 single-word result reads and one
-array pass. The array's own share is 1031 cycles: **12.7 µs, or 1.5% of
-the call.** The effective rate is 1.27 GMAC/s against the 102 GMAC/s the
-array sustains when something keeps it fed.
+µs. `tools/pph.py` runs each phase of it in isolation and differences two
+repetition counts, so this is measured rather than apportioned:
 
-Across a token the ternary array — the thing this entire project is
-about, holding 440M of the model's 596M parameters — is doing arithmetic
-for about **5.3 ms of 4762.** That is 0.11%.
+| | µs | share of the call |
+|---|---:|---:|
+| activations in — 1024 writes to S_ACTWR | 109.3 | 13.2% |
+| the array, sixteen passes | 212.0 | 25.6% |
+| results out — 2048 accesses, index write + data read | 320.4 | 38.7% |
+| accumulate into the output slot | 185.3 | 22.4% |
+
+**The array is 212 µs of a projection, and every number this document has
+published about its share was 16× too small.** `S_CYC` reads 1031 for
+`ntile` 1, 4 and 16 alike — it is a per-pass counter, and a projection is
+sixteen passes. 16 × 1031 cycles at 81.25 MHz is 203 µs, which is what
+phase 1 measures. The old figure took one pass for the whole call.
+
+So across a token the ternary array is doing arithmetic for about
+**89 ms, or 2.0%** — 440 projections at 203 µs each — and not 5.3 ms and
+0.12%. The qualitative claim survives, because 2% is still not where the
+time goes. The number does not.
+
+Two things follow, and both are about what to build.
+
+**There is a floor under the DMA campaign.** Two CDMA moves at the ~24 µs
+setup PAGEDMA already measures, plus the array's irreducible 212, is 286
+µs; leave the accumulate loop on the CPU and it is 471. So DMA is worth
+between 2× and 3× on a projection, not the 14× a 12.7 µs array implied.
+
+**And the best ratio on the list is three lines of Verilog.** A result
+costs an index write and a data read. Phase 3 of `pph.py` times the reads
+alone — 213.9 µs against 320.4 — so a read port that increments its own
+index saves **106.5 µs a call, 12.9% of a projection**, for no new
+datapath, no block design change and no new bus.
 
 **Attention.** PV at position 511 is 2.31 ms per head per block: eight
 chunks, each feeding 1024 bytes through a single register, DMA-ing 16 KB
@@ -202,7 +225,9 @@ word at a time. Same shape, same cause.
 | Soft CPU, elementwise (NQD, QKN, KVW, SM, MLP) | 2161.8 | 48.4% |
 | Feeding the array through AXI-lite (PJO, QKD, PV) | 1954.8 | 43.7% |
 | Weight memory (PAGEDMA) | 352.4 | 7.9% |
-| The array doing arithmetic | ~5.3 | 0.12% |
+| The array doing arithmetic | ~89 | 2.0% |
+
+(That last row was ~5.3 ms and 0.12% until `pph.py` measured it. See above: `S_CYC` counts one pass and a projection is sixteen.)
 
 The previous version of this document said the array no longer waits for
 weights, it waits for the CPU. That was right and the split it gave —

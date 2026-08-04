@@ -2998,6 +2998,37 @@ static void cmd_dsum(const char *p) {
 
     uart_puts("DSUM "); uart_puthex(sum); uart_puts("\nOK DS\n");
 }
+
+/* ---- Stage 19: PPH, where a projection's time goes ------------------- */
+static void cmd_pph(const char *p) {
+    unsigned long ph = parse_u(&p), reps = parse_u(&p), r, k;
+    const signed char *a = (const signed char *)VSLOT(3);
+    volatile int sink = 0;
+    unsigned int c;
+
+    if (ph > 3u || reps == 0u || reps > 100000u) {
+        uart_puts("ERR range\n"); return;
+    }
+    for (r = 0; r < reps; r++) {
+        if (ph == 0u) {
+            IO32(STREAM_BASE + S_CTRL) = 0x4u;
+            for (k = 0; k < DEPTH; k++)
+                IO32(STREAM_BASE + S_ACTWR) =
+                    (unsigned int)(unsigned char)a[k];
+        } else if (ph == 1u) {
+            for (c = 0; c < 16u; c++) stream_tile(c);
+        } else if (ph == 2u) {
+            for (c = 0; c < 1024u; c++) {
+                IO32(STREAM_BASE + S_RIDX) = c & 63u;
+                sink += (int)IO32(STREAM_BASE + S_RDATA);
+            }
+        } else {
+            for (c = 0; c < 1024u; c++)
+                sink += (int)IO32(STREAM_BASE + S_RDATA);
+        }
+    }
+    uart_puts("OK PPH\n");
+}
 int main(void) {
     uart_init();
     led(0x1);
@@ -3038,6 +3069,7 @@ int main(void) {
         else if (starts(line, "QSC ")) cmd_qsc(line + 4);
         else if (starts(line, "POS ")) cmd_pos(line + 4);
         else if (starts(line, "DSUM ")) cmd_dsum(line + 5);
+        else if (starts(line, "PPH ")) cmd_pph(line + 4);
         else if (starts(line, "KVR ")) cmd_kvr(line + 4);
         else if (starts(line, "PROJ ")) cmd_proj(line + 5);
         else if (starts(line, "CACHE")) cmd_cache(line + 5);

@@ -206,15 +206,42 @@ GROUPS = {                 # docs/TOKEN-BUDGET.md, regrouped by what fixes them
 WALK = {"feed": 1835.0 * (1035.0 + 573.9) / 2226.3,
         "cpu":  1835.0 * 617.4 / 2226.3, "mem": 0.0}
 
-#  DMA factor: PROJ is 827 us of which the array is 12.7. 2048 words at
-#  about a word a clock is ~20 us, plus the ~24 us CDMA setup the pager
-#  already measures. That is a projection and nothing else -- the honest
-#  first move is to DMA one PROJ call and time it before believing this
-#  row, because this budget has now been wrong twice by not doing that.
+#  The DMA row used to say 0.07, from "PROJ is 827 us of which the array
+#  is 12.7". tools/pph.py went and measured it, and both halves of that
+#  sentence were wrong.
+#
+#  A projection, by phase, at 50 against 200 repetitions:
+#
+#      activations in, 1024 writes to S_ACTWR      109.3 us   13.2%
+#      the array, sixteen passes                   212.0 us   25.6%
+#      results out, 2048 accesses                  320.4 us   38.7%
+#      accumulate into the output slot             185.3 us   22.4%
+#                                                  827.0 us
+#
+#  **The array is 212 us of a projection, not 12.7.** S_CYC reads 1031 for
+#  ntile 1, 4 and 16 alike -- it is a per-pass counter, and a projection
+#  is sixteen passes. Every number this project has published about the
+#  array's share counted one. 440 projections a token x 203 us is 89 ms:
+#  the array does arithmetic for 2.0% of a token, not 0.12%.
+#
+#  That also puts a floor under the DMA campaign, which is the useful
+#  part. Two CDMA moves at the ~24 us setup the pager measures, plus the
+#  array, is 286 us; leave the accumulate loop on the CPU and it is 471.
+#  So DMA is worth a factor of 0.35 to 0.57 on the feed group, not 0.07 --
+#  between 2x and 3x, not fourteen. The row below uses 0.45.
+#
+#  And a cheaper thing fell out. Reading a result costs an index write and
+#  a data read, 2048 accesses for 1024 numbers. Phase 3 times the reads
+#  alone: 106.5 us a call, 12.9% of a projection, for a read port that
+#  increments its own index. About three lines of Verilog, and it is the
+#  best ratio on this list.
 STEPS = [
     ("the recommended shape (a training run, no FPGA work)",
      dict(shape=True)),
-    ("DMA the array's operands and results",     dict(feed=0.07)),
+    ("auto-incrementing S_RDATA (three lines of Verilog)",
+     dict(feed=0.87)),
+    ("DMA the array's operands and results (measured floor)",
+     dict(feed=0.517)),
     ("halve the driver's glue",                  dict(glue=0.5)),
     ("128-bit weight bus",                       dict(mem=0.25)),
     ("interleaved 128 window, 1 full layer in 4", dict(window=0.4375)),
