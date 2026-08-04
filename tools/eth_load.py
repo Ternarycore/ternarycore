@@ -142,6 +142,8 @@ def main():
     ap.add_argument("--image", help="packed weight image to load at offset 0")
     ap.add_argument("--limit", type=int, default=0,
                     help="stop after this many pages (0 = all)")
+    ap.add_argument("--at", default="0",
+                    help="DDR byte offset for the start of the image")
     a = ap.parse_args()
 
     if a.chunk % 4:
@@ -161,15 +163,23 @@ def main():
         sys.exit("nothing to do: pass --selftest or --image")
 
     size = os.path.getsize(a.image)
-    npages = size // PAGE
+    base = int(a.at, 0)
+    # Round up, not down. Truncating division on an image that is not a
+    # whole number of pages loads the whole pages and silently drops the
+    # tail, and every checksum still matches because they only cover what
+    # was sent.
+    npages = (size + PAGE - 1) // PAGE
     if a.limit:
         npages = min(npages, a.limit)
-    print(f"{a.image}: {size/1e6:.1f} MB, {npages} pages\n")
+    print(f"{a.image}: {size/1e6:.1f} MB, {npages} pages "
+          f"at DDR 0x{base:08X}\n")
     t0, done = time.time(), 0
     with open(a.image, "rb") as f:
         for p in range(npages):
             blob = f.read(PAGE)
-            send_region(b, sock, src, p * PAGE, blob, a.chunk, a.gap)
+            if not blob:
+                break
+            send_region(b, sock, src, base + p * PAGE, blob, a.chunk, a.gap)
             done += len(blob)
             if p % 20 == 0 or p == npages - 1:
                 el = time.time() - t0
