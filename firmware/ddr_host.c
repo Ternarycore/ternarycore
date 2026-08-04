@@ -1105,7 +1105,8 @@ static int nq_core(const int *x, const int *g, signed char *o8,
                    unsigned long n) {
     int *t = (int *)VS_TMP;
     int v, u, w, q, mx = 0, amx = 0, xs = 0;
-    unsigned int ss = 0u;
+    unsigned int ss;
+    unsigned long long ss64 = 0ull;
     long long inv, qq;
     unsigned long i;
 
@@ -1121,13 +1122,23 @@ static int nq_core(const int *x, const int *g, signed char *o8,
     for (i = 0; i < n; i++) {
         v = x[i];
         u = v >> xs;
-        ss += (unsigned int)(u * u);
+        ss64 += (unsigned long long)(unsigned int)(u * u);
         w = v * g[i];                     /* full product, nothing discarded */
         t[i] = w;
         if (w < 0) w = -w;
         if (w > mx) mx = w;
     }
     if (mx == 0) mx = 1;
+
+    /* The 2047 threshold above bounds n squares by 2^32 only for n = 1024,
+       and two of the four RMSNorms in a block are wider than that. So the
+       accumulator is 64-bit and gets renormalized here instead.
+
+       The host computes rms = sqrt(ss * 4^xs / n), and (ss >> 2) with
+       (xs + 1) leaves that product unchanged -- so the reported pair stays
+       two 32-bit numbers and no parser has to know this happened. */
+    while (ss64 >= (1ull << 32)) { ss64 >>= 2; xs++; }
+    ss = (unsigned int)ss64;
 
     /* |t| <= mx, so |t * inv| <= 127 << 46 = 8.9e15, well inside int64. */
     inv = ((long long)127 << 46) / (long long)mx;
