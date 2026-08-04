@@ -1258,7 +1258,7 @@ static void cmd_qkn(const char *p) {
     for (h = 0; h < nh; h++) {
         const int *qh = q + h * hd;
         signed char *oh = o8 + h * hd;
-        int v, a, b, amx = 0, s1 = 0, sq = 0, mx = 0, w;
+        int v, a, b, amx = 0, s1 = 0, sq = 0, st = 0, tmx = 0, mx = 0, w;
         unsigned int ss = 0u;
         long long inv, qq;
 
@@ -1274,8 +1274,20 @@ static void cmd_qkn(const char *p) {
             v = rsh(rsh(qh[i], s1), sq);
             ss += (unsigned int)(v * v);
         }
-        for (i = 0; i < hd; i++)
-            u[i] = rsh(rsh(qh[i], s1) * g[i], 15);    /* 16x16 -> 32 */
+        /* The gain product is normalized by what it actually reaches,
+           not by a fixed 15. k_norm's gains span 42x, so a typical one is
+           777 in Q15 and a fixed shift divides the accumulator by 42
+           before an 8-bit quantizer ever sees it. Third appearance of the
+           same shape of bug: a shift sized for a theoretical maximum
+           rather than for the data. */
+        tmx = 0;
+        for (i = 0; i < hd; i++) {
+            u[i] = rsh(qh[i], s1) * g[i];             /* 16x16 -> 32 */
+            v = u[i]; if (v < 0) v = -v; if (v > tmx) tmx = v;
+        }
+        st = 0;
+        while ((tmx >> st) > 32767) st++;
+        for (i = 0; i < hd; i++) u[i] = rsh(u[i], st);
 
         for (i = 0; i < half; i++) {
             a = u[i];
