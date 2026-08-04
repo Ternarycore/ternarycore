@@ -110,15 +110,24 @@ module rmsnorm_quant #(
 
     wire [31:0] absx = xv[31] ? (~xv + 32'd1) : xv;
 
-    // pass 2. |u| <= 2047 by the xs rule, so u*u is 22 bits and non-negative;
-    // the square is taken on the signed value, not on its low bits.
+    // Pass 2, and the operand widths are load-bearing. |u| <= 2047 by the
+    // xs rule and |x|, |g| <= 32767 by nq_core's precondition and the Q15
+    // normalization -- so these are 12x12 and 16x16 multiplies. Written on
+    // 32-bit operands they became 32x32, because Vivado cannot know a bound
+    // that lives in a comment: three or four cascaded DSP48s each, and the
+    // critical path at -4.781 ns.
     wire signed [31:0] u   = xv >>> xs;
-    wire signed [31:0] usq = u * u;
-    wire signed [31:0] tw  = xv * gv;            // 16x16 into 32, as in C
+    wire signed [31:0] usq = $signed(u[11:0])  * $signed(u[11:0]);
+    wire signed [31:0] tw  = $signed(xv[15:0]) * $signed(gv[15:0]);
 
-    // max|t| must come from the value being written this cycle, not from the
-    // memory it is being written into -- tmem[i] still holds the last pass.
-    wire [31:0] abstw = tw[31] ? (~tw + 32'd1) : tw;
+    // ...and the product is registered before the absolute value and the
+    // comparison, for the same reason pass 3 is pipelined: multiply, abs,
+    // 32-bit compare and a register enable do not fit in 12.3 ns together.
+    reg  signed [31:0] tw_r;
+    reg  [AW-1:0]      i_p2;
+    reg  [AW+1:0]      p2cnt, p2lim;
+
+    wire [31:0] abstw = tw_r[31] ? (~tw_r + 32'd1) : tw_r;
 
     // Pass 3, at the reduced width, in three pipeline stages.
     //
@@ -172,15 +181,27 @@ module rmsnorm_quant #(
 
             // xs is at most 4: amx <= 32767 and 32767 >> 4 = 2047
             S_XS: if ((amx >> xs) > 32'd2047) xs <= xs + 1'b1;
-                  else st <= S_P2;
+                  else begin
+                      p2cnt <= {(AW+2){1'b0}};
+                      p2lim <= {2'b0, n};
+                      st <= S_P2;
+                  end
 
-            // pass 2: sum of squares, the gain product, and its maximum
+            // pass 2: sum of squares, the gain product, and its maximum,
+            // in two stages. Element k is stored and compared at cycle
+            // k+1, so the pass runs n+1 cycles; stage one stops feeding at
+            // n-1 and the sum of squares only accumulates while it is live.
             S_P2: begin
-                ss48 <= ss48 + {16'd0, usq};
-                tmem[i] <= tw;
-                if (abstw > mx) mx <= abstw;
-                if (i == n - 1'b1) begin i <= {AW{1'b0}}; st <= S_NORM; end
-                else i <= i + 1'b1;
+                if (p2cnt < {2'b0, n}) ss48 <= ss48 + {16'd0, usq};
+                tw_r <= tw;
+                i_p2 <= i;
+                if (p2cnt >= {{(AW+1){1'b0}}, 1'b1}) begin
+                    tmem[i_p2] <= tw_r;
+                    if (abstw > mx) mx <= abstw;
+                end
+                if (i < n - 1'b1) i <= i + 1'b1;
+                if (p2cnt == p2lim) begin i <= {AW{1'b0}}; st <= S_NORM; end
+                else p2cnt <= p2cnt + 1'b1;
             end
 
             // Renormalize ss into 32 bits, then reduce mx for the divide.
