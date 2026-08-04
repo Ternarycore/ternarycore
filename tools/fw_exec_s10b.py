@@ -52,12 +52,20 @@ static void cmd_nqd(const char *p) {
         v = x[i]; if (v < 0) v = -v;
         if (v > amx) amx = v;
     }
-    while ((amx >> sh) > 32767) sh++;
+
+    /* Decide the shift against what rsh will actually produce, not
+       against a truncating shift. The first version tested (amx >> sh)
+       and applied rsh, and those disagree exactly at the boundary:
+       65535 >> 1 is 32767 and fits, while rsh(65535, 1) is 32768 and
+       does not. Computing a bound one way and applying it another is
+       the third truncation-versus-rounding mismatch in this codebase. */
+    while (sh < 31 && rsh(amx, sh) > 32767) sh++;
     if (sh) for (i = 0; i < n; i++) x[i] = rsh(x[i], sh);
 
     if (!nq_core(x, (const int *)(meta_rec(blk) + gain_off[gi]),
                  (signed char *)VSLOT(dst), n)) {
-        uart_puts("ERR x not 16-bit after shift\n"); return;
+        uart_puts("ERR x not 16-bit after shift, max ");
+        uart_putdec((long)nq_amx); uart_puts("\n"); return;
     }
     uart_puts("NQD sh "); uart_putdec((long)sh); uart_puts("\n");
     nq_report();
