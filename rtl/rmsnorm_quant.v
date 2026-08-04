@@ -120,14 +120,27 @@ module rmsnorm_quant #(
     // memory it is being written into -- tmem[i] still holds the last pass.
     wire [31:0] abstw = tw[31] ? (~tw + 32'd1) : tw;
 
-    // pass 3, at the reduced width
-    wire signed [MXS_W:0]  ts   = tv >>> ks;
-    wire signed [PW-1:0]   prod = ts * $signed({1'b0, recip});
+    // Pass 3, at the reduced width, in three pipeline stages.
+    //
+    // Unpipelined this was one combinational chain -- index, tmem read,
+    // shift by ks, the multiply, round, clip, write -- and it closed at
+    // WNS = -12.731 ns against a 12.3 ns period, with the tools naming
+    // i_reg -> omem_reg as the path. Every element here is independent of
+    // every other, so splitting it costs two cycles of latency on a pass
+    // of n and nothing else. Registers either side of the multiply also
+    // let it map onto DSP48 slices properly pipelined.
+    reg  signed [MXS_W:0] ts_r;
+    reg  signed [PW-1:0]  prod_r;
+    reg  [AW-1:0]         i_d1, i_d2;
+    reg  [AW+1:0]         p3cnt, p3lim;
+
+    wire signed [MXS_W:0]  ts     = tv >>> ks;                      // stage 1
+    wire signed [PW-1:0]   prod_w = ts_r * $signed({1'b0, recip});  // stage 2
     wire signed [PW-1:0]   half = {{(PW-1){1'b0}}, 1'b1} << (RECIP_SH - 1);
-    // round half away from zero, exactly as nq_core does
-    wire signed [PW-1:0]   rnd  = (prod >= 0)
-                                ? ((prod + half) >>> RECIP_SH)
-                                : -(((-prod) + half) >>> RECIP_SH);
+    // stage 3: round half away from zero, exactly as nq_core does
+    wire signed [PW-1:0]   rnd  = (prod_r >= 0)
+                                ? ((prod_r + half) >>> RECIP_SH)
+                                : -(((-prod_r) + half) >>> RECIP_SH);
     wire signed [7:0] clipped = (rnd >  127) ?  8'sd127
                               : (rnd < -128) ? -8'sd128 : rnd[7:0];
 
@@ -194,6 +207,8 @@ module rmsnorm_quant #(
             S_DIV: begin
                 if (dcnt == 0) begin
                     recip <= dquo; i <= {AW{1'b0}}; st <= S_P3;
+                    p3cnt <= {(AW+2){1'b0}};
+                    p3lim <= {2'b0, n} + {{(AW+1){1'b0}}, 1'b1};
                 end else begin
                     if ({drem[NUM_W-1:0], dnum[NUM_W-1]}
                         >= {{(NUM_W+1-MXS_W){1'b0}}, mxs}) begin
@@ -209,11 +224,18 @@ module rmsnorm_quant #(
                 end
             end
 
-            // pass 3: scale, round away from zero, clip
+            // pass 3: scale, round away from zero, clip. Element k is
+            // written at cycle k+2, so the pass runs n+2 cycles and the
+            // index feeding stage 1 stops at n-1 while the tail drains.
             S_P3: begin
-                omem[i] <= clipped;
-                if (i == n - 1'b1) st <= S_END;
-                else i <= i + 1'b1;
+                ts_r   <= ts;
+                i_d1   <= i;
+                prod_r <= prod_w;
+                i_d2   <= i_d1;
+                if (p3cnt >= {{AW{1'b0}}, 2'd2}) omem[i_d2] <= clipped;
+                if (i < n - 1'b1) i <= i + 1'b1;
+                if (p3cnt == p3lim) st <= S_END;
+                else p3cnt <= p3cnt + 1'b1;
             end
 
             S_END: begin
