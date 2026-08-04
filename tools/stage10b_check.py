@@ -10,8 +10,13 @@ same int8 the reference produces from the same numbers in float64.
 The magnitude is swept, and the shift predicted rather than accepted.
 The first version of this check drew every vector at 130048, so all
 twelve cases reported sh=2 -- the auto-ranging that is NQD's whole
-purpose got one branch exercised twelve times, under a PASS. Reading
-back an operator's own decision is not checking it.
+purpose got one branch exercised twelve times, under a PASS. It found a
+real bug on its first run at 65535, where the firmware chose its shift
+by truncation and applied it by rounding.
+
+Which is why rsh is duplicated below rather than approximated: the
+prediction has to round the same way the board does, or the check
+disagrees with correct firmware at exactly the boundary it exists for.
 
 PJO is checked against PROJ on the same data -- exactly, not
 approximately. It is the same core function with a pointer moved, so
@@ -36,6 +41,14 @@ from block_check import dumpi32
 from build_ddr_meta import GAINS
 
 
+def rsh(v, s):
+    """The firmware's symmetric right shift, exactly."""
+    if s <= 0:
+        return v
+    return ((v + (1 << (s - 1))) >> s if v >= 0
+            else -(((-v) + (1 << (s - 1))) >> s))
+
+
 def nqd(b, slot, gi, dst, blk, n):
     b.send(f"NQD {slot} {gi} {dst} {blk} {n}\n")
     out = b.until("OK NQ", timeout=30)
@@ -51,7 +64,7 @@ def one_nqd(b, z, blk, gi, name, n, x):
 
     amx = int(np.abs(x).max())
     want_sh = 0
-    while (amx >> want_sh) > 32767:
+    while rsh(amx, want_sh) > 32767:
         want_sh += 1
 
     g = z[f"{blk}.{name}"].astype(np.float64)
@@ -70,10 +83,11 @@ def check_nqd(b, z):
     ok = True
     rng = np.random.default_rng(31)
 
-    # 32767 and 32768 are the boundary: one fits nq_core's 16x16 product
-    # and the other does not, and they must choose different shifts.
+    # 32767 fits nq_core's 16x16 product and 32768 does not, so they must
+    # choose different shifts. 65535 is the case that broke the firmware:
+    # it truncates to exactly 32767 and rounds to 32768.
     print("  -- magnitude sweep, in_norm on block 0 --")
-    for mag in (1000, 32767, 32768, 65535, 130048, 2000000):
+    for mag in (1000, 32767, 32768, 65535, 65536, 130048, 2000000):
         x = rng.integers(-mag, mag + 1, 1024).astype(np.int64)
         x[0] = mag                  # pin the maximum so the shift is decided
         ok &= one_nqd(b, z, 0, 0, "in_norm", 1024, x)
