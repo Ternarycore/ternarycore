@@ -636,6 +636,15 @@ s = s.replace('static int exp_lut[LUTN];',
 s = s.replace('static int silu_lut[LUTN];',
               'static int * const silu_lut = (int *)(DDR_BASE + 0x0E060000u);', 1)
 
+import fw_exec_s14
+assert fw_exec_s14.DEFS_ANCHOR in s
+s = s.replace(fw_exec_s14.DEFS_ANCHOR,
+              fw_exec_s14.DEFS + fw_exec_s14.DEFS_ANCHOR, 1)
+for old, new in fw_exec_s14.EDITS:
+    assert old in s, "s14 anchor missing:\n" + old[:90]
+    assert s.count(old) == 1, "s14 anchor not unique:\n" + old[:90]
+    s = s.replace(old, new, 1)
+
 import fw_exec_s13
 for old, new in ((fw_exec_s13.MLP_OLD, fw_exec_s13.MLP_NEW),
                  (fw_exec_s13.MLP_TAIL_OLD, fw_exec_s13.MLP_TAIL_NEW),

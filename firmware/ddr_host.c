@@ -1106,6 +1106,13 @@ static void cmd_dumpr(const char *p) {
 /* What nq_core computed, where a caller can reach it. The host used to
    read these off a UART line; the block driver cannot, because by then
    there is no round trip left to read them from. */
+
+/* Results of the last *_core call, for callers that have no UART to read
+   a report from. core_ok is cleared by the caller and set only where a
+   core runs to completion, so every early return -- including the range
+   checks, which are untouched -- reads as failure. */
+static int core_ok;
+static unsigned long core_chk, core_n, core_p;
 static int nq_mx, nq_xs, nq_amx;
 static unsigned int nq_ss;
 
@@ -1286,10 +1293,9 @@ static int rsh(int v, int s) {
                     : -(((-v) + (1 << (s - 1))) >> s);
 }
 
-static void cmd_qkn(const char *p) {
-    unsigned long src = parse_u(&p), gsl = parse_u(&p), cs = parse_u(&p),
-                  dst = parse_u(&p), ssl = parse_u(&p),
-                  nh = parse_u(&p), hd = parse_u(&p);
+static void qkn_core(unsigned long src, unsigned long gsl,
+                     unsigned long cs, unsigned long dst, unsigned long ssl,
+                     unsigned long nh, unsigned long hd) {
     const int *q  = (const int *)VSLOT(src);
     const int *g  = (const int *)VSLOT(gsl);
     const int *co = (const int *)VSLOT(cs);
@@ -1371,7 +1377,17 @@ static void cmd_qkn(const char *p) {
 
     for (i = 0; i < nh * hd; i++)
         chk += (unsigned long)(long)o8[i] * (unsigned long)(i + 1u);
-    uart_puts("QCHK "); uart_puthex(chk); uart_puts("\nOK QK\n");
+    core_chk = chk; core_ok = 1;
+}
+
+static void cmd_qkn(const char *p) {
+    unsigned long src = parse_u(&p), gsl = parse_u(&p), cs = parse_u(&p),
+                  dst = parse_u(&p), ssl = parse_u(&p),
+                  nh = parse_u(&p), hd = parse_u(&p);
+    core_ok = 0;
+    qkn_core(src, gsl, cs, dst, ssl, nh, hd);
+    if (!core_ok) return;
+    uart_puts("QCHK "); uart_puthex(core_chk); uart_puts("\nOK QK\n");
 }
 
 
@@ -1441,10 +1457,9 @@ static unsigned int kv_sbase(unsigned long blk, unsigned long h,
                     * KV_MAXP + (unsigned int)pos) * 16u);
 }
 
-static void cmd_kvw(const char *p) {
-    unsigned long blk = parse_u(&p), pos = parse_u(&p), ksl = parse_u(&p),
-                  vsl = parse_u(&p), scl = parse_u(&p),
-                  nkv = parse_u(&p), hd = parse_u(&p);
+static void kvw_core(unsigned long blk, unsigned long pos,
+                     unsigned long ksl, unsigned long vsl, unsigned long scl,
+                     unsigned long nkv, unsigned long hd) {
     const signed char *k = (const signed char *)VSLOT(ksl);
     const signed char *v = (const signed char *)VSLOT(vsl);
     const int *sc = (const int *)VSLOT(scl);
@@ -1496,7 +1511,16 @@ static void cmd_kvw(const char *p) {
         IO32(addr + 8u)  = (unsigned int)sc[h * 4u + 2u];
         IO32(addr + 12u) = (unsigned int)sc[h * 4u + 3u];
     }
-    uart_puts("OK KVW\n");
+    core_ok = 1;
+}
+
+static void cmd_kvw(const char *p) {
+    unsigned long blk = parse_u(&p), pos = parse_u(&p), ksl = parse_u(&p),
+                  vsl = parse_u(&p), scl = parse_u(&p),
+                  nkv = parse_u(&p), hd = parse_u(&p);
+    core_ok = 0;
+    kvw_core(blk, pos, ksl, vsl, scl, nkv, hd);
+    if (core_ok) uart_puts("OK KVW\n");
 }
 
 /* Reconstruct one cached vector from the sliced form. A slicing bug would
@@ -1713,9 +1737,8 @@ static void kv_dma(unsigned int src, unsigned int bytes) {
     }
 }
 
-static void cmd_qk(const char *p) {
-    unsigned long blk = parse_u(&p), kvh = parse_u(&p), pos = parse_u(&p),
-                  qsl = parse_u(&p), dsl = parse_u(&p);
+static void qk_core(unsigned long blk, unsigned long kvh,
+                    unsigned long pos, unsigned long qsl, unsigned long dsl) {
     const signed char *q = (const signed char *)VSLOT(qsl);
     int *o = (int *)VSLOT(dsl);
     unsigned long npos, nch, c, i, b;
@@ -1745,8 +1768,17 @@ static void cmd_qk(const char *p) {
     }
     for (i = 0; i < npos; i++)
         chk += (unsigned long)o[i] * (unsigned long)(i + 1u);
-    uart_puts("QKCHK "); uart_puthex(chk);
-    uart_puts(" N "); uart_putdec((long)npos);
+    core_chk = chk; core_n = npos; core_ok = 1;
+}
+
+static void cmd_qk(const char *p) {
+    unsigned long blk = parse_u(&p), kvh = parse_u(&p), pos = parse_u(&p),
+                  qsl = parse_u(&p), dsl = parse_u(&p);
+    core_ok = 0;
+    qk_core(blk, kvh, pos, qsl, dsl);
+    if (!core_ok) return;
+    uart_puts("QKCHK "); uart_puthex(core_chk);
+    uart_puts(" N "); uart_putdec((long)core_n);
     uart_puts(" CYC "); uart_putdec((long)IO32(STREAM_BASE + S_CYC));
     uart_puts("\nOK QKD\n");
 }
@@ -1786,10 +1818,9 @@ static void cmd_qk(const char *p) {
 #define SM_SCALE_M 1518500250u        /* 1/sqrt(128) as m * 2^e ... */
 #define SM_SCALE_E (-34)              /* ... = 0.08838834765         */
 
-static void cmd_sm(const char *p) {
-    unsigned long blk = parse_u(&p), kvh = parse_u(&p), pos = parse_u(&p),
-                  dsl = parse_u(&p), qmu = parse_u(&p), qeb = parse_u(&p),
-                  psl = parse_u(&p), ssl = parse_u(&p);
+static void sm_core(unsigned long blk, unsigned long kvh,
+                    unsigned long pos, unsigned long dsl, unsigned long qmu,
+                    unsigned long qeb, unsigned long psl, unsigned long ssl) {
     const int *dot = (const int *)VSLOT(dsl);
     signed char *pi = (signed char *)VSLOT(psl);
     int *so = (int *)VSLOT(ssl);
@@ -1882,10 +1913,22 @@ static void cmd_sm(const char *p) {
     so[2] = (int)sume;
     so[3] = (int)npos;
 
-    uart_puts("SM wmax "); uart_puthex(wmax);
-    uart_puts(" ve "); uart_putdec((long)vemax);
-    uart_puts(" sume "); uart_puthex(sume);
-    uart_puts(" n "); uart_putdec((long)npos);
+    core_ok = 1;
+}
+
+static void cmd_sm(const char *p) {
+    unsigned long blk = parse_u(&p), kvh = parse_u(&p), pos = parse_u(&p),
+                  dsl = parse_u(&p), qmu = parse_u(&p), qeb = parse_u(&p),
+                  psl = parse_u(&p), ssl = parse_u(&p);
+    const int *so;
+    core_ok = 0;
+    sm_core(blk, kvh, pos, dsl, qmu, qeb, psl, ssl);
+    if (!core_ok) return;
+    so = (const int *)VSLOT(ssl);
+    uart_puts("SM wmax "); uart_puthex((unsigned long)so[0]);
+    uart_puts(" ve "); uart_putdec((long)so[1]);
+    uart_puts(" sume "); uart_puthex((unsigned long)so[2]);
+    uart_puts(" n "); uart_putdec((long)so[3]);
     uart_puts("\nOK SM\n");
 }
 
@@ -1913,9 +1956,8 @@ static void cmd_sm(const char *p) {
    is an independent 128-deep dot product -- one add per output per chunk,
    against the 128x128 MACs the array does in the same pass. */
 
-static void cmd_pv(const char *p) {
-    unsigned long blk = parse_u(&p), kvh = parse_u(&p), pos = parse_u(&p),
-                  psl = parse_u(&p), osl = parse_u(&p);
+static void pv_core(unsigned long blk, unsigned long kvh,
+                    unsigned long pos, unsigned long psl, unsigned long osl) {
     const signed char *pr = (const signed char *)VSLOT(psl);
     int *o = (int *)VSLOT(osl);
     unsigned long npos, npch, pch, dch, i, b, j;
@@ -1953,9 +1995,18 @@ static void cmd_pv(const char *p) {
 
     for (i = 0; i < KV_HD; i++)
         chk += (unsigned long)o[i] * (unsigned long)(i + 1u);
-    uart_puts("PVCHK "); uart_puthex(chk);
-    uart_puts(" N "); uart_putdec((long)npos);
-    uart_puts(" P "); uart_putdec((long)npch);
+    core_chk = chk; core_n = npos; core_p = npch; core_ok = 1;
+}
+
+static void cmd_pv(const char *p) {
+    unsigned long blk = parse_u(&p), kvh = parse_u(&p), pos = parse_u(&p),
+                  psl = parse_u(&p), osl = parse_u(&p);
+    core_ok = 0;
+    pv_core(blk, kvh, pos, psl, osl);
+    if (!core_ok) return;
+    uart_puts("PVCHK "); uart_puthex(core_chk);
+    uart_puts(" N "); uart_putdec((long)core_n);
+    uart_puts(" P "); uart_putdec((long)core_p);
     uart_puts("\nOK PV\n");
 }
 
