@@ -1,0 +1,42 @@
+  DDR-resident weights: 420 pages, 110.1 MB
+
+prompt 'The' -> token 785 ('The'), position 0
+
+  block  0/28   |x|     8.049     20.5s
+  block  1/28   |x|    23.396     41.0s
+  block  2/28   |x|    37.300     61.5s
+  block  3/28   |x|    76.265     82.0s
+  block  4/28   |x|   115.374    102.5s
+  block  5/28   |x|   150.004    123.0s
+  block  6/28   |x|   193.604    143.5s
+  block  7/28   |x|   236.813    164.0s
+  block  8/28   |x|   280.798    184.5s
+  block  9/28   |x|   321.250    205.0s
+  block 10/28   |x|   360.871    225.5s
+  block 11/28   |x|   397.703    246.0s
+  block 12/28   |x|   433.987    266.5s
+  block 13/28   |x|   467.685    287.0s
+  block 14/28   |x|   499.989    307.6s
+  block 15/28   |x|   522.638    328.1s
+  block 16/28   |x|   550.875    348.6s
+  block 17/28   |x|   578.144    369.1s
+  block 18/28   |x|   610.965    389.6s
+  block 19/28   |x|   651.405    410.1s
+  block 20/28   |x|   697.100    430.6s
+  block 21/28   |x|   742.851    451.1s
+  block 22/28   |x|   800.216    471.6s
+  block 23/28   |x|   860.586    492.1s
+  block 24/28   |x|   929.712    512.6s
+  block 25/28   |x|  1001.338    533.2s
+  block 26/28   |x|  1068.906    553.7s
+  block 27/28   |x|  1140.388    574.2s
+
+  board     token   6785  ' positive'
+  reference token   6785  ' positive'
+  logits rel 0.012554
+  top-5 board     [6785, 8225, 220, 43903, 63656]
+  top-5 reference [6785, 8225, 220, 43903, 63656]
+
+  574.8s for 28 blocks
+
+PASS -- first token on silicon
