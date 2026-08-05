@@ -188,3 +188,60 @@ it: catastrophic, and no amount of least squares helps.
 Plan B survives, at 1.56× rather than 2.43×, and the 2.43× was never
 available at any quality worth having. The next number that matters is a
 warm-up curve, not another reconstruction.
+
+## Appendix — SubLN, inserted and measured
+
+DISTILLATION_PLAN's D2 also asks for SubLN insertion followed by a "brief
+FP fine-tune to confirm the surgery didn't lobotomize the model". The
+fine-tune is avoidable: SubLN divides a projection's input by its own
+RMS, and the projection that follows is a matrix we now know how to
+refit, so the surgery can pay for itself with the same least squares
+instead of a training run.
+
+Where it goes was not a judgement call. `build_ddr_image.py` carries
+exactly six per-block gains — `in_norm`, `post_norm`, `q_norm`, `k_norm`,
+`o_proj.subln`, `down_proj.subln` — so the board expects SubLN on the two
+sub-layer output projections and nowhere else. The datapath settled the
+architecture question before anyone had to have an opinion about it.
+
+`tools/bitnet_surgery.py` inserts both norms, refits `o_proj` and
+`down_proj` against the normalised activation on 512 calibration
+examples, and scores the result:
+
+| | summary ppl |
+|---|---:|
+| teacher | 8.205 |
+| student, no SubLN, full precision | 14.923 |
+| student, SubLN refit, full precision | 209.643 |
+| student, no SubLN, W1.58 A8 | 1,070,728 |
+| student, SubLN refit, W1.58 A8 | 837,074 |
+
+Two things to say plainly about that table.
+
+**SubLN is not free and the refit cannot make it free.** The mean
+per-layer residual after refitting is 0.016 — the surgery is absorbed to
+within 1.6% at every layer — and the model still goes from 14.9 to 209.6.
+Normalisation scales each token by 1/rms(x), which varies token to token,
+while the correction available is one fixed matrix. A 1.6% residual
+compounded over 28 blocks is a factor of fourteen. If the RMS were
+constant across tokens the refit would be exact; it isn't, and that gap
+is the whole cost.
+
+**SubLN does pay for itself under quantization, by 1.28×.** That is the
+direction the paper claims and a good deal smaller than the framing
+implies. The honest reading is that at initialisation SubLN is a net
+loss, and the case for it rests on training stability — which is a claim
+about the warm-up curve, not about this table. It should be checked
+there rather than assumed, and it is cheap to check, because
+`tools/subln_ab.py` builds the no-SubLN arm from the same checkpoint.
+
+Both quantized numbers are catastrophic, which is expected and is the
+entire reason D3 exists: BitNet has never worked without quantization-
+aware training. 837,074 is the number the warm-up starts from, 209.6 is
+the ceiling it is trying to get back to, and 8.205 is the teacher.
+
+The weight quantizer in `bitnet_surgery.py` is character-for-character
+the one in `export_checkpoint.py` — `s = mean(|W|)`,
+`clip(round(W/s), −1, 1)` — because a student trained against a different
+rounding rule than the exporter applies is a student that changes when
+you ship it.
