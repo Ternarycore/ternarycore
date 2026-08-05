@@ -155,6 +155,7 @@ def main():
           if not a.no_kd else "  loss = LM only")
     print(f"  starting perplexity is 837074.5; the ceiling is 209.6\n")
 
+    base_tok, base_step = done_tokens, step
     t0, lm_run, kd_run = time.time(), 0.0, 0.0
     while step < total_steps:
         for g in opt.param_groups:
@@ -191,11 +192,10 @@ def main():
 
         if step % 20 == 0:
             el = time.time() - t0
-            tps = (step * tok_per_step - (done_tokens - step * tok_per_step)) / el
             print(f"  step {step:>6}/{total_steps}  {done_tokens/1e6:8.1f} M tok"
                   f"  lm {lm_run/20:6.3f}  kd {kd_run/20:6.3f}"
-                  f"  lr {lr_at(step):.2e}  {done_tokens/el/1e3:6.1f} k tok/s"
-                  f"  eta {(total_steps-step)*el/step/3600:5.1f} h", flush=True)
+                  f"  lr {lr_at(step):.2e}  {(done_tokens-base_tok)/el/1e3:6.1f} k tok/s"
+                  f"  eta {(total_steps-step)*el/max(1,step-base_step)/3600:5.1f} h", flush=True)
             lm_run = kd_run = 0.0
 
         if step % a.eval_every == 0 or step == total_steps:
