@@ -45,8 +45,22 @@ import os
 import sys
 import time
 
+import signal
+
 import torch
 import torch.nn.functional as F
+
+#  fort shuts down cleanly when the UPS signals, which means SIGTERM
+#  arrives with time to spare rather than the power simply going. Two
+#  outages in an hour each cost every step since the last eval; catching
+#  the signal costs one checkpoint write and loses nothing.
+STOP = False
+
+
+def _stop(sig, frame):
+    global STOP
+    STOP = True
+    print("  SIGTERM: finishing this step, then checkpointing", flush=True)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bitnet_surgery import convert, set_quant, ppl
@@ -155,7 +169,9 @@ def main():
           if not a.no_kd else "  loss = LM only")
     print(f"  starting perplexity is 837074.5; the ceiling is 209.6\n")
 
-    base_tok, base_step = done_tokens, step
+    signal.signal(signal.SIGTERM, _stop)
+    signal.signal(signal.SIGINT, _stop)
+    base_tok, base_step, last_lm = done_tokens, step, 0.0
     t0, lm_run, kd_run = time.time(), 0.0, 0.0
     while step < total_steps:
         for g in opt.param_groups:
@@ -196,7 +212,16 @@ def main():
                   f"  lm {lm_run/20:6.3f}  kd {kd_run/20:6.3f}"
                   f"  lr {lr_at(step):.2e}  {(done_tokens-base_tok)/el/1e3:6.1f} k tok/s"
                   f"  eta {(total_steps-step)*el/max(1,step-base_step)/3600:5.1f} h", flush=True)
+            last_lm = lm_run / 20
             lm_run = kd_run = 0.0
+
+        if STOP:
+            torch.save(dict(model=m.state_dict(), opt=opt.state_dict(),
+                            step=step, tokens=done_tokens), ck)
+            print(f"  checkpointed at step {step}, "
+                  f"{done_tokens/1e6:.1f} M tokens -- resume with --resume",
+                  flush=True)
+            return
 
         if step % a.eval_every == 0 or step == total_steps:
             m.eval()
@@ -206,7 +231,7 @@ def main():
             m.config.use_cache = False
             m.train()
             rec = dict(step=step, tokens=done_tokens, ppl=p,
-                       lm=lm_run, hours=(time.time() - t0) / 3600)
+                       lm=last_lm, hours=(time.time() - t0) / 3600)
             with open(curve, "a") as f:
                 f.write(json.dumps(rec) + "\n")
             print(f"  === eval  step {step}  {done_tokens/1e6:.0f} M tokens"
