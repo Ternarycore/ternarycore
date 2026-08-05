@@ -170,26 +170,26 @@ def main():
     #  --- build the student -------------------------------------------
     sd, src = {}, model.state_dict()
     for k in ("model.embed_tokens.weight", "model.norm.weight"):
-        sd[k] = src[k].clone()
+        sd[k] = src[k].cpu().clone()
     qd = len(keep_h[ex]) * HD
     for new, old in enumerate(keep_l):
         p, q = f"model.layers.{new}.", f"model.layers.{old}."
         hsel = torch.tensor([h * HD + d for h in keep_h[old]
                              for d in range(HD)])
         csel = torch.tensor(keep_c[old])
-        sd[p + "self_attn.q_proj.weight"] = src[q + "self_attn.q_proj.weight"][hsel].clone()
-        sd[p + "self_attn.o_proj.weight"] = src[q + "self_attn.o_proj.weight"][:, hsel].clone()
+        sd[p + "self_attn.q_proj.weight"] = src[q + "self_attn.q_proj.weight"][hsel].cpu().clone()
+        sd[p + "self_attn.o_proj.weight"] = src[q + "self_attn.o_proj.weight"][:, hsel].cpu().clone()
         for nm in ("k_proj", "v_proj"):
-            sd[p + f"self_attn.{nm}.weight"] = src[q + f"self_attn.{nm}.weight"].clone()
+            sd[p + f"self_attn.{nm}.weight"] = src[q + f"self_attn.{nm}.weight"].cpu().clone()
         for nm in ("q_norm", "k_norm"):
             kk = q + f"self_attn.{nm}.weight"
             if kk in src:
-                sd[p + f"self_attn.{nm}.weight"] = src[kk].clone()
-        sd[p + "mlp.gate_proj.weight"] = src[q + "mlp.gate_proj.weight"][csel].clone()
-        sd[p + "mlp.up_proj.weight"] = src[q + "mlp.up_proj.weight"][csel].clone()
-        sd[p + "mlp.down_proj.weight"] = src[q + "mlp.down_proj.weight"][:, csel].clone()
+                sd[p + f"self_attn.{nm}.weight"] = src[kk].cpu().clone()
+        sd[p + "mlp.gate_proj.weight"] = src[q + "mlp.gate_proj.weight"][csel].cpu().clone()
+        sd[p + "mlp.up_proj.weight"] = src[q + "mlp.up_proj.weight"][csel].cpu().clone()
+        sd[p + "mlp.down_proj.weight"] = src[q + "mlp.down_proj.weight"][:, csel].cpu().clone()
         for nm in ("input_layernorm", "post_attention_layernorm"):
-            sd[p + f"{nm}.weight"] = src[q + f"{nm}.weight"].clone()
+            sd[p + f"{nm}.weight"] = src[q + f"{nm}.weight"].cpu().clone()
 
     new_cfg = cfg.to_dict()
     new_cfg.update(num_hidden_layers=a.layers, intermediate_size=a.inter,

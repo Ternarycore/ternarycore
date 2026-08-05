@@ -103,9 +103,14 @@ def main():
     keep_h = {int(k): v for k, v in sel["kept_heads"].items()}
     keep_c = {int(k): v for k, v in sel["kept_channels"].items()}
 
+    #  The teacher lives on the host and visits the card one block at a
+    #  time. Both models resident is 4 GB, which is more than there is
+    #  when something else owns most of the device -- and the teacher is
+    #  only ever used one layer deep, so keeping all 28 there buys
+    #  nothing. A block is 21 MB; the copy is lost in the forward pass.
     tok = AutoTokenizer.from_pretrained(a.teacher)
     t = AutoModelForCausalLM.from_pretrained(
-        a.teacher, dtype=torch.float32).to(dev).eval()
+        a.teacher, dtype=torch.float32).eval()
     s = AutoModelForCausalLM.from_pretrained(
         a.ckpt, dtype=torch.float32).to(dev).eval()
     HD = t.config.head_dim
@@ -120,6 +125,7 @@ def main():
     #  identical and diverge only through the pruning, which is exactly
     #  the divergence we are here to fit against.
     ids, G, S = [], [], []
+    t.model.embed_tokens.to(dev)
     with torch.no_grad():
         for txt in texts:
             e = tok(txt, return_tensors="pt", truncation=True,
@@ -128,6 +134,7 @@ def main():
             h = t.model.embed_tokens(e)
             G.append(h.cpu())
             S.append(h.cpu())
+    t.model.embed_tokens.to("cpu")
     ntok = sum(int(e.shape[1]) for e in ids)
     print(f"sequential reconstruction{' (all projections)' if a.full else ''}: "
           f"{len(keep_l)} kept of {t.config.num_hidden_layers}, "
@@ -136,7 +143,7 @@ def main():
     #  Rotary tables are cheap to rebuild and expensive to keep: caching
     #  them for every example put tens of megabytes on the card for no
     #  reason. Both models share head_dim and theta, so one table serves.
-    rot = t.model.rotary_emb
+    rot = t.model.rotary_emb.to(dev)
 
     def step(layer, h, k):
         p = torch.arange(h.shape[1], device=h.device).unsqueeze(0)
@@ -191,11 +198,12 @@ def main():
     j, worst = 0, 0.0
     with torch.no_grad():
         for ti in range(t.config.num_hidden_layers):
-            tl = t.model.layers[ti]
+            tl = t.model.layers[ti].to(dev)
             if ti not in keep_l:
                 for k in range(len(ids)):
                     G[k] = step(tl, G[k].to(dev), k)   # teacher walks it anyway
                     G[k] = G[k].cpu()
+                t.model.layers[ti].to("cpu")
                 continue
             sl = s.model.layers[j]
             hsel = torch.tensor([h * HD + d for h in keep_h[ti]
@@ -253,6 +261,7 @@ def main():
             for k in range(len(ids)):
                 G[k] = step(tl, G[k].to(dev), k).cpu()
                 S[k] = step(sl, S[k].to(dev), k).cpu()
+            t.model.layers[ti].to("cpu")
             j += 1
 
     print(f"\n  worst relative residual: {worst:.4f}")
