@@ -43,8 +43,8 @@ GAINS = (("in_norm",        1024,     0x0000),
          ("post_norm",      1024,     0x1000),
          ("q_norm",          128,     0x2000),
          ("k_norm",          128,     0x2200),
-         ("o_proj.subln",   2048,     0x2400),
-         ("down_proj.subln", 3072,    0x4400))
+         ("o_proj.subln",   1024,     0x2400),
+         ("down_proj.subln", 2048,    0x3400))
 
 SCALES_OFF = 0x7400      # 7 projections x (mantissa u32, exp i32)
 GMAX_OFF = 0x7440        # 6 gains x (mantissa u32, exp i32)

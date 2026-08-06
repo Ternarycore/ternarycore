@@ -29,7 +29,7 @@ CKPT  = os.path.expanduser("~/tc-ckpt/d4-student-sst2-r2.pt")
 CACHE = os.path.expanduser("~/tc-ckpt/tc-ref-int8.npz")
 TEACHER = "Qwen/Qwen3-0.6B"
 
-H, NH, NKV, HD, INTER, NB = 1024, 16, 8, 128, 3072, 28
+H, NH, NKV, HD, INTER, NB = 1024, 8, 8, 128, 2048, 28
 EPS, THETA, VOCAB = 1e-6, 1e6, 151936
 NREP = NH // NKV
 SCALE = HD ** -0.5

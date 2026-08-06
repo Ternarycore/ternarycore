@@ -74,6 +74,13 @@ def main():
         for name, suffix in GAIN:
             z[f"{blk}.{name}"] = sd[p + suffix].float().numpy()
 
+    #  tc_ref.py builds the whole model, not just the blocks: it needs the
+    #  embedding (tied, so it is the readout too) and the final norm. Both
+    #  stay float on the host and are not part of the ternary image, which
+    #  is why nothing upstream carried them.
+    z["embed"] = sd["model.embed_tokens.weight"].float().numpy()
+    z["final_norm"] = sd["model.norm.weight"].float().numpy()
+
     np.savez(a.out, **z)
     n = sum(v.size for k, v in z.items() if k.count(".") == 1)
     print(f"  {a.blocks} blocks, {len(PROJ)} projections each")
