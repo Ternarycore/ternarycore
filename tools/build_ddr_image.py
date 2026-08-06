@@ -32,14 +32,14 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-H, INTER, NB = 1024, 3072, 28
+H, INTER, NB = 1024, 2048, 28
 PAGE = 256 * 1024
 
 #            name         out    in    parent (as the manifest names it)
-PROJS = (("q_proj",     2048,  H,    "self_attn"),
+PROJS = (("q_proj",        H,  H,    "self_attn"),
          ("k_proj",        H,  H,    "self_attn"),
          ("v_proj",        H,  H,    "self_attn"),
-         ("o_proj",        H, 2048,  "self_attn"),
+         ("o_proj",        H,  H,    "self_attn"),
          ("gate_proj", INTER,  H,    "mlp"),
          ("up_proj",   INTER,  H,    "mlp"),
          ("down_proj",     H, INTER, "mlp"))
