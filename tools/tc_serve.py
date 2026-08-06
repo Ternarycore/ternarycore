@@ -216,6 +216,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path not in ("/generate", "/classify"):
+            #  Drain the body first. An unread body stays in the socket
+            #  and poisons the next request on that connection -- and
+            #  tailscale serve reuses one upstream connection for every
+            #  client, so a single probe to an unrouted path breaks all
+            #  the requests behind it.
+            self.rfile.read(int(self.headers.get("Content-Length", 0) or 0))
             return self._send(404, "text/plain", "no")
         try:
             n = int(self.headers.get("Content-Length", 0))
