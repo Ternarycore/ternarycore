@@ -681,6 +681,9 @@ s = s.replace(fw_exec_s17.ANCHOR, fw_exec_s17.EXEC17 + fw_exec_s17.ANCHOR, 1)
 assert fw_exec_s17.CMD_OLD in s
 s = s.replace(fw_exec_s17.CMD_OLD, fw_exec_s17.CMD_NEW, 1)
 
+import fw_exec_s21
+s = fw_exec_s21.apply(s)
+
 import fw_exec_s20
 for _old, _new in fw_exec_s20.EDITS:
     assert s.count(_old) == 1, _old[:70]

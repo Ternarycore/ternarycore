@@ -2218,9 +2218,9 @@ static void cmd_mlp(const char *p) {
    tables are one layout written twice, in different languages, and
    MREAD exists to prove they still agree. */
 static const unsigned int gain_off[6] =
-    { 0x0000u, 0x1000u, 0x2000u, 0x2200u, 0x2400u, 0x4400u };
+    { 0x0000u, 0x1000u, 0x2000u, 0x2200u, 0x2400u, 0x3400u };
 static const unsigned int gain_len[6] =
-    { 1024u, 1024u, 128u, 128u, 2048u, 3072u };
+    { 1024u, 1024u, 128u, 128u, 1024u, 2048u };
 
 static unsigned int meta_rec(unsigned long blk) {
     return META_BASE + (unsigned int)blk * META_STRIDE;
@@ -2507,17 +2507,16 @@ static void cmd_opb(const char *p) {
 /* ---- Stage 13: the block driver --------------------------------------
 
    Page slots within a block, in the order build_ddr_image.py wrote them
-   and the order blk_proj must request them: q takes two (2048 outputs),
-   k and v one each, o two (2048 inputs), gate and up three each (3072
-   outputs), down three (3072 inputs). Fifteen, and the image's rule is
-   page = blk*15 + slot.                                              */
+   and the order blk_proj must request them: q, k, v and o one each at
+   1024 in and out, gate and up two each (2048 outputs), down two (2048
+   inputs). Ten, and the image's rule is page = blk*10 + slot.         */
 #define P_Q    0u
-#define P_K    2u
-#define P_V    3u
-#define P_O    4u
-#define P_G    6u
-#define P_U    9u
-#define P_D   12u
+#define P_K    1u
+#define P_V    2u
+#define P_O    3u
+#define P_G    4u
+#define P_U    6u
+#define P_D    8u
 
 /* Scratch slots. Sixteen exist at 16 KB each; these are the seven the
    block needs, named rather than numbered because a projection writing
@@ -2565,7 +2564,7 @@ static int blk_proj(unsigned long blk, unsigned long slot0,
     unsigned long nc = nout >> 10, ns = nin >> 10, c, s;
     for (c = 0; c < nc; c++)
         for (s = 0; s < ns; s++) {
-            if (!page_load(blk * 15u + slot0 + c * ns + s)) return 0;
+            if (!page_load(blk * 10u + slot0 + c * ns + s)) return 0;
             proj_core(a + (s << 10), o + (c << 10), 16u, s != 0u);
         }
     return 1;
@@ -2730,9 +2729,9 @@ static int run_block(unsigned long blk, unsigned long pos, int fab) {
 
        The scales are saved as each is produced, because qkn_core writes
        them into one set of globals and the next call overwrites them. */
-    if (!blk_proj(blk, P_Q, 2048u, 1024u, a8, p0)) return 0;
-    qkn_run(blk, 2u, S_P0, S_Q8, 16u, 1, 0u, 0);
-    for (h = 0; h < 16u; h++) {
+    if (!blk_proj(blk, P_Q, 1024u, 1024u, a8, p0)) return 0;
+    qkn_run(blk, 2u, S_P0, S_Q8, 8u, 1, 0u, 0);
+    for (h = 0; h < 8u; h++) {
         qs[h * 2u]      = (int)qkn_sm[h];
         qs[h * 2u + 1u] = qkn_se[h];
     }
@@ -2761,24 +2760,24 @@ static int run_block(unsigned long blk, unsigned long pos, int fab) {
 
     if (!attn_heads(blk, pos)) return 0;
 
-    if (!nq_run(fab, att, blk, 4u, a8, 2048u)) return 0;
-    nq_scale(blk, 4u, 2048u, &sa, &ea);
-    if (!blk_proj(blk, P_O, 1024u, 2048u, a8, p0)) return 0;
+    if (!nq_run(fab, att, blk, 4u, a8, 1024u)) return 0;
+    nq_scale(blk, 4u, 1024u, &sa, &ea);
+    if (!blk_proj(blk, P_O, 1024u, 1024u, a8, p0)) return 0;
     meta_bf(blk, META_SCALES, 3u, &sw, &ew);            /* o_proj */
     sc_mul(sw, ew, sa, ea, &tm, &te);
     resid_add(x, blk_xm, blk_xe, p0, tm, te, x1, 1024u, &blk_xm, &blk_xe);
 
     if (!nq_run(fab, x1, blk, 1u, a8, 1024u)) return 0;
     nq_scale(blk, 1u, 1024u, &sa, &ea);
-    if (!blk_proj(blk, P_G, 3072u, 1024u, a8, p0)) return 0;
-    if (!blk_proj(blk, P_U, 3072u, 1024u, a8, p1)) return 0;
+    if (!blk_proj(blk, P_G, 2048u, 1024u, a8, p0)) return 0;
+    if (!blk_proj(blk, P_U, 2048u, 1024u, a8, p1)) return 0;
     meta_bf(blk, META_SCALES, 4u, &sw, &ew);            /* gate_proj */
     sc_mul(sw, ew, sa, ea, &tm, &te);
-    mlp_core(p0, p1, m, tm, (long)te + 512, 3072u);
+    mlp_core(p0, p1, m, tm, (long)te + 512, 2048u);
 
-    if (!nq_run(fab, m, blk, 5u, a8, 3072u)) return 0;
-    nq_scale(blk, 5u, 3072u, &sa, &ea);
-    if (!blk_proj(blk, P_D, 1024u, 3072u, a8, p0)) return 0;
+    if (!nq_run(fab, m, blk, 5u, a8, 2048u)) return 0;
+    nq_scale(blk, 5u, 2048u, &sa, &ea);
+    if (!blk_proj(blk, P_D, 1024u, 2048u, a8, p0)) return 0;
     meta_bf(blk, META_SCALES, 6u, &sw, &ew);            /* down_proj */
     sc_mul(sw, ew, sa, ea, &tm, &te);
     resid_add(x1, blk_xm, blk_xe, p0, tm, te, x, 1024u, &blk_xm, &blk_xe);
@@ -2916,20 +2915,20 @@ static int attn_heads(unsigned long blk, unsigned long pos) {
     int fe[16], Me, te, de, amx, v;
     unsigned long h, i;
 
-    for (h = 0; h < 16u; h++) {
+    for (h = 0; h < 8u; h++) {
         for (i = 0; i < 128u; i++) qh[i] = q8[(h << 7) + i];
 
-        core_ok = 0; qk_core(blk, h >> 1, pos, S_QH, S_DOT);
+        core_ok = 0; qk_core(blk, h, pos, S_QH, S_DOT);
         if (!core_ok) { uart_puts("ERR qk\n"); return 0; }
 
         core_ok = 0;
-        sm_core(blk, h >> 1, pos, S_DOT,
+        sm_core(blk, h, pos, S_DOT,
                 (unsigned long)(unsigned int)qs[h * 2u],
                 (unsigned long)(long)(qs[h * 2u + 1u] + 512),
                 S_PR, S_SO);
         if (!core_ok) { uart_puts("ERR sm\n"); return 0; }
 
-        core_ok = 0; pv_core(blk, h >> 1, pos, S_PR, S_NUM);
+        core_ok = 0; pv_core(blk, h, pos, S_PR, S_NUM);
         if (!core_ok) { uart_puts("ERR pv\n"); return 0; }
 
         /* num * wmax * 2^vemax / (127 * sume / 65536): the softmax
@@ -2943,9 +2942,9 @@ static int attn_heads(unsigned long blk, unsigned long pos) {
         for (i = 0; i < 128u; i++) att[(h << 7) + i] = num[i];
     }
 
-    /* One exponent for all sixteen. */
+    /* One exponent for all eight. */
     Mm = 0u; Me = 0;
-    for (h = 0; h < 16u; h++) {
+    for (h = 0; h < 8u; h++) {
         amx = 0;
         for (i = 0; i < 128u; i++) {
             v = att[(h << 7) + i]; if (v < 0) v = -v;
@@ -2955,11 +2954,11 @@ static int attn_heads(unsigned long blk, unsigned long pos) {
         sc_max2(Mm, Me, t, te, &Mm, &Me);
     }
     if (Mm == 0u) {
-        for (i = 0; i < 2048u; i++) att[i] = 0;
+        for (i = 0; i < 1024u; i++) att[i] = 0;
         return 1;
     }
     Me += 1 - 29;
-    for (h = 0; h < 16u; h++) {
+    for (h = 0; h < 8u; h++) {
         sc_div(fm[h], fe[h], Mm, Me, &t, &te);
         for (i = 0; i < 128u; i++)
             att[(h << 7) + i] = mul_bf(att[(h << 7) + i], t, te);
