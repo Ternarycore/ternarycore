@@ -42,8 +42,10 @@ module ternary_dot #(
          output reg                  debug_valid_out_out
 );
 
-     reg signed [DATA_WIDTH-1:0] weighted;
-     reg [ACC_WIDTH-1:0] weighted_ext;
+     wire [ACC_WIDTH-1:0] weighted_ext;
+     ternary_weight #(.DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH)) u_w (
+         .activation(activation), .weight_enc(weight_enc),
+         .weighted_ext(weighted_ext));
 
      reg [ACC_WIDTH-1:0] acc;
      reg [15:0]          count;       // down-counter, no $clog2 required
@@ -98,10 +100,7 @@ module ternary_dot #(
               debug_valid_out_out <= 1'b0;
           end else begin
               // Compute weighted value from current inputs
-              weighted = (weight_enc == 2'b00) ?  {DATA_WIDTH{1'b0}} :
-                         (weight_enc == 2'b01) ?  $signed(activation) :
-                                                  -$signed(activation);
-              weighted_ext = {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
+              // weighted_ext comes from the shared ternary_weight cell.
               next_acc = acc + weighted_ext;
 
              // ── Accumulation + counter stage ──────────────────────
