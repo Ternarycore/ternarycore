@@ -11,6 +11,7 @@ depth 24
 smtbmc
 
 [script]
+read -formal ternary_weight.v
 read -formal ternary_dot.v
 read -formal ternary_dot_formal.v
 setattr -unset keep *
@@ -19,5 +20,6 @@ setattr -unset mark_debug *
 prep -top ternary_dot_formal
 
 [files]
+../rtl/ternary_weight.v
 ../rtl/ternary_dot.v
 ternary_dot_formal.v

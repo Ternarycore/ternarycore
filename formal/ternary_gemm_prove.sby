@@ -6,6 +6,7 @@ depth 8
 smtbmc
 
 [script]
+read -formal ternary_weight.v
 read -formal ternary_gemm.v
 read -formal ternary_dot.v
 read -formal ternary_gemm_formal.v
@@ -15,6 +16,7 @@ setattr -unset mark_debug *
 prep -top ternary_gemm_formal
 
 [files]
+../rtl/ternary_weight.v
 ../rtl/ternary_gemm.v
 ../rtl/ternary_dot.v
 ternary_gemm_formal.v

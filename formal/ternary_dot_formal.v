@@ -1,6 +1,8 @@
 // Formal cover + bmc for ternary_dot in isolation.
-// Reference: sliding-window dot product over VECTOR_LEN elements.
-// Matches main's RTL timing: sticky vector_done, valid_out = vector_done.
+// Reference matches main's RTL after ternary_weight.v split:
+//   - 9-bit signed select (exact over full int8 range)
+//   - sticky vector_done (valid_out = vector_done)
+//   - acc_out updates one cycle after vector_done rises
 
 `timescale 1ns / 1ps
 
@@ -58,11 +60,15 @@ module ternary_dot_formal(
     reg                         ref_done_d1;
     reg signed [ACC_WIDTH-1:0] ref_result;
 
-    // Match main's 8-bit weighted computation (not the 9-bit fix)
-    wire signed [DATA_WIDTH-1:0] weighted =
-        (weight_enc == 2'b00) ? 0 :
-        (weight_enc == 2'b01) ? $signed(activation) :
-        (weight_enc == 2'b10) ? -$signed(activation) : -$signed(activation);
+    // Match ternary_weight.v: DATA_WIDTH+1 bit signed select
+    wire signed [DATA_WIDTH:0] a_ext =
+        $signed({activation[DATA_WIDTH-1], activation});
+    wire signed [DATA_WIDTH:0] weighted =
+        (weight_enc == 2'b00) ? {(DATA_WIDTH+1){1'b0}} :
+        (weight_enc == 2'b01) ?  a_ext
+                              : -a_ext;
+    wire signed [ACC_WIDTH-1:0] weighted_ext =
+        {{(ACC_WIDTH-DATA_WIDTH-1){weighted[DATA_WIDTH]}}, weighted};
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -73,19 +79,18 @@ module ternary_dot_formal(
             ref_result <= 0;
         end else begin
             ref_done_d1 <= ref_done;
-            // Main's RTL: vector_done goes high on terminal feed (count==1, valid_in)
-            // and stays high (sticky) across valid_in=0 gaps.
-            // Clears on the first non-terminal element of the next vector.
+            // Sticky vector_done: rises on terminal feed, stays until first
+            // non-terminal element of the next vector.
             if (valid_in && (!ref_done || ref_done_d1)) begin
                 if (feed_count == VECTOR_LEN-1) begin
-                    ref_result <= dot_acc + weighted;
+                    ref_result <= dot_acc + weighted_ext;
                     ref_done <= 1;
                     feed_count <= 0;
                     dot_acc <= 0;
                 end else begin
                     ref_done <= 0;
                     feed_count <= feed_count + 1;
-                    dot_acc <= dot_acc + weighted;
+                    dot_acc <= dot_acc + weighted_ext;
                 end
             end else begin
                 ref_done <= ref_done;
@@ -97,13 +102,14 @@ module ternary_dot_formal(
     always @(posedge clk) begin
         if (run_cnt >= 4) begin
             assert(valid_out == ref_done);
+            // acc_out is written on the posedge where vector_done is already 1,
+            // so it matches ref_result starting the cycle after ref_done rises.
             if (ref_done && ref_done_d1)
                 assert(acc_out == ref_result);
         end
     end
 
-    // Safety: valid_out never stays high when a new valid_in vector starts
-    // (the first non-terminal feed of a new vector clears vector_done)
+    // Safety: first non-terminal feed of a new vector clears vector_done
     reg vo_d1;
     always @(posedge clk) begin
         if (!rst_n) vo_d1 <= 0;
@@ -118,9 +124,10 @@ module ternary_dot_formal(
     always @(posedge clk) begin
         if (run_cnt >= 4) begin
             cover(valid_out);
-            cover(valid_out && acc_out != 0);
-            cover(valid_out && $signed(acc_out) > 0);
-            cover(valid_out && $signed(acc_out) < 0);
+            // Sample result one cycle after done rises (acc_out latched)
+            cover(ref_done && ref_done_d1 && acc_out != 0);
+            cover(ref_done && ref_done_d1 && $signed(acc_out) > 0);
+            cover(ref_done && ref_done_d1 && $signed(acc_out) < 0);
         end
     end
 

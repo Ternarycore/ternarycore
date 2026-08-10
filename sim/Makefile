@@ -8,8 +8,9 @@ SIMDIR   = .
 VERILATOR = verilator
 
 .PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram clean verify
-.PHONY: verilator-mac verilator-dot verilator-gemm verilator-pipeline-large verilator-all
-.PHONY: verilator-dot-back2back verilator-dot-diff device-diff differential-fuzz mutations coverage
+.PHONY: verilator-mac verilator-dot verilator-gemm verilator-all
+.PHONY: verilator-dot-back2back verilator-dot-fuzz
+.PHONY: verilator-dot-diff device-diff differential-fuzz mutations coverage
 
 all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram
 
@@ -95,63 +96,59 @@ clean:
 # Requirements: verilator (brew install verilator)
 # Builds a standalone C++ simulator. Typically 10-100x faster than Icarus.
 VERILATOR_SRCDIR = tests
-VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -I../rtl
+# WIDTHTRUNC: intentional accumulator/width narrowing in ternary_dot tree reductions
+# TIMESCALEMOD: ternary_weight.v has no timescale (shared cell)
+# PINMISSING: optional debug_* ports on ternary_dot left unconnected by gemm
+VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-TIMESCALEMOD -Wno-PINMISSING -I../rtl
 CXX ?= g++
+# Shared ternary select cell (required after ternary_weight.v split on main)
+TW = ../rtl/ternary_weight.v
 
-verilator-mac: $(VERILATOR_SRCDIR)/verilator_mac.cpp ../rtl/ternary_mac.v
+verilator-mac: $(VERILATOR_SRCDIR)/verilator_mac.cpp ../rtl/ternary_mac.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_mac \
-		$(VERILATOR_FLAGS) ../rtl/ternary_mac.v $< -o sim_mac_verilator
+		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_mac.v $< -o sim_mac_verilator
 	./obj_dir/sim_mac_verilator
 
-verilator-dot: $(VERILATOR_SRCDIR)/verilator_dot.cpp ../rtl/ternary_dot.v
+verilator-dot: $(VERILATOR_SRCDIR)/verilator_dot.cpp ../rtl/ternary_dot.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
 		-GVECTOR_LEN=8 \
 		--Mdir obj_dir_dot \
-		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_verilator
+		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_verilator
 	./obj_dir_dot/sim_dot_verilator
 
-verilator-dot-back2back: $(VERILATOR_SRCDIR)/verilator_dot_back2back.cpp ../rtl/ternary_dot.v
+verilator-dot-back2back: $(VERILATOR_SRCDIR)/verilator_dot_back2back.cpp ../rtl/ternary_dot.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
 		-GVECTOR_LEN=4 \
 		--Mdir obj_dir_dot_b2b \
-		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_back2back_verilator
+		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_back2back_verilator
 	./obj_dir_dot_b2b/sim_dot_back2back_verilator
 
-verilator-gemm: $(VERILATOR_SRCDIR)/verilator_gemm.cpp ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+verilator-gemm: $(VERILATOR_SRCDIR)/verilator_gemm.cpp ../rtl/ternary_gemm.v ../rtl/ternary_dot.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_gemm \
 		-GDEPTH=4 -GCOLS=4 \
-		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v ../rtl/ternary_gemm.v $< -o sim_gemm_verilator
+		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v ../rtl/ternary_gemm.v $< -o sim_gemm_verilator
 	./obj_dir/sim_gemm_verilator
 
-verilator-pipeline-large: $(VERILATOR_SRCDIR)/verilator_pipeline_576.cpp \
-                           ../rtl/ternary_pipeline.v ../rtl/activation_quant.v \
-                           ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_scale.v
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_pipeline \
-		-GVECTOR_LEN=576 -GCOLS=4 \
-		$(VERILATOR_FLAGS) \
-		../rtl/activation_quant.v ../rtl/ternary_dot.v ../rtl/ternary_gemm.v \
-		../rtl/ternary_scale.v ../rtl/ternary_pipeline.v $< -o sim_pipeline_576_verilator
-	./obj_dir/sim_pipeline_576_verilator
-
+# Assets present on this PR branch only (no pipeline-large / diff sources)
 verilator-all:\
   verilator-mac verilator-dot verilator-dot-back2back verilator-dot-fuzz\
-  verilator-gemm verilator-pipeline-large verilator-dot-diff
+  verilator-gemm
 
-verilator-dot-fuzz: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v
+verilator-dot-fuzz: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
 		-GVECTOR_LEN=8 \
 		--Mdir obj_dir_dot_fuzz \
-		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_fuzz_verilator
+		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_fuzz_verilator
 	./obj_dir_dot_fuzz/sim_dot_fuzz_verilator
 
-# ── Differential fuzzing ──────────────────────────────────────────────────────
+# ── Differential fuzzing (sources land in later PRs; keep targets local-only) ─
 DIFF_BUILD = build
 
-verilator-dot-diff: $(VERILATOR_SRCDIR)/verilator_dot_diff.cpp ../rtl/ternary_dot.v
+verilator-dot-diff: $(VERILATOR_SRCDIR)/verilator_dot_diff.cpp ../rtl/ternary_dot.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
 		-GVECTOR_LEN=8 \
 		--Mdir obj_dir_dot_diff \
-		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_diff_verilator
+		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_diff_verilator
 
 device-diff: $(VERILATOR_SRCDIR)/device_diff.cpp
 	mkdir -p $(DIFF_BUILD)
@@ -161,12 +158,12 @@ differential-fuzz: verilator-dot-diff device-diff
 	python3 $(VERILATOR_SRCDIR)/differential_fuzz.py $(TRIALS)
 
 # ── Coverage (toggle/branch via Verilator) ─────────────────────────────────────
-coverage: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v
+coverage: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
 		-GVECTOR_LEN=8 \
 		--Mdir obj_dir_coverage \
 		--coverage \
-		$(VERILATOR_FLAGS) ../rtl/ternary_dot.v $< -o sim_dot_coverage
+		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_coverage
 	./obj_dir_coverage/sim_dot_coverage 42 10000
 	mkdir -p coverage
 	verilator_coverage --annotate-min 1 \

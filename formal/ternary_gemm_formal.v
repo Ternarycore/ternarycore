@@ -1,5 +1,6 @@
 // Formal cover + bmc for ternary_gemm — COLS parallel ternary_dot units.
-// Reference: per-column sliding-window accumulator, one reference per column.
+// Matches main RTL: sticky per-column vector_done OR'd to valid_out,
+// 9-bit ternary_weight cell, acc_out latched one cycle after done rises.
 
 `timescale 1ns / 1ps
 
@@ -43,7 +44,8 @@ module ternary_gemm_formal(
         else if (run_cnt < 15) run_cnt <= run_cnt + 1;
     end
 
-    // Force DEPTH (= VECTOR_LEN) valid_in=1 cycles to complete the vector
+    // Force DEPTH consecutive valid_in=1 feeds, then hold valid_in=0
+    // so sticky valid_out remains observable for cover/assert.
     reg [3:0] feed_counter;
     always @(posedge clk) begin
         if (!rst_n) feed_counter <= 0;
@@ -57,20 +59,27 @@ module ternary_gemm_formal(
         end
     end
 
-    // Per-column reference: sliding-window accumulator
+    // Per-column sticky reference (mirrors ternary_dot sticky vector_done)
     reg [3:0]          feed_count;
     reg signed [ACC_WIDTH-1:0] dot_acc [0:COLS-1];
     reg                        ref_done;
+    reg                        ref_done_d1;
     reg signed [ACC_WIDTH-1:0] ref_result [0:COLS-1];
 
+    wire signed [DATA_WIDTH:0] a_ext =
+        $signed({activation[DATA_WIDTH-1], activation});
+
     wire signed [DATA_WIDTH:0] weighted [0:COLS-1];
+    wire signed [ACC_WIDTH-1:0] weighted_ext [0:COLS-1];
     genvar ci;
     generate
         for (ci = 0; ci < COLS; ci = ci + 1) begin : ref_col
             assign weighted[ci] =
-                (weight_enc[2*ci +: 2] == 2'b00) ? 0 :
-                (weight_enc[2*ci +: 2] == 2'b01) ? $signed(activation) :
-                (weight_enc[2*ci +: 2] == 2'b10) ? -$signed(activation) : -$signed(activation);
+                (weight_enc[2*ci +: 2] == 2'b00) ? {(DATA_WIDTH+1){1'b0}} :
+                (weight_enc[2*ci +: 2] == 2'b01) ?  a_ext
+                                                 : -a_ext;
+            assign weighted_ext[ci] =
+                {{(ACC_WIDTH-DATA_WIDTH-1){weighted[ci][DATA_WIDTH]}}, weighted[ci]};
         end
     endgenerate
 
@@ -79,66 +88,63 @@ module ternary_gemm_formal(
         if (!rst_n) begin
             feed_count <= 0;
             ref_done <= 0;
+            ref_done_d1 <= 0;
             for (c = 0; c < COLS; c = c + 1) begin
                 dot_acc[c] <= 0;
                 ref_result[c] <= 0;
             end
         end else begin
-            ref_done <= 0;
-            if (valid_in) begin
+            ref_done_d1 <= ref_done;
+            // With assume(!valid_in) after DEPTH feeds, ref_done stays sticky
+            // once set (no new non-terminal feed to clear it).
+            if (valid_in && (!ref_done || ref_done_d1)) begin
                 if (feed_count == DEPTH-1) begin
                     for (c = 0; c < COLS; c = c + 1) begin
-                        ref_result[c] <= dot_acc[c] + weighted[c];
+                        ref_result[c] <= dot_acc[c] + weighted_ext[c];
                         dot_acc[c] <= 0;
                     end
                     ref_done <= 1;
                     feed_count <= 0;
                 end else begin
+                    ref_done <= 0;
                     feed_count <= feed_count + 1;
                     for (c = 0; c < COLS; c = c + 1) begin
-                        dot_acc[c] <= dot_acc[c] + weighted[c];
+                        dot_acc[c] <= dot_acc[c] + weighted_ext[c];
                     end
                 end
+            end else begin
+                ref_done <= ref_done;
             end
         end
     end
 
-    // ── Assertions ────────────────────────────────────
-    // All columns finish simultaneously → valid_out == ref_done
+    // valid_out tracks sticky ref_done
     always @(posedge clk) begin
         if (run_cnt >= 4) begin
             assert(valid_out == ref_done);
         end
     end
 
-    // When valid_out fires, each column's acc_out matches reference
+    // acc_out matches reference once latched (cycle after done rises)
     generate
         for (ci = 0; ci < COLS; ci = ci + 1) begin : chk_col
             always @(posedge clk) begin
-                if (run_cnt >= 4 && ref_done)
+                if (run_cnt >= 4 && ref_done && ref_done_d1)
                     assert(acc_out[ACC_WIDTH*ci +: ACC_WIDTH] == ref_result[ci]);
             end
         end
     endgenerate
 
-    // Safety: valid_out never stays high 2+ consecutive cycles
-    reg vo_d1;
-    always @(posedge clk) begin
-        if (!rst_n) vo_d1 <= 0;
-        else vo_d1 <= valid_out;
-    end
-    always @(posedge clk) begin
-        if (run_cnt >= 4)
-            assert(!(valid_out && vo_d1));
-    end
-
-    // Cover: valid_out fires, non-zero results per column
+    // Cover: valid_out fires; non-zero / signed results after acc_out latches
     always @(posedge clk) begin
         if (run_cnt >= 4) begin
             cover(valid_out);
-            cover(valid_out && acc_out[ACC_WIDTH*0 +: ACC_WIDTH] != 0);
-            cover(valid_out && $signed(acc_out[ACC_WIDTH*0 +: ACC_WIDTH]) > 0);
-            cover(valid_out && $signed(acc_out[ACC_WIDTH*0 +: ACC_WIDTH]) < 0);
+            cover(ref_done && ref_done_d1 &&
+                  acc_out[ACC_WIDTH*0 +: ACC_WIDTH] != 0);
+            cover(ref_done && ref_done_d1 &&
+                  $signed(acc_out[ACC_WIDTH*0 +: ACC_WIDTH]) > 0);
+            cover(ref_done && ref_done_d1 &&
+                  $signed(acc_out[ACC_WIDTH*0 +: ACC_WIDTH]) < 0);
         end
     end
 

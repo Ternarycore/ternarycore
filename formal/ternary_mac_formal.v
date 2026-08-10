@@ -41,17 +41,21 @@ module ternary_mac_formal(
         else if (run_cnt < 15) run_cnt <= run_cnt + 1;
     end
 
-    // Match main's 8-bit weighted computation (including -$signed(-128) wrap)
-    wire signed [DATA_WIDTH-1:0] ref_weighted =
-        (weight_enc == 2'b01) ? $signed(activation) :
-        (weight_enc == 2'b10) ? -$signed(activation) : {DATA_WIDTH{1'b0}};
+    // Match ternary_weight.v / main ternary_mac: DATA_WIDTH+1 bit select
+    wire signed [DATA_WIDTH:0] a_ext =
+        $signed({activation[DATA_WIDTH-1], activation});
+    wire signed [DATA_WIDTH:0] ref_weighted =
+        (weight_enc == 2'b00) ? {(DATA_WIDTH+1){1'b0}} :
+        (weight_enc == 2'b01) ?  a_ext
+                              : -a_ext;
 
     reg signed [ACC_WIDTH-1:0] ref_next;
     always @(posedge clk) begin
         if (!rst_n) begin
             ref_next <= 0;
         end else if (valid_in) begin
-            ref_next <= acc_in + {{(ACC_WIDTH-DATA_WIDTH){ref_weighted[DATA_WIDTH-1]}}, ref_weighted};
+            ref_next <= acc_in +
+                {{(ACC_WIDTH-DATA_WIDTH-1){ref_weighted[DATA_WIDTH]}}, ref_weighted};
         end
     end
 
