@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: CERN-OHL-S-2.0
-// FP8 E5M2 → unsigned Q15 decoder for alpha scales.
+// FP8 E5M2 → unsigned Q15 decoder for alpha scales (not E4M3).
 // 1.0 = 32768 in Q15. Feeds directly into ternary_scale.alpha.
+// fp8[7] (IEEE-style sign) is intentionally ignored: per-channel alphas
+// are non-negative magnitudes in unsigned Q15.
 
 `timescale 1ns / 1ps
 
@@ -9,8 +11,9 @@ module fp8_to_q15 (
     output reg [15:0] q15
 );
 
-    wire [4:0] mant_exp = fp8[6:2];  // exp (E5M2 format)
-    wire [1:0] mant_frac = fp8[1:0]; // mantissa fractional bits
+    // E5M2 layout: [7]=sign (unused), [6:2]=exp, [1:0]=frac
+    wire [4:0] mant_exp = fp8[6:2];
+    wire [1:0] mant_frac = fp8[1:0];
 
     wire [15:0] base = 16'h8000 | ({{14{1'b0}}, mant_frac} << 13);
 
