@@ -116,29 +116,45 @@ vp::IoReqStatus TernarycoreDevice::handle_wgt_buf(vp::IoReq *req)
 
 vp::IoReqStatus TernarycoreDevice::handle_alpha(vp::IoReq *req)
 {
-    int idx = (req->get_addr() - TC_ALPHA_0) / 2;
+    uint64_t addr = req->get_addr();
+    int idx = (addr - TC_ALPHA_0) / 2;
     uint8_t *data = req->get_data();
     uint64_t size = req->get_size();
     bool is_write = req->get_is_write();
+
+    // Alpha registers are 16-bit; only 2- and 4-byte accesses are supported.
+    // Use memcpy for all R/W to avoid unaligned pointer casts.
     if (idx < 0 || idx >= TC_COLS)
-        return vp::IO_REQ_OK;
+        return vp::IO_REQ_INVALID;
+    if (size != 2 && size != 4)
+        return vp::IO_REQ_INVALID;
+    // Require halfword alignment for alpha MMIO
+    if ((addr - TC_ALPHA_0) & 1)
+        return vp::IO_REQ_INVALID;
+
     if (is_write) {
         if (size == 2) {
             uint16_t tmp;
             std::memcpy(&tmp, data, 2);
             this->alpha[idx] = tmp;
-        } else if (size == 4) {
+        } else {
+            // 32-bit write: low half -> alpha[idx], high half -> next (if any)
             uint32_t tmp;
             std::memcpy(&tmp, data, 4);
-            this->alpha[idx] = tmp & 0xFFFF;
+            this->alpha[idx] = (uint16_t)(tmp & 0xFFFF);
+            if (idx + 1 < TC_COLS)
+                this->alpha[idx + 1] = (uint16_t)((tmp >> 16) & 0xFFFF);
         }
     } else {
         if (size == 2) {
             uint16_t tmp = this->alpha[idx];
             std::memcpy(data, &tmp, 2);
-        } else if (size == 4) {
-            uint32_t tmp = (uint32_t)this->alpha[idx]
-                         | ((uint32_t)this->alpha[idx + 1] << 16);
+        } else {
+            // 32-bit read: pack two halfwords when in range; zero-extend high
+            // half when reading the last alpha so upper bits are never garbage
+            uint32_t tmp = (uint32_t)this->alpha[idx];
+            if (idx + 1 < TC_COLS)
+                tmp |= (uint32_t)this->alpha[idx + 1] << 16;
             std::memcpy(data, &tmp, 4);
         }
     }

@@ -46,9 +46,9 @@ static i32 dot(const i8 *acts, const i8 *pos, const i8 *neg, int vlen) {
         vint32m4_t v_mul_n = __riscv_vwmul_vv_i32m4(v_act16, v_n16, vl);
         vint32m4_t v_diff  = __riscv_vsub_vv_i32m4(v_mul_p, v_mul_n, vl);
 
-        // Reduce
-        vint32m1_t v_one = __riscv_vmv_v_x_i32m1(1, vl);
-        vint32m1_t v_red = __riscv_vredsum_vs_i32m4_i32m1(v_diff, v_one, vl);
+        // Reduce: seed must be 0 (seed 1 would add +1 per reduction chunk)
+        vint32m1_t v_zero = __riscv_vmv_v_x_i32m1(0, vl);
+        vint32m1_t v_red = __riscv_vredsum_vs_i32m4_i32m1(v_diff, v_zero, vl);
         acc += __riscv_vmv_x_s_i32m1_i32(v_red);
     }
     return acc;

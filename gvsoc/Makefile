@@ -64,11 +64,13 @@ test: $(BUILD_DIR)/test_device_logic
 	./$(BUILD_DIR)/test_device_logic
 
 # ---- install device into gvsoc model path ----
+# Keep the lib prefix so the installed name matches test_system.py /
+# shared_lib="libternarycore_device.so" and the build artifact name.
 install: $(BUILD_DIR)/libternarycore_device.so
-	cp $< $(GVSOC_MODEL_DIR)/ternarycore_device.so
-	@echo "Installed ternarycore device to $(GVSOC_MODEL_DIR)"
+	cp $< $(GVSOC_MODEL_DIR)/libternarycore_device.so
+	@echo "Installed ternarycore device to $(GVSOC_MODEL_DIR)/libternarycore_device.so"
 	@echo "Add to Python config with:"
-	@echo '  soc.add_component("ternarycore_device", ...)'
+	@echo '  soc.add_component("ternarycore_device", ..., shared_lib="libternarycore_device.so")'
 
 # ---- cleanup ----
 clean:
