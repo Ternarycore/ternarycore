@@ -24,11 +24,18 @@ from pathlib import Path
 #   10 = -1 (negative)
 #   11 = invalid
 
+
 def pack_ternary_weights(weights: list[int], cols: int) -> int:
     """Pack list of ternary values into 2*cols-bit weight_enc word."""
+    if cols <= 0:
+        raise ValueError("cols must be positive")
+    if len(weights) < cols:
+        raise ValueError(f"expected at least {cols} weights, got {len(weights)}")
+    if any(weight not in (-1, 0, 1) for weight in weights[:cols]):
+        raise ValueError("weights must contain only -1, 0, or +1")
     packed = 0
     for i, w in enumerate(weights[:cols]):
-        enc = {0: 0, 1: 1, -1: 2}.get(w, 0)
+        enc = {0: 0, 1: 1, -1: 2}[w]
         packed |= enc << (2 * i)
     return packed
 
@@ -54,6 +61,7 @@ def verilog_signed_literal(value: int, width: int = 32) -> str:
 
 # ── Test vector generation ─────────────────────────────────────────
 
+
 def generate_tests(rows: int, cols: int, rng_seed: int = 42):
     """Generate synthetic BitNet test vectors.
 
@@ -65,6 +73,7 @@ def generate_tests(rows: int, cols: int, rng_seed: int = 42):
       expected:   [expected_per_col] dot product after scale
     """
     import random
+
     rng = random.Random(rng_seed)
 
     test_vectors = []
@@ -74,7 +83,9 @@ def generate_tests(rows: int, cols: int, rng_seed: int = 42):
         activations = [rng.randint(-50, 50) for _ in range(depth)]
         alphas = [rng.randint(1, 65535) for _ in range(cols)]
         # Per-depth-position weights — each depth position has its own set of col weights
-        all_weights = [[rng.choice([-1, 0, 1]) for _ in range(cols)] for _ in range(depth)]
+        all_weights = [
+            [rng.choice([-1, 0, 1]) for _ in range(cols)] for _ in range(depth)
+        ]
 
         # Compute absmax for this row
         absmax = max(abs(a) for a in activations) or 1
@@ -86,25 +97,25 @@ def generate_tests(rows: int, cols: int, rng_seed: int = 42):
         for d in range(depth):
             for c in range(cols):
                 dot_acc[c] += quantized[d] * all_weights[d][c]
-        expected = [
-            scale_accumulator(dot, alphas[c])
-            for c, dot in enumerate(dot_acc)
-        ]
+        expected = [scale_accumulator(dot, alphas[c]) for c, dot in enumerate(dot_acc)]
 
-        test_vectors.append({
-            "activations": activations,
-            "weights": all_weights,  # list of lists: [depth][col]
-            "alphas": alphas,
-            "inv": inv,
-            "absmax": absmax,
-            "quantized": quantized,
-            "expected": expected,
-        })
+        test_vectors.append(
+            {
+                "activations": activations,
+                "weights": all_weights,  # list of lists: [depth][col]
+                "alphas": alphas,
+                "inv": inv,
+                "absmax": absmax,
+                "quantized": quantized,
+                "expected": expected,
+            }
+        )
 
     return test_vectors
 
 
 # ── Verilog output ─────────────────────────────────────────────────
+
 
 def write_verilog_tb(tests, path: Path):
     """Write a Verilog testbench that drives the pipeline."""
@@ -142,7 +153,7 @@ def write_verilog_tb(tests, path: Path):
 
     # Stimulus
     lines.append("    initial begin")
-    lines.append("        $dumpfile(\"tb_bitnet_pipeline.vcd\");")
+    lines.append('        $dumpfile("tb_bitnet_pipeline.vcd");')
     lines.append("        $dumpvars(0, tb_bitnet_pipeline);")
     lines.append("        clk = 0; rst_n = 0; valid_in = 0; errors = 0;")
     lines.append("        activation = 0; inv = 0; alpha = 0; weight_enc = 0;")
@@ -151,15 +162,16 @@ def write_verilog_tb(tests, path: Path):
 
     for test_index, test in enumerate(tests):
         inv_val = test["inv"]
-        alpha_packed = sum(
-            a << (16 * c) for c, a in enumerate(test["alphas"])
-        )
+        alpha_packed = sum(a << (16 * c) for c, a in enumerate(test["alphas"]))
 
         for d, act in enumerate(test["activations"]):
             w_packed = pack_ternary_weights(test["weights"][d], len(test["weights"][d]))
             lines.append("        @(negedge clk);")
-            lines.append(f"        valid_in = 1; activation = {act}; inv = {inv_val}; "
-                         f"weight_enc = {w_packed}; alpha = {alpha_packed};")
+            lines.append(
+                f"        valid_in = 1; activation = {verilog_signed_literal(act, 8)}; "
+                f"inv = 22'd{inv_val}; weight_enc = {cols * 2}'h{w_packed:X}; "
+                f"alpha = {cols * 16}'h{alpha_packed:X};"
+            )
 
         # Wait for pipeline to drain
         lines.append("        @(negedge clk); valid_in = 0;")
@@ -195,18 +207,20 @@ def write_verilog_tb(tests, path: Path):
 
 # ── CLI ────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Convert BitNet ONNX model to ternarycore test vectors"
     )
     parser.add_argument("model", nargs="?", help="Path to .onnx file")
-    parser.add_argument("--synthetic", action="store_true",
-                        help="Generate synthetic test data")
+    parser.add_argument(
+        "--synthetic", action="store_true", help="Generate synthetic test data"
+    )
     parser.add_argument("--rows", type=int, default=4, help="Rows to generate")
-    parser.add_argument("--cols", type=int, default=4,
-                        help="Columns (dot units)")
-    parser.add_argument("--output-dir", "-o", type=Path, default=Path("."),
-                        help="Output directory")
+    parser.add_argument("--cols", type=int, default=4, help="Columns (dot units)")
+    parser.add_argument(
+        "--output-dir", "-o", type=Path, default=Path("."), help="Output directory"
+    )
     args = parser.parse_args()
 
     if args.rows <= 0:
@@ -237,22 +251,30 @@ def main():
         print(f"    {tb_path.resolve()} && vvp tb_bitnet_pipeline")
         return
 
-    # Real ONNX model support (future)
+    # Validate real ONNX input, but fail honestly until weight extraction is
+    # implemented. A successful exit must always mean outputs were generated.
     if args.model:
         print(f"Loading ONNX model: {args.model}")
         try:
             import onnx
+
             model = onnx.load(args.model)
             onnx.checker.check_model(model)
             print(f"  Model loaded: {model.graph.name}")
             print(f"  {len(model.graph.node)} nodes")
             print()
-            print("ONNX parsing for BitNet weights not yet implemented.")
-            print("Use --synthetic for now, or contribute the ONNX parser.")
+            print(
+                "Error: ONNX weight extraction is not implemented; "
+                "use --synthetic for generated pipeline vectors.",
+                file=sys.stderr,
+            )
+            return 2
         except Exception as e:
             print(f"Error loading model: {e}", file=sys.stderr)
-            sys.exit(1)
+            return 1
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

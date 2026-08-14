@@ -11,6 +11,3 @@ dependencies = [
     "Pillow>=10.0",
     "requests>=2.31",
 ]
-
-[tool.uv]
-dev-dependencies = []

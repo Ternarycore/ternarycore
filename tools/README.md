@@ -70,7 +70,7 @@ Cross-model quantization benchmark with Pareto search:
 
 ```bash
 uv run python tools/bench.py --model HuggingFaceTB/SmolVLM-256M-Instruct --qwidth 4
-uv run python tools/bench.py --model all --qwidth 4,8,3   # cross-model Pareto search
+uv run python tools/bench.py --qwidth 4,8 --layers 0,2 --seed 42
 ```
 
 ### `bitnet_full.py`
@@ -80,18 +80,20 @@ text decoder; INT4/FP4 embedding; per-channel alpha (BitNet b1.58).
 
 ### `convert_bitnet_onnx.py`
 
-ONNX → ternarycore converter (real `.onnx` or `--synthetic`). Generates Verilog
-testbench stimulus for the pipeline RTL.
+Synthetic ternarycore pipeline-vector generator. It can validate a real ONNX
+file, but ONNX weight extraction is not implemented yet and exits non-zero
+instead of claiming a conversion succeeded.
 
 ### `convert_smolvlm.py`
 
-SmolVLM-256M → ternarycore weight converter: download, ternarize, pack to 2-bit,
-emit test vectors.
+SmolVLM-256M analysis helper: download, ternarize linear layers, report weight
+statistics, and emit deterministic bit-exact pipeline vectors.
 
 ### `eval.py` / `eval_vlm.py`
 
 Eval pipelines for bitnet-quantized SmolVLM: per-layer cosine similarity,
-WikiText-2 perplexity, memory footprint; VLM captioning with throughput metrics.
+weight-only ternary WikiText-2 perplexity, memory footprint, and VLM captioning
+with throughput metrics.
 
 ### `export_ternary.py`
 
@@ -112,5 +114,6 @@ Fast smoke test that a converted SmolVLM model loads and runs a short caption.
 
 ### `train_bitnet.py`
 
-BitNet b1.58 training loop (straight-through estimator) producing ternary
-weights consumable by the export/conversion tools above.
+BitNet b1.58 language-model fine-tuning loop (straight-through estimator) with
+checkpoint resume support, producing ternary weights consumable by the export
+tools above. `--full-model` converts the full VLM but trains the text path only.

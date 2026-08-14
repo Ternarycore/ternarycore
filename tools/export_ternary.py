@@ -17,12 +17,20 @@ Usage:
   uv run python tools/export_ternary.py --model HuggingFaceTB/SmolVLM-256M-Instruct --output exported/
   uv run python tools/export_ternary.py --synthetic --cols 4 --depth 4 --output /tmp/exported/
 """
-import argparse, json, math, os, sys, textwrap
+
+import argparse
+import json
+import math
+import os
+import shlex
+import sys
+import textwrap
 from pathlib import Path
 
 import numpy as np
 
 # ── BitNet weight helpers (no torch dependency for synthetic mode) ───────────
+
 
 def ternarize(weight_fp, gamma=None):
     """Quantize full-precision weight to {-1, 0, +1}.
@@ -47,10 +55,18 @@ def pack_weights(wt, cols=4):
     Layout: for each depth position (in_f), for each group of COLS output channels:
       byte = enc(col0) | enc(col1)<<2 | enc(col2)<<4 | enc(col3)<<6
     """
+    if wt.ndim != 2:
+        raise ValueError(f"weights must be a 2D array, got shape {wt.shape}")
+    if not 1 <= cols <= 4:
+        raise ValueError("cols must be between 1 and 4 for byte-packed output")
+    if not np.isin(wt, (-1, 0, 1)).all():
+        raise ValueError("weights must contain only -1, 0, or +1")
+
     out_f, in_f = wt.shape
     enc_map = {0: 0, 1: 1, -1: 2}
 
-    assert out_f % cols == 0, f"out_f ({out_f}) must be divisible by cols ({cols})"
+    if out_f % cols != 0:
+        raise ValueError(f"out_f ({out_f}) must be divisible by cols ({cols})")
     groups = out_f // cols
     packed = np.zeros(in_f * groups, dtype=np.uint8)
 
@@ -60,7 +76,7 @@ def pack_weights(wt, cols=4):
             for c in range(cols):
                 col_idx = g * cols + c
                 w = int(wt[col_idx, d])
-                enc = enc_map.get(w, 0)
+                enc = enc_map[w]
                 byte |= enc << (2 * c)
             packed[d * groups + g] = byte
     return packed
@@ -75,18 +91,25 @@ def quantize_alpha(alpha_float, precision=15):
     since the RTL's alpha port is only (PRECISION+1) bits wide and values
     > 65535 would silently wrap to 0 in the 16-bit field.
     """
+    alpha_float = np.asarray(alpha_float)
+    if not np.isfinite(alpha_float).all():
+        raise ValueError("alpha values must all be finite")
     scale = 1 << precision
     max_q15 = (1 << (precision + 1)) - 1  # 65535 for precision=15
     raw = np.round(alpha_float * scale)
     if np.any(raw > max_q15):
         exceeded = raw[raw > max_q15]
-        print(f"WARNING: {len(exceeded)} alpha channel(s) exceed Q15 max ({max_q15}, ~2.0): "
-              f"max={raw.max():.0f} (would wrap to {raw.max() % (max_q15+1)} in the HW). "
-              f"Clipping to {max_q15}.")
+        print(
+            f"WARNING: {len(exceeded)} alpha channel(s) exceed Q15 max ({max_q15}, ~2.0): "
+            f"max={raw.max():.0f} (would wrap to {raw.max() % (max_q15 + 1)} in the HW). "
+            f"Clipping to {max_q15}."
+        )
     if np.any(raw < 0):
         neg = raw[raw < 0]
-        print(f"WARNING: {len(neg)} alpha channel(s) are negative (min={raw.min():.0f}). "
-              f"Clipping to 0.")
+        print(
+            f"WARNING: {len(neg)} alpha channel(s) are negative (min={raw.min():.0f}). "
+            f"Clipping to 0."
+        )
     return np.clip(raw, 0, max_q15).astype(np.uint16)
 
 
@@ -117,15 +140,24 @@ def scale_results(dots, alphas, precision=15):
 
 # ── Synthetic weight generation ─────────────────────────────────────────────
 
-def gen_synthetic_weights(out_f, in_f, sparsity=0.5):
+
+def gen_synthetic_weights(out_f, in_f, sparsity=0.5, seed=42):
     """Generate random ternary weights with controlled sparsity."""
-    rng = np.random.default_rng(42)
-    wt = rng.choice([-1, 0, 1], size=(out_f, in_f), p=[0.25, sparsity, 0.75 - sparsity])
+    if not 0.0 <= sparsity <= 1.0:
+        raise ValueError("sparsity must be between 0 and 1")
+    nonzero_probability = 1.0 - sparsity
+    rng = np.random.default_rng(seed)
+    wt = rng.choice(
+        [-1, 0, 1],
+        size=(out_f, in_f),
+        p=[nonzero_probability / 2, sparsity, nonzero_probability / 2],
+    )
     alphas = rng.uniform(0.5, 2.0, size=out_f)
     return wt, alphas
 
 
 # ── HuggingFace model loading ────────────────────────────────────────────────
+
 
 def load_hf_model(model_id):
     """Load a HuggingFace model and convert to BitNet, returning extracted layers."""
@@ -137,9 +169,9 @@ def load_hf_model(model_id):
     model.eval()
 
     # If the model has text_model, use it; otherwise use the model directly
-    core = getattr(model, 'text_model', model)
+    core = getattr(model, "text_model", model)
     # Also try common container names
-    for attr in ('model', 'transformer', 'backbone'):
+    for attr in ("model", "transformer", "backbone"):
         if hasattr(core, attr):
             core = getattr(core, attr)
 
@@ -157,14 +189,14 @@ def _extract_bitnet_layers(module, prefix="", layers=None):
     # BitNetLinear from bitnet_full.py or train_bitnet.py
     cls_name = type(module).__name__
     if cls_name == "BitNetLinear" or cls_name == "Linear":
-        if hasattr(module, 'gamma') or cls_name == "BitNetLinear":
+        if hasattr(module, "gamma") or cls_name == "BitNetLinear":
             name = prefix if prefix else "layer"
             layers[name] = {
-                'weight': module.weight.detach().cpu().numpy(),
-                'gamma': module.gamma.detach().cpu().numpy(),
-                'in_f': module.in_features,
-                'out_f': module.out_features,
-                'has_bias': module.bias is not None,
+                "weight": module.weight.detach().cpu().numpy(),
+                "gamma": module.gamma.detach().cpu().numpy(),
+                "in_f": module.in_features,
+                "out_f": module.out_features,
+                "has_bias": module.bias is not None,
             }
             return layers
     for name, child in module.named_children():
@@ -184,16 +216,18 @@ def _convert_and_extract(module, prefix="", layers=None):
     """
     if layers is None:
         layers = {}
+    import torch
+
     if isinstance(module, torch.nn.Linear):
         w = module.weight.detach().cpu().numpy()
         gamma = np.clip(np.abs(w).mean(axis=1, keepdims=True), 1e-8, None)
         name = prefix if prefix else "layer"
         layers[name] = {
-            'weight': w,
-            'gamma': gamma,
-            'in_f': module.in_features,
-            'out_f': module.out_features,
-            'has_bias': module.bias is not None,
+            "weight": w,
+            "gamma": gamma,
+            "in_f": module.in_features,
+            "out_f": module.out_features,
+            "has_bias": module.bias is not None,
         }
     for name, child in module.named_children():
         full = f"{prefix}.{name}" if prefix else name
@@ -203,30 +237,27 @@ def _convert_and_extract(module, prefix="", layers=None):
 
 # ── Checkpoint loading ──────────────────────────────────────────────────────
 
+
 def load_checkpoint(ckpt_path):
     """Load a training checkpoint and extract BitNet layers from state dict."""
     print(f"Loading checkpoint {ckpt_path}...", file=sys.stderr)
     import torch
 
-    data = torch.load(ckpt_path, map_location='cpu', weights_only=True)
+    data = torch.load(ckpt_path, map_location="cpu", weights_only=True)
 
     # Checkpoint could be a full state dict or a nested dict
-    if isinstance(data, dict) and 'model_state' in data:
-        state = data['model_state']
+    if isinstance(data, dict) and "model_state" in data:
+        state = data["model_state"]
     else:
         state = data
 
     # Extract layer info by matching gamma/weight keys in state dict
     layers = {}
-    weight_keys = {k for k in state if k.endswith('.weight')}
-    gamma_keys = {k for k in state if k.endswith('.gamma')}
-
+    weight_keys = {k for k in state if k.endswith(".weight")}
     for wk in sorted(weight_keys):
         # Find matching gamma key: same prefix
-        prefix = wk[:-len('.weight')]
+        prefix = wk[: -len(".weight")]
         gk = f"{prefix}.gamma"
-        nk = f"{prefix}.weight"
-
         if gk in state and wk in state:
             w = state[wk].numpy()
             g = state[gk].numpy()
@@ -238,11 +269,11 @@ def load_checkpoint(ckpt_path):
             else:
                 continue
             layers[prefix] = {
-                'weight': w,
-                'gamma': g,
-                'in_f': in_f,
-                'out_f': out_f,
-                'has_bias': f"{prefix}.bias" in state,
+                "weight": w,
+                "gamma": g,
+                "in_f": in_f,
+                "out_f": out_f,
+                "has_bias": f"{prefix}.bias" in state,
             }
 
     if not layers:
@@ -256,6 +287,7 @@ def load_checkpoint(ckpt_path):
 
 # ── C header generation ──────────────────────────────────────────────────────
 
+
 def generate_header(layers, cols=4):
     """Generate C header with packed weights and alphas."""
     lines = [
@@ -265,21 +297,27 @@ def generate_header(layers, cols=4):
         "#include <stdint.h>",
         "",
         "// Packed ternary weights in weight_enc format.",
-        "// Each uint8_t packs 4 ternary weights:",
+        f"// Each uint8_t packs {cols} ternary weights:",
         "//   bits[1:0] = col0, bits[3:2] = col1, bits[5:4] = col2, bits[7:6] = col3",
-        f"//   Encoding: 00=0, 01=+1, 10=-1",
+        "//   Encoding: 00=0, 01=+1, 10=-1",
         f"// Packing factor: {cols} columns per byte",
-        f"//",
-        f"// Per-channel alpha scales are Q15 unsigned: 1.0 = 32768",
+        "//",
+        "// Per-channel alpha scales are Q15 unsigned: 1.0 = 32768",
         "",
     ]
 
     for name, info in layers.items():
-        wt = info['wt_ternary'] if 'wt_ternary' in info else ternarize(info['weight'], info['gamma'])
+        wt = (
+            info["wt_ternary"]
+            if "wt_ternary" in info
+            else ternarize(info["weight"], info["gamma"])
+        )
         out_f, in_f = wt.shape
         groups = out_f // cols
-        packed = info['packed'] if 'packed' in info else pack_weights(wt, cols)
-        alphas = info['alpha_q15'] if 'alpha_q15' in info else quantize_alpha(info['alpha'])
+        packed = info["packed"] if "packed" in info else pack_weights(wt, cols)
+        alphas = (
+            info["alpha_q15"] if "alpha_q15" in info else quantize_alpha(info["alpha"])
+        )
 
         # Sanitize name for C identifier
         cname = _c_ident(name)
@@ -294,7 +332,7 @@ def generate_header(layers, cols=4):
         # Packed weights array
         lines.append(f"static const uint8_t {cname}_weights[{len(packed)}] = {{")
         for i in range(0, len(packed), 16):
-            chunk = packed[i:i+16]
+            chunk = packed[i : i + 16]
             hex_vals = ", ".join(f"0x{b:02X}" for b in chunk)
             lines.append(f"    {hex_vals},")
         lines.append("};")
@@ -303,7 +341,7 @@ def generate_header(layers, cols=4):
         # Alpha scales array
         lines.append(f"static const uint16_t {cname}_alphas[{len(alphas)}] = {{")
         for i in range(0, len(alphas), 8):
-            chunk = alphas[i:i+8]
+            chunk = alphas[i : i + 8]
             hex_vals = ", ".join(f"0x{a:04X}" for a in chunk)
             lines.append(f"    {hex_vals},")
         lines.append("};")
@@ -314,6 +352,7 @@ def generate_header(layers, cols=4):
 
 
 # ── Verilator testbench generation ──────────────────────────────────────────
+
 
 def generate_testbench(layers, name, cols=4, depth=4, seed=42):
     """Generate a Verilator C++ testbench for one layer.
@@ -330,16 +369,18 @@ def generate_testbench(layers, name, cols=4, depth=4, seed=42):
 
     info = layers[name]
     rng = np.random.default_rng(seed)
-    wt = info['wt_ternary']
-    alphas = info['alpha_q15']
+    wt = info["wt_ternary"]
+    alphas = info["alpha_q15"]
 
     out_f, in_f = wt.shape
-    assert out_f >= cols, f"Layer {name} has only {out_f} cols, need at least {cols}"
-    assert in_f >= depth, f"Layer {name} has only {in_f} depth, need at least {depth}"
+    if out_f < cols:
+        raise ValueError(f"Layer {name} has only {out_f} cols, need at least {cols}")
+    if in_f < depth:
+        raise ValueError(f"Layer {name} has only {in_f} depth, need at least {depth}")
 
     # Take the first cols × depth block
-    wt_block = wt[:cols, :depth]   # (cols, depth)
-    alpha_block = alphas[:cols]     # (cols,)
+    wt_block = wt[:cols, :depth]  # (cols, depth)
+    alpha_block = alphas[:cols]  # (cols,)
 
     # Generate random int8 activations
     acts = rng.integers(-50, 51, size=depth, dtype=np.int8)
@@ -366,10 +407,20 @@ def generate_testbench(layers, name, cols=4, depth=4, seed=42):
         row_vals = ", ".join(str(int(wt_block[c, d])) for d in range(depth))
         weight_init_lines.append(f"    {{{row_vals}}},")
 
-    # Pack alpha into uint64 (for cols <= 4)
+    # Alpha occupies 16 bits per column and fits uint64_t for the supported
+    # byte-packed 1..4-column formats.
     alpha_packed = 0
     for c in range(cols):
         alpha_packed |= int(alpha_block[c]) << (16 * c)
+
+    if cols == 1:
+        capture_result = "hw_result[0] = (int32_t)dut->result;"
+    elif cols == 2:
+        capture_result = """hw_result[0] = (int32_t)(dut->result & 0xFFFFFFFFULL);
+            hw_result[1] = (int32_t)(dut->result >> 32);"""
+    else:
+        capture_result = f"""for (int c = 0; c < {cols}; c++)
+                hw_result[c] = (int32_t)dut->result.at(c);"""
 
     # Build C++ source — includes inline SW reference computation
     acts_c = ", ".join(str(int(a)) for a in acts)
@@ -428,6 +479,7 @@ static int32_t hw_scale(int32_t acc, uint16_t alpha_q15) {{
 int main() {{
     Vternary_pipeline* dut = new Vternary_pipeline;
     int errors = 0;
+    bool saw_valid = false;
 
     // ── Test vectors ─────────────────────────────────────────────
     // Ternary weight matrix: wt[col][depth] in {{-1, 0, +1}}
@@ -487,12 +539,17 @@ int main() {{
     for (int i = 0; i < {depth + 8}; i++) {{
         dut->clk = 0; dut->eval();
         dut->clk = 1; dut->eval();
-        if (dut->valid_out)
-            for (int c = 0; c < {cols}; c++)
-                hw_result[c] = (int32_t)dut->result.at(c);
+        if (dut->valid_out) {{
+            saw_valid = true;
+            {capture_result}
+        }}
     }}
 
     // ── Compare ───────────────────────────────────────────────────
+    if (!saw_valid) {{
+        printf("FAIL: valid_out was never asserted\\n");
+        errors++;
+    }}
     printf("{name} {cols}x{depth}:\\n");
     for (int c = 0; c < {cols}; c++) {{
         const char* status = (hw_result[c] == expected[c]) ? "OK" : "MIS";
@@ -509,31 +566,41 @@ int main() {{
 
 # ── Verilator build command ─────────────────────────────────────────────────
 
+
 def build_command(test_dir, test_name="layer0_test", cols=4, depth=4):
     """Return a shell command to build the Verilator test."""
-    rtl_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rtl")
-    return textwrap.dedent(f'''\
+    rtl_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rtl"
+    )
+    rtl = shlex.quote(rtl_dir)
+    test_cpp = shlex.quote(os.path.join(test_dir, f"{test_name}.cpp"))
+    output = shlex.quote(os.path.join(test_dir, test_name))
+    return textwrap.dedent(f"""\
     verilator --cc --build --exe --top-module ternary_pipeline \
         -Wno-BLKSEQ -Wno-UNUSEDPARAM -Wno-UNUSEDSIGNAL -Wno-PINMISSING \
         -Wno-EOFNEWLINE -Wno-WIDTHTRUNC -Wno-UNOPTFLAT -Wno-WIDTHEXPAND \
         -GVECTOR_LEN={depth} -GCOLS={cols} -GDATA_WIDTH=8 -GACC_WIDTH=32 \
-        {rtl_dir}/ternary_pipeline.v {rtl_dir}/activation_quant.v {rtl_dir}/ternary_gemm.v \
-        {rtl_dir}/ternary_dot.v {rtl_dir}/ternary_scale.v \\
-        {test_dir}/{test_name}.cpp -o {test_dir}/{test_name}
-    ''')
+        {rtl}/ternary_pipeline.v {rtl}/activation_quant.v {rtl}/ternary_weight.v \
+        {rtl}/ternary_gemm.v {rtl}/ternary_dot.v {rtl}/ternary_scale.v \\
+        {test_cpp} -o {output}
+    """)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _c_ident(name):
     """Convert dotted name to valid C identifier."""
     safe = name.replace(".", "_").replace("-", "_").replace("/", "_")
+    if not safe:
+        return "layer"
     if safe[0].isdigit():
         safe = "l_" + safe
     return safe
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -549,16 +616,45 @@ def main():
     src = parser.add_mutually_exclusive_group(required=True)
     src.add_argument("--checkpoint", help="Path to trained checkpoint .pt file")
     src.add_argument("--model", help="HuggingFace model ID to load and convert")
-    src.add_argument("--synthetic", action="store_true", help="Generate synthetic weights for testing")
-    parser.add_argument("--output", default="exported", help="Output directory (default: exported/)")
-    parser.add_argument("--cols", type=int, default=4, help="Pipeline columns (default: 4)")
-    parser.add_argument("--depth", type=int, default=4, help="Pipeline depth / vector length (default: 4)")
-    parser.add_argument("--layer", default=None,
-                        help="Specific layer for testbench (default: first available)")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
-    parser.add_argument("--sparsity", type=float, default=0.5,
-                        help="Weight sparsity for synthetic mode (default: 0.5)")
+    src.add_argument(
+        "--synthetic",
+        action="store_true",
+        help="Generate synthetic weights for testing",
+    )
+    parser.add_argument(
+        "--output", default="exported", help="Output directory (default: exported/)"
+    )
+    parser.add_argument(
+        "--cols", type=int, default=4, help="Pipeline columns (default: 4)"
+    )
+    parser.add_argument(
+        "--depth",
+        type=int,
+        default=4,
+        help="Pipeline depth / vector length (default: 4)",
+    )
+    parser.add_argument(
+        "--layer",
+        default=None,
+        help="Specific layer for testbench (default: first available)",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--sparsity",
+        type=float,
+        default=0.5,
+        help="Weight sparsity for synthetic mode (default: 0.5)",
+    )
     args = parser.parse_args()
+
+    if not 1 <= args.cols <= 4:
+        parser.error("--cols must be between 1 and 4 for byte-packed output")
+    if args.depth <= 0:
+        parser.error("--depth must be positive")
+    if not 0.0 <= args.sparsity <= 1.0:
+        parser.error("--sparsity must be between 0 and 1")
 
     out_dir = Path(args.output)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -570,35 +666,38 @@ def main():
 
     # ── Load or generate weights ──────────────────────────────────
     if args.synthetic:
-        print(f"Generating synthetic weights: out={cols}, in={depth}, sparsity={args.sparsity}", file=sys.stderr)
+        print(
+            f"Generating synthetic weights: out={cols}, in={depth}, sparsity={args.sparsity}",
+            file=sys.stderr,
+        )
         out_f, in_f = cols, depth
-        wt_synth, alpha_synth = gen_synthetic_weights(out_f, in_f, args.sparsity)
+        wt_synth, alpha_synth = gen_synthetic_weights(out_f, in_f, args.sparsity, seed)
         gamma_synth = alpha_synth / math.sqrt(in_f)  # reverse engineer gamma from alpha
-        layers['synthetic'] = {
-            'weight': wt_synth.astype(np.float32),
-            'gamma': gamma_synth.astype(np.float32),
-            'in_f': in_f,
-            'out_f': out_f,
-            'has_bias': False,
-            'wt_ternary': wt_synth,
-            'alpha': alpha_synth,
+        layers["synthetic"] = {
+            "weight": wt_synth.astype(np.float32),
+            "gamma": gamma_synth.astype(np.float32),
+            "in_f": in_f,
+            "out_f": out_f,
+            "has_bias": False,
+            "wt_ternary": wt_synth,
+            "alpha": alpha_synth,
         }
 
     elif args.checkpoint:
         layers = load_checkpoint(args.checkpoint)
         for name, info in layers.items():
-            info['wt_ternary'] = ternarize(info['weight'], info['gamma'])
-            info['alpha'] = info['gamma'].flatten() * math.sqrt(info['in_f'])
-            info['alpha_q15'] = quantize_alpha(info['alpha'])
-            info['packed'] = pack_weights(info['wt_ternary'], cols)
+            info["wt_ternary"] = ternarize(info["weight"], info["gamma"])
+            info["alpha"] = info["gamma"].flatten() * math.sqrt(info["in_f"])
+            info["alpha_q15"] = quantize_alpha(info["alpha"])
+            info["packed"] = pack_weights(info["wt_ternary"], cols)
 
     elif args.model:
         layers = load_hf_model(args.model)
         for name, info in layers.items():
-            info['wt_ternary'] = ternarize(info['weight'], info['gamma'])
-            info['alpha'] = info['gamma'].flatten() * math.sqrt(info['in_f'])
-            info['alpha_q15'] = quantize_alpha(info['alpha'])
-            info['packed'] = pack_weights(info['wt_ternary'], cols)
+            info["wt_ternary"] = ternarize(info["weight"], info["gamma"])
+            info["alpha"] = info["gamma"].flatten() * math.sqrt(info["in_f"])
+            info["alpha_q15"] = quantize_alpha(info["alpha"])
+            info["packed"] = pack_weights(info["wt_ternary"], cols)
 
     if not layers:
         print("ERROR: No layers extracted.", file=sys.stderr)
@@ -607,7 +706,7 @@ def main():
     # The ternarycore HW pipeline (ternary_pipeline.v) has no bias port.
     # Exporting a biased layer would silently drop the bias and produce
     # wrong inference, so refuse loudly instead.
-    biased = [n for n, info in layers.items() if info.get('has_bias')]
+    biased = [n for n, info in layers.items() if info.get("has_bias")]
     if biased:
         print(
             "ERROR: the following layer(s) have a bias term, but the ternarycore\n"
@@ -621,37 +720,42 @@ def main():
 
     print(f"Extracted {len(layers)} layers:", file=sys.stderr)
     for name, info in layers.items():
-        wt = info.get('wt_ternary', info.get('weight'))
+        wt = info.get("wt_ternary", info.get("weight"))
         print(f"  {name}: {wt.shape[0]}x{wt.shape[1]}", file=sys.stderr)
 
     # For synthetic mode, compute packed and alpha_q15 after the fact
     if args.synthetic:
         for name, info in layers.items():
-            info['alpha_q15'] = quantize_alpha(info['alpha'])
-            info['packed'] = pack_weights(info['wt_ternary'], cols)
+            info["alpha_q15"] = quantize_alpha(info["alpha"])
+            info["packed"] = pack_weights(info["wt_ternary"], cols)
 
     # ── Generate outputs ──────────────────────────────────────────
 
     # 1. weights.h
     print(f"\nGenerating {out_dir / 'weights.h'}...", file=sys.stderr)
     header = generate_header(layers, cols)
-    (out_dir / 'weights.h').write_text(header)
+    (out_dir / "weights.h").write_text(header)
 
     # 2. layer0_test.cpp
     layer_name = args.layer
     if layer_name is None:
         layer_name = list(layers.keys())[0]
-    print(f"Generating {out_dir / 'layer0_test.cpp'} for layer '{layer_name}'...", file=sys.stderr)
+    print(
+        f"Generating {out_dir / 'layer0_test.cpp'} for layer '{layer_name}'...",
+        file=sys.stderr,
+    )
     testbench = generate_testbench(layers, layer_name, cols, depth, seed)
-    (out_dir / 'layer0_test.cpp').write_text(testbench)
+    (out_dir / "layer0_test.cpp").write_text(testbench)
 
     # 3. metadata.json
     metadata = {
         "format": "ternarycore_weight_enc_v1",
         "weight_encoding": {
-            "00": 0, "01": "+1", "10": "-1",
+            "00": 0,
+            "01": "+1",
+            "10": "-1",
             "bits_per_weight": 2,
-            "weights_per_byte": 4,
+            "weights_per_byte": cols,
             "packing_order": "col0=bits[1:0], col1=bits[3:2], col2=bits[5:4], col3=bits[7:6]",
         },
         "alpha_format": {
@@ -667,36 +771,45 @@ def main():
         "layers": {},
     }
     for name, info in layers.items():
-        wt = info.get('wt_ternary', info['weight'])
+        wt = info.get("wt_ternary", info["weight"])
         metadata["layers"][name] = {
             "shape": list(wt.shape),
-            "has_bias": info['has_bias'],
+            "has_bias": info["has_bias"],
             "nnz": int(np.count_nonzero(wt)),
             "sparsity": float(1.0 - np.count_nonzero(wt) / wt.size),
-            "alphas_q15": info.get('alpha_q15', info['alpha']).flatten().tolist(),
-            "packed_bytes": len(info.get('packed', [])),
+            "alphas_q15": info.get("alpha_q15", info["alpha"]).flatten().tolist(),
+            "packed_bytes": len(info.get("packed", [])),
         }
         # Add alpha_float for reference
         metadata["layers"][name]["alphas_float"] = [
-            round(float(v), 6) for v in info['alpha'].flatten()
+            round(float(v), 6) for v in info["alpha"].flatten()
         ]
 
-    (out_dir / 'metadata.json').write_text(json.dumps(metadata, indent=2))
+    (out_dir / "metadata.json").write_text(json.dumps(metadata, indent=2))
     print(f"Generating {out_dir / 'metadata.json'}...", file=sys.stderr)
 
     # Print summary
-    print(f"\n─── Export summary ───", file=sys.stderr)
-    total_bytes = sum(len(info.get('packed', [])) for info in layers.values())
-    total_fp = sum(info['weight'].size for info in layers.values())
+    print("\n─── Export summary ───", file=sys.stderr)
+    total_bytes = sum(len(info.get("packed", [])) for info in layers.values())
+    total_fp = sum(info["weight"].size for info in layers.values())
     print(f"  Layers: {len(layers)}", file=sys.stderr)
-    print(f"  Packed weight bytes: {total_bytes} ({total_fp * 32 / 8 / total_bytes:.0f}x compression vs FP32)", file=sys.stderr)
+    print(
+        f"  Packed weight bytes: {total_bytes} ({total_fp * 32 / 8 / total_bytes:.0f}x compression vs FP32)",
+        file=sys.stderr,
+    )
     print(f"  Output directory: {out_dir.resolve()}", file=sys.stderr)
-    print(f"", file=sys.stderr)
-    print(f"To build the Verilator testbench:", file=sys.stderr)
-    print(f"  {build_command(str(out_dir.resolve()), 'layer0_test', cols, depth)}", file=sys.stderr)
-    print(f"", file=sys.stderr)
-    print(f"To run:", file=sys.stderr)
-    print(f"  cd {out_dir.resolve()} && ./layer0_test", file=sys.stderr)
+    print(file=sys.stderr)
+    print("To build the Verilator testbench:", file=sys.stderr)
+    print(
+        f"  {build_command(str(out_dir.resolve()), 'layer0_test', cols, depth)}",
+        file=sys.stderr,
+    )
+    print(file=sys.stderr)
+    print("To run:", file=sys.stderr)
+    print(
+        f"  cd {shlex.quote(str(out_dir.resolve()))} && ./layer0_test",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

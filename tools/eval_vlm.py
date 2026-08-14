@@ -13,6 +13,7 @@ Usage:
   uv run python tools/eval_vlm.py --images 3 --fp32                           # baseline comparison
   uv run python tools/eval_vlm.py --images 3 --checkpoint checkpoints/best.pt --max-new-tokens 30
 """
+
 import argparse
 import math
 import os
@@ -25,7 +26,13 @@ from PIL import Image, ImageDraw
 from transformers import SmolVLMForConditionalGeneration, AutoProcessor
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from bitnet_full import convert_module, BitNetLinear, BitNetConv2d, BitNetEmbedding, BitNetLayerNorm
+from bitnet_full import (
+    convert_module,
+    BitNetLinear,
+    BitNetConv2d,
+    BitNetEmbedding,
+    BitNetLayerNorm,
+)
 
 MODEL_ID = "HuggingFaceTB/SmolVLM-256M-Instruct"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -34,6 +41,7 @@ IMAGE_DIR = PROJECT_ROOT / "vlm_eval" / "images"
 # ---------------------------------------------------------------------------
 # Synthetic image generation
 # ---------------------------------------------------------------------------
+
 
 def _make_gradient(w, h, c1, c2):
     img = Image.new("RGB", (w, h))
@@ -51,20 +59,43 @@ def generate_synthetic_images(count=20, size=(512, 512), seed=42):
     """Return (images, labels) list of synthetic PIL Images."""
     torch.manual_seed(seed)
     colors = [
-        (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0),
-        (255, 0, 255), (0, 255, 255), (128, 0, 128), (255, 128, 0),
-        (0, 128, 128), (128, 128, 0), (128, 0, 0), (0, 128, 0),
+        (255, 0, 0),
+        (0, 255, 0),
+        (0, 0, 255),
+        (255, 255, 0),
+        (255, 0, 255),
+        (0, 255, 255),
+        (128, 0, 128),
+        (255, 128, 0),
+        (0, 128, 128),
+        (128, 128, 0),
+        (128, 0, 0),
+        (0, 128, 0),
     ]
     shapes = [
-        "circle", "square", "triangle", "star", "diamond",
-        "rectangle", "oval", "hexagon", "cross", "arrow",
-        "heart", "ring", "trapezoid", "pentagon", "crescent",
-        "chevron", "spiral", "wave", "semicircle", "parallelogram",
+        "circle",
+        "square",
+        "triangle",
+        "star",
+        "diamond",
+        "rectangle",
+        "oval",
+        "hexagon",
+        "cross",
+        "arrow",
+        "heart",
+        "ring",
+        "trapezoid",
+        "pentagon",
+        "crescent",
+        "chevron",
+        "spiral",
+        "wave",
+        "semicircle",
+        "parallelogram",
     ]
     images, labels = [], []
     for i in range(count):
-        c1 = colors[i % len(colors)]
-        c2 = colors[(i + 3) % len(colors)]
         img = _make_gradient(size[0], size[1], (240, 240, 240), (200, 200, 200))
         draw = ImageDraw.Draw(img)
         cx, cy = size[0] // 2, size[1] // 2
@@ -75,14 +106,21 @@ def generate_synthetic_images(count=20, size=(512, 512), seed=42):
         if shape == "circle":
             draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fg, outline=(0, 0, 0))
         elif shape == "oval":
-            draw.ellipse([cx - r, cy - r // 2, cx + r, cy + r // 2], fill=fg, outline=(0, 0, 0))
+            draw.ellipse(
+                [cx - r, cy - r // 2, cx + r, cy + r // 2], fill=fg, outline=(0, 0, 0)
+            )
         elif shape == "square":
             draw.rectangle([cx - r, cy - r, cx + r, cy + r], fill=fg, outline=(0, 0, 0))
         elif shape == "rectangle":
-            draw.rectangle([cx - r, cy - r // 2, cx + r, cy + r // 2], fill=fg, outline=(0, 0, 0))
+            draw.rectangle(
+                [cx - r, cy - r // 2, cx + r, cy + r // 2], fill=fg, outline=(0, 0, 0)
+            )
         elif shape == "triangle":
-            draw.polygon([(cx, cy - r), (cx - r, cy + r), (cx + r, cy + r)],
-                         fill=fg, outline=(0, 0, 0))
+            draw.polygon(
+                [(cx, cy - r), (cx - r, cy + r), (cx + r, cy + r)],
+                fill=fg,
+                outline=(0, 0, 0),
+            )
         elif shape == "star":
             pts = []
             for j in range(5):
@@ -92,18 +130,29 @@ def generate_synthetic_images(count=20, size=(512, 512), seed=42):
                 pts.append((cx + r * 0.4 * math.cos(a2), cy + r * 0.4 * math.sin(a2)))
             draw.polygon(pts, fill=fg, outline=(0, 0, 0))
         elif shape == "diamond":
-            draw.polygon([(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)],
-                         fill=fg, outline=(0, 0, 0))
+            draw.polygon(
+                [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)],
+                fill=fg,
+                outline=(0, 0, 0),
+            )
         elif shape == "ring":
-            draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=fg, width=size[0] // 20)
+            draw.ellipse(
+                [cx - r, cy - r, cx + r, cy + r], outline=fg, width=size[0] // 20
+            )
         elif shape == "cross":
             w = size[0] // 10
             draw.rectangle([cx - w, cy - r, cx + w, cy + r], fill=fg)
             draw.rectangle([cx - r, cy - w, cx + r, cy + w], fill=fg)
         elif shape == "arrow":
-            pts = [(cx - r, cy), (cx, cy - r), (cx, cy - r // 3),
-                   (cx + r, cy - r // 3), (cx + r, cy + r // 3),
-                   (cx, cy + r // 3), (cx, cy + r)]
+            pts = [
+                (cx - r, cy),
+                (cx, cy - r),
+                (cx, cy - r // 3),
+                (cx + r, cy - r // 3),
+                (cx + r, cy + r // 3),
+                (cx, cy + r // 3),
+                (cx, cy + r),
+            ]
             draw.polygon(pts, fill=fg, outline=(0, 0, 0))
         else:
             # fallback: filled circle with label
@@ -115,17 +164,18 @@ def generate_synthetic_images(count=20, size=(512, 512), seed=42):
             by = torch.randint(0, size[1], (1,)).item()
             br = torch.randint(size[0] // 8, size[0] // 4, (1,)).item()
             bc = colors[torch.randint(0, len(colors), (1,)).item()]
-            draw.ellipse([bx - br, by - br, bx + br, by + br],
-                         fill=bc, outline=None)
+            draw.ellipse([bx - br, by - br, bx + br, by + br], fill=bc, outline=None)
 
         label = f"img_{i:03d}_{shape}"
         images.append(img)
         labels.append(label)
     return images, labels
 
+
 # ---------------------------------------------------------------------------
 # Model loading
 # ---------------------------------------------------------------------------
+
 
 def _safe_load_bitnet_state(target_model, ckpt_path, device="cpu"):
     """Load a checkpoint saved from build_full_bitnet_vlm (base SmolVLMModel)
@@ -136,13 +186,24 @@ def _safe_load_bitnet_state(target_model, ckpt_path, device="cpu"):
     if "model_state" in raw:
         raw = raw["model_state"]
 
-    # remap keys: vision_model/connector/text_model -> model.vision_model/...
+    target_keys = set(target_model.state_dict())
     remapped = {}
     for k, v in raw.items():
+        candidates = [k]
         if k.startswith(("vision_model.", "connector.", "text_model.")):
-            remapped["model." + k] = v
+            candidates.append("model." + k)
         else:
-            print(f"  Skipping checkpoint key (no match in ForConditionalGeneration): {k}")
+            # Text-only checkpoints are saved from model.text_model.state_dict().
+            candidates.append("model.text_model." + k)
+        match = next(
+            (candidate for candidate in candidates if candidate in target_keys), None
+        )
+        if match is None:
+            print(
+                f"  Skipping checkpoint key (no match in ForConditionalGeneration): {k}"
+            )
+        else:
+            remapped[match] = v
 
     missing, unexpected = target_model.load_state_dict(remapped, strict=False)
     if missing:
@@ -211,45 +272,37 @@ def load_model(
         if mode == "fp32":
             mem_effective = mem_fp32
         else:
-            mem_ternary = (
-                sum(
-                    p.numel() * 2
-                    for m in model.modules()
-                    if isinstance(m, (BitNetLinear, BitNetConv2d))
-                    for p in m.parameters()
-                )
-                / 8
-                / 1024
-                / 1024
+            converted_ids = set()
+            packed_bits = 0
+            for module in model.modules():
+                if isinstance(module, (BitNetLinear, BitNetConv2d)):
+                    packed_bits += module.weight.numel() * 2
+                    converted_ids.add(id(module.weight))
+                    packed_bits += module.gamma.numel() * 32
+                    converted_ids.add(id(module.gamma))
+                    if module.bias is not None:
+                        packed_bits += module.bias.numel() * 32
+                        converted_ids.add(id(module.bias))
+                elif isinstance(module, BitNetEmbedding):
+                    packed_bits += module.weight.numel() * 4
+                    converted_ids.add(id(module.weight))
+                elif isinstance(module, BitNetLayerNorm) and module.elementwise_affine:
+                    packed_bits += module.weight.numel() * 8
+                    packed_bits += module.bias.numel() * 8
+                    converted_ids.update((id(module.weight), id(module.bias)))
+
+            rest_bits = sum(
+                parameter.numel() * 32
+                for parameter in model.parameters()
+                if id(parameter) not in converted_ids
             )
-            mem_embed = (
-                sum(
-                    p.numel() * 4
-                    for m in model.modules()
-                    if isinstance(m, BitNetEmbedding)
-                    for p in m.parameters()
-                )
-                / 8
-                / 1024
-                / 1024
+            mem_packed = packed_bits / 8 / 1024 / 1024
+            mem_rest = rest_bits / 8 / 1024 / 1024
+            mem_effective = mem_packed + mem_rest
+            print(
+                f"  Memory breakdown: packed {mem_packed:.0f} MB + "
+                f"remaining FP32 {mem_rest:.0f} MB = {mem_effective:.0f} MB"
             )
-            mem_ln = (
-                sum(
-                    p.numel() * 8
-                    for m in model.modules()
-                    if isinstance(m, BitNetLayerNorm)
-                    for p in m.parameters()
-                )
-                / 8
-                / 1024
-                / 1024
-            )
-            mem_eff = mem_ternary + mem_embed + mem_ln
-            # remaining FP32 params (bias, unconverted modules, etc)
-            mem_rest = mem_fp32 - mem_eff
-            print(f"  Memory breakdown: ternary {mem_ternary:.0f} + INT4 embed {mem_embed:.0f}"
-                  f" + FP8 LN {mem_ln:.1f} + rest FP32 {mem_rest:.0f} = {mem_fp32:.0f} MB")
-            mem_effective = mem_eff
 
     return model, processor, model_type, mem_fp32, mem_effective
 
@@ -262,8 +315,9 @@ PROMPT_TEMPLATE = "<|im_start|>user\n<image>\nDescribe this image in detail.<|im
 
 
 @torch.no_grad()
-def generate_caption(model, processor, image, prompt=PROMPT_TEMPLATE,
-                     max_new_tokens=50, device=None):
+def generate_caption(
+    model, processor, image, prompt=PROMPT_TEMPLATE, max_new_tokens=50, device=None
+):
     """Run greedy caption generation on a single image.
 
     Returns (caption_text, encode_time_s, decode_time_s, num_tokens).
@@ -274,8 +328,9 @@ def generate_caption(model, processor, image, prompt=PROMPT_TEMPLATE,
     # Process input
     t0 = time.perf_counter()
     inputs = processor(text=prompt, images=image, return_tensors="pt")
-    inputs = {k: v.to(device) if isinstance(v, torch.Tensor) else v
-              for k, v in inputs.items()}
+    inputs = {
+        k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()
+    }
     t_proc = time.perf_counter() - t0
 
     # Generate
@@ -307,6 +362,7 @@ def generate_caption(model, processor, image, prompt=PROMPT_TEMPLATE,
 # Main
 # ---------------------------------------------------------------------------
 
+
 def _bar(label, val, unit="", width=20):
     """Simple text bar chart."""
     n = min(int(val), width)
@@ -316,17 +372,40 @@ def _bar(label, val, unit="", width=20):
 
 def main():
     parser = argparse.ArgumentParser(description="BitNet VLM image captioning eval")
-    parser.add_argument("--images", type=int, default=5, help="Number of images to evaluate")
-    parser.add_argument("--max-new-tokens", type=int, default=50, help="Max tokens per caption")
-    parser.add_argument("--synthetic", action="store_true", help="Use synthetic images instead of real ones")
-    parser.add_argument("--image-dir", type=Path, default=IMAGE_DIR, help="Directory with real images")
+    parser.add_argument(
+        "--images", type=int, default=5, help="Number of images to evaluate"
+    )
+    parser.add_argument(
+        "--max-new-tokens", type=int, default=50, help="Max tokens per caption"
+    )
+    parser.add_argument(
+        "--synthetic",
+        action="store_true",
+        help="Use synthetic images instead of real ones",
+    )
+    parser.add_argument(
+        "--image-dir", type=Path, default=IMAGE_DIR, help="Directory with real images"
+    )
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--fp32", action="store_true", help="FP32 baseline (no quantization)")
-    group.add_argument("--load-bitnet", action="store_true", help="Fresh BitNet conversion")
-    group.add_argument("--checkpoint", type=Path, default=None, help="Path to .pt checkpoint")
+    group.add_argument(
+        "--fp32", action="store_true", help="FP32 baseline (no quantization)"
+    )
+    group.add_argument(
+        "--load-bitnet", action="store_true", help="Fresh BitNet conversion"
+    )
+    group.add_argument(
+        "--checkpoint", type=Path, default=None, help="Path to .pt checkpoint"
+    )
     parser.add_argument("--qfmt", default="int4", choices=["int4", "fp4"])
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
+
+    if args.images <= 0:
+        parser.error("--images must be positive")
+    if args.max_new_tokens <= 0:
+        parser.error("--max-new-tokens must be positive")
+    if args.checkpoint is not None and not args.checkpoint.is_file():
+        parser.error(f"checkpoint not found: {args.checkpoint}")
 
     # Determine mode
     if args.fp32:
@@ -338,7 +417,13 @@ def main():
     else:
         mode = "fp32"  # default baseline
 
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    device = (
+        "mps"
+        if torch.backends.mps.is_available()
+        else "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
     print(f"Device: {device}")
     print()
 
@@ -363,13 +448,14 @@ def main():
     else:
         os.makedirs(args.image_dir, exist_ok=True)
         exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-        paths = sorted(
-            p for p in args.image_dir.iterdir()
-            if p.suffix.lower() in exts
-        )[:args.images]
+        paths = sorted(p for p in args.image_dir.iterdir() if p.suffix.lower() in exts)[
+            : args.images
+        ]
         if len(paths) < args.images:
-            print(f"Found {len(paths)} images in {args.image_dir}, generating "
-                  f"{args.images - len(paths)} synthetic images to pad...")
+            print(
+                f"Found {len(paths)} images in {args.image_dir}, generating "
+                f"{args.images - len(paths)} synthetic images to pad..."
+            )
             real_imgs = [Image.open(p).convert("RGB") for p in paths]
             real_labels = [p.stem for p in paths]
             syn_imgs, syn_labels = generate_synthetic_images(
@@ -388,7 +474,9 @@ def main():
     # generation on image 0 so timing starts clean on the real loop.
     print("Warmup...")
     _ = generate_caption(
-        model, processor, images[0],
+        model,
+        processor,
+        images[0],
         prompt=PROMPT_TEMPLATE,
         max_new_tokens=5,
         device=device,
@@ -397,7 +485,9 @@ def main():
 
     # ── 4. Evaluate ────────────────────────────────────────────────
     print("─── Running captioning ───")
-    print(f"{'#':>3} {'Label':>20} {'Encode':>8} {'Decode':>8} {'Tokens':>7} {'Tokens/s':>10}")
+    print(
+        f"{'#':>3} {'Label':>20} {'Encode':>8} {'Decode':>8} {'Tokens':>7} {'Tokens/s':>10}"
+    )
     print("-" * 60)
 
     all_encode, all_decode, all_tokens = [], [], []
@@ -405,7 +495,9 @@ def main():
 
     for idx, (img, label) in enumerate(zip(images, labels)):
         reply, t_proc, t_decode, n_tok = generate_caption(
-            model, processor, img,
+            model,
+            processor,
+            img,
             prompt=PROMPT_TEMPLATE,
             max_new_tokens=args.max_new_tokens,
             device=device,
@@ -415,8 +507,10 @@ def main():
         all_tokens.append(n_tok)
 
         tok_s = n_tok / t_decode if t_decode > 0 else 0.0
-        print(f"{idx:>3} {label:>20} {t_proc*1000:>7.0f}ms {t_decode*1000:>7.0f}ms "
-              f"{n_tok:>5}  {tok_s:>8.1f}")
+        print(
+            f"{idx:>3} {label:>20} {t_proc * 1000:>7.0f}ms {t_decode * 1000:>7.0f}ms "
+            f"{n_tok:>5}  {tok_s:>8.1f}"
+        )
 
         if idx < 5:
             sample_captions.append((label, reply))
