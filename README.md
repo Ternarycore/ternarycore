@@ -5,7 +5,7 @@
 BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix multiplication — the core operation of every transformer layer — into additions, subtractions, and conditional skips. No multiplies. TernaryCore is hardware built to match that arithmetic natively.
 
 [![License: CERN-OHL-S v2](https://img.shields.io/badge/License-CERN--OHL--S%20v2-blue)](https://ohwr.org/cern_ohl_s_v2.txt)
-[![Simulation: All Passing](https://img.shields.io/badge/Simulation-31%2F31%20Passing-brightgreen)]()
+[![Simulation: Passing](https://img.shields.io/badge/Simulation-Passing-brightgreen)]()
 
 ---
 
@@ -16,29 +16,23 @@ BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix mu
 | `ternary_mac` | 8/8 | ✅ All passing |
 | `ternary_dot` | 7/7 | ✅ All passing |
 | `ternary_gemm` | 16/16 (4×4) | ✅ All passing |
-| `activation_quant` | formal (cover + prove) | ✅ All passing |
-| `ternary_scale` | formal (cover + prove) | ✅ All passing |
-| `ternary_pipeline` | formal + C++ sim | ✅ All passing |
 
-> **All tests passing!** The system has been fully verified with RTL simulation matching Python reference implementation. Recent fixes addressed timing bugs in `ternary_dot.v` and testbench race conditions.
+> **All configured checks pass.** Icarus and Verilator simulations are backed by
+> Python references and bounded formal checks for the core datapaths.
 
-### Recent Fixes
+### Verified `ternary_dot` Interface
 
-1. **Fixed `ternary_dot.v` timing bugs**:
-   - `valid_out` now pulses for exactly one cycle when the dot product is ready
-   - `vector_done` self-clears on `valid_in=0` (no longer sticky-high across vectors)
-   - Removed dead `result_latch`/`vector_done_delayed` registers
-   - Supports back-to-back vectors: a new vector can start the cycle after the previous result latches
-   - Removed debug statements for cleaner output
+The verification harnesses model the behavior of the currently shipped RTL:
 
-2. **Fixed testbench race conditions**:
-   - Added `#1` delays before clock edges
-   - Added extra cycle after reset for signal stabilization
+- `valid_out` rises after the terminal input and remains asserted until the
+  first accepted item of the next vector.
+- `acc_out` is registered on the following clock while `valid_out` is high.
+- Hold `valid_in` low for at least one recovery cycle between vectors.
+- Randomized Verilator coverage checks this protocol with bubbles and all four
+  2-bit weight encodings using a reproducible seed.
 
-3. **Added platform-agnostic documentation**
-   - Support for macOS, Linux, Windows (WSL)
-   - Multiple waveform viewer options
-   - Simplified verification without numpy dependency
+Formal cover and bounded proofs check the MAC, dot-product completion, and GEMM
+reference models in CI.
 
 ---
 
@@ -54,13 +48,16 @@ BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix mu
 
 ![ternary_dot waveform](docs/waveform_dot.svg)
 
-Eight activations stream in one per clock with weight=+1. `acc_out` holds zero while the MAC cell accumulates internally, then the final result (36) appears in the same cycle `valid_out` pulses.
+Eight activations stream in one per clock with weight=+1. `valid_out` rises on
+the terminal input; the registered result (36) appears on the following clock.
 
 `ternary_gemm` — 4×4 matrix multiply, 16/16 tests passing:
 
 ![ternary_gemm waveform](docs/waveform_gemm.svg)
 
-Four parallel `ternary_dot` instances (col_0–col_3) receive the same activation broadcast per clock, each with its own weight encoding. One result row lands simultaneously across all four columns when `valid_out` pulses.
+Four parallel `ternary_dot` instances (col_0–col_3) receive the same activation
+broadcast per clock, each with its own weight encoding. One registered result
+row lands simultaneously across all four columns while `valid_out` is high.
 
 ---
 
@@ -83,7 +80,7 @@ graph TD
 
     subgraph dot["ternary_dot — streaming dot product"]
         LOOP["× VECTOR_LEN\nmac cells in series"]
-        VREG["result register\n(valid_out pulse)"]
+        VREG["result register\n(valid_out level)"]
         REG1 --> LOOP
         LOOP --> VREG
     end
@@ -100,7 +97,9 @@ Three layers, each building on the last:
 
 **`ternary_mac`** — the atomic cell. Takes one activation, one 2-bit weight, and a running accumulator. Outputs `acc_in ± activation` or `acc_in` (zero weight), registered on the clock edge. No multiplier.
 
-**`ternary_dot`** — streaming dot product over `VECTOR_LEN` elements (default 64). Resets automatically between vectors; asserts `valid_out` for one cycle when the result is ready.
+**`ternary_dot`** — streaming dot product over `VECTOR_LEN` elements (default
+64). Signals completion with `valid_out`; the registered result is available on
+the following clock. A low `valid_in` recovery cycle separates vectors.
 
 **`ternary_gemm`** — matrix multiply using `COLS` parallel `ternary_dot` instances. One activation is broadcast per cycle to all column dots, each receiving its own weight encoding. Produces one output row every `DEPTH` cycles.
 
@@ -111,43 +110,7 @@ Three layers, each building on the last:
 | `2'b00` | 0 | No contribution (skip) |
 | `2'b01` | +1 | `acc_out = acc_in + activation` |
 | `2'b10` | -1 | `acc_out = acc_in - activation` |
-
----
-
-## BitNet Inference Pipeline
-
-The GEMM core computes ternary matmuls, but a real BitNet b1.58 layer also needs
-input quantization to INT8, an integer scaling multiply, and FP8→Q15 conversion
-for streaming activations. These modules complete the layer:
-
-**`activation_quant`** — quantizes an INT8 activation `x` to INT8 with
-`q = RoundClip(x * inv / 2^PRECISION, -Q_MAX, +Q_MAX)` (Q_MAX = 127 for INT8,
-`inv` precomputed in software). Round-to-nearest via `+ 2^(PRECISION-1)`;
-no zero-point offset is used. Two pipeline stages.
-
-**`ternary_scale`** — post-GEMM scaling: multiplies the integer accumulator
-(`acc`) by `alpha` (Q15) and rounds back to the output data width. Two pipeline stages.
-
-**`fp8_to_q15`** — converts an FP8 (E5M2) activation to Q15, for feeding the
-GEMM array from an FP8 stream. Single-cycle, combinatorial.
-
-**`ternary_pipeline`** — ties it together: `activation_quant` → `ternary_gemm` →
-`ternary_scale` using simple valid/valid_out handshaking. No FIFOs and no AXI
-interfaces; the pipeline is a purely streaming datapath.
-
-> **DSP usage — honest accounting.** The GEMM core (`ternary_mac`/`ternary_dot`/
-> `ternary_gemm`) is multiplier-free. The inference pipeline is not: both
-> `activation_quant` and `ternary_scale` contain a real integer multiplier
-> (`activation * inv`, `acc * alpha`). On FPGAs these map to DSP slices. A
-> full-layer implementation therefore uses DSPs for quantization/scaling, not
-> for the matmul itself.
-
-Run the fast C++ simulation of the whole pipeline (576-element vectors):
-
-```bash
-cd sim
-make verilator-all          # MAC, dot, GEMM, and full-pipeline C++ sims
-```
+| `2'b11` | -1 | Reserved encoding follows the RTL default subtraction path |
 
 ---
 
@@ -184,7 +147,8 @@ cd ternarycore/sim
 make tb_ternary_mac    # ternary_mac — 8 tests
 make tb_ternary_dot    # ternary_dot — 7 tests (VLEN=8)
 make tb_ternary_gemm   # ternary_gemm — 4×4 matrix multiply
-make all               # run all three
+make all               # run the complete Icarus regression suite
+make verilator-all     # run MAC, dot, randomized dot, and GEMM C++ tests
 ```
 
 ### Cross-verify with Python

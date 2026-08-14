@@ -87,6 +87,3 @@ prd.jsonarty_mb_gemm/
 ip/axi_gemm_wrapper/
 ip/weight_bram/
 arty_mb_gemm/
-# Mutation testing artifacts
-*.bak
-*.mutated

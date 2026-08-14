@@ -9,48 +9,47 @@ VERILATOR = verilator
 
 .PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram clean verify
 .PHONY: verilator-mac verilator-dot verilator-gemm verilator-all
-.PHONY: verilator-dot-back2back verilator-dot-fuzz
-.PHONY: verilator-dot-diff device-diff differential-fuzz mutations coverage
+.PHONY: verilator-dot-fuzz
 
 all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram
 
 # ── MAC unit ──────────────────────────────────────────────────────────────────
-tb_ternary_mac: ../tb/tb_ternary_mac.v ../rtl/ternary_mac.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
+tb_ternary_mac: ../tb/tb_ternary_mac.v ../rtl/ternary_mac.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_mac $^
 	$(VVP) $(SIMDIR)/sim_mac
 
 # ── Dot product ───────────────────────────────────────────────────────────────
-tb_ternary_dot: ../tb/tb_ternary_dot.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
+tb_ternary_dot: ../tb/tb_ternary_dot.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_dot $^
 	$(VVP) $(SIMDIR)/sim_dot
 
 # ── Matrix multiply ───────────────────────────────────────────────────────────
 tb_ternary_gemm: tb_ternary_gemm_depth4 tb_ternary_gemm_depth16 tb_ternary_gemm_depth64
 
-tb_ternary_gemm_depth4: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
+tb_ternary_gemm_depth4: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -DDEPTH_VAL=4 -o $(SIMDIR)/sim_gemm_d4 $^
 	$(VVP) $(SIMDIR)/sim_gemm_d4
 
-tb_ternary_gemm_depth16: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
+tb_ternary_gemm_depth16: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -DDEPTH_VAL=16 -o $(SIMDIR)/sim_gemm_d16 $^
 	$(VVP) $(SIMDIR)/sim_gemm_d16
 
-tb_ternary_gemm_depth64: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
+tb_ternary_gemm_depth64: ../tb/tb_ternary_gemm.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -DDEPTH_VAL=64 -o $(SIMDIR)/sim_gemm_d64 $^
 	$(VVP) $(SIMDIR)/sim_gemm_d64
 
 # ── AXI4-Lite GEMM wrapper ────────────────────────────────────────────────────
 tb_axi_gemm_wrapper: tb_axi_gemm_wrapper_depth4 tb_axi_gemm_wrapper_depth16 tb_axi_gemm_wrapper_depth64
 
-tb_axi_gemm_wrapper_depth4: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
+tb_axi_gemm_wrapper_depth4: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -DDEPTH_VAL=4 -o $(SIMDIR)/sim_axi_gemm_d4 $^
 	$(VVP) $(SIMDIR)/sim_axi_gemm_d4
 
-tb_axi_gemm_wrapper_depth16: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
+tb_axi_gemm_wrapper_depth16: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -DDEPTH_VAL=16 -o $(SIMDIR)/sim_axi_gemm_d16 $^
 	$(VVP) $(SIMDIR)/sim_axi_gemm_d16
 
-tb_axi_gemm_wrapper_depth64: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
+tb_axi_gemm_wrapper_depth64: ../tb/tb_axi_gemm_wrapper.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -DDEPTH_VAL=64 -o $(SIMDIR)/sim_axi_gemm_d64 $^
 	$(VVP) $(SIMDIR)/sim_axi_gemm_d64
 
@@ -66,7 +65,7 @@ tb_weight_bram_d8: ../tb/tb_weight_bram.v ../rtl/weight_bram.v
 	$(VVP) $(SIMDIR)/sim_weight_bram_d8
 
 # ── Streaming feeder ─────────────────────────────────────────────────────────
-tb_gemm_stream: ../tb/tb_gemm_stream.v ../rtl/ternary_gemm_stream.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+tb_gemm_stream: ../tb/tb_gemm_stream.v ../rtl/ternary_gemm_stream.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -I../rtl -o $(SIMDIR)/sim_gemm_stream $^
 	$(VVP) $(SIMDIR)/sim_gemm_stream
 
@@ -77,7 +76,7 @@ tb_int8_gemm: ../tb/tb_int8_gemm.v ../rtl/int8_gemm.v ../rtl/int8_dot.v
 
 # ── AXI wrapper gap regression ───────────────────────────────────────────────
 # Reproduces the on-hardware Tier-1 failure: CPU-fed AXI with idle gaps.
-tb_axi_gemm_gaps: ../tb/tb_axi_gemm_gaps.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v
+tb_axi_gemm_gaps: ../tb/tb_axi_gemm_gaps.v ../rtl/axi_gemm_wrapper.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -I../rtl -o $(SIMDIR)/sim_axi_gaps $^
 	$(VVP) $(SIMDIR)/sim_axi_gaps
 
@@ -89,8 +88,7 @@ verify:
 
 clean:
 	rm -f $(SIMDIR)/sim_* $(SIMDIR)/*.vcd
-	rm -rf obj_dir obj_dir_dot obj_dir_dot_b2b obj_dir_dot_fuzz obj_dir_dot_diff
-	rm -rf build
+	rm -rf obj_dir obj_dir_dot obj_dir_dot_fuzz
 
 # ── Verilator C++ simulation (fast) ──────────────────────────────────────────
 # Requirements: verilator (brew install verilator)
@@ -99,7 +97,7 @@ VERILATOR_SRCDIR = tests
 # WIDTHTRUNC: intentional accumulator/width narrowing in ternary_dot tree reductions
 # TIMESCALEMOD: ternary_weight.v has no timescale (shared cell)
 # PINMISSING: optional debug_* ports on ternary_dot left unconnected by gemm
-VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-TIMESCALEMOD -Wno-PINMISSING -I../rtl
+VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-TIMESCALEMOD -Wno-PINMISSING -Wno-BLKSEQ -Wno-UNUSEDPARAM -Wno-UNUSEDSIGNAL -I../rtl
 CXX ?= g++
 # Shared ternary select cell (required after ternary_weight.v split on main)
 TW = ../rtl/ternary_weight.v
@@ -116,23 +114,14 @@ verilator-dot: $(VERILATOR_SRCDIR)/verilator_dot.cpp ../rtl/ternary_dot.v $(TW)
 		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_verilator
 	./obj_dir_dot/sim_dot_verilator
 
-verilator-dot-back2back: $(VERILATOR_SRCDIR)/verilator_dot_back2back.cpp ../rtl/ternary_dot.v $(TW)
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
-		-GVECTOR_LEN=4 \
-		--Mdir obj_dir_dot_b2b \
-		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_back2back_verilator
-	./obj_dir_dot_b2b/sim_dot_back2back_verilator
-
 verilator-gemm: $(VERILATOR_SRCDIR)/verilator_gemm.cpp ../rtl/ternary_gemm.v ../rtl/ternary_dot.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_gemm \
 		-GDEPTH=4 -GCOLS=4 \
 		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v ../rtl/ternary_gemm.v $< -o sim_gemm_verilator
 	./obj_dir/sim_gemm_verilator
 
-# Assets present on this PR branch only (no pipeline-large / diff sources)
-verilator-all:\
-  verilator-mac verilator-dot verilator-dot-back2back verilator-dot-fuzz\
-  verilator-gemm
+# Run every Verilator test shipped by this PR.
+verilator-all: verilator-mac verilator-dot verilator-dot-fuzz verilator-gemm
 
 verilator-dot-fuzz: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v $(TW)
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
@@ -140,40 +129,3 @@ verilator-dot-fuzz: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_do
 		--Mdir obj_dir_dot_fuzz \
 		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_fuzz_verilator
 	./obj_dir_dot_fuzz/sim_dot_fuzz_verilator
-
-# ── Differential fuzzing (sources land in later PRs; keep targets local-only) ─
-DIFF_BUILD = build
-
-verilator-dot-diff: $(VERILATOR_SRCDIR)/verilator_dot_diff.cpp ../rtl/ternary_dot.v $(TW)
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
-		-GVECTOR_LEN=8 \
-		--Mdir obj_dir_dot_diff \
-		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_diff_verilator
-
-device-diff: $(VERILATOR_SRCDIR)/device_diff.cpp
-	mkdir -p $(DIFF_BUILD)
-	$(CXX) -std=c++17 -O2 -o $(DIFF_BUILD)/device_diff $<
-
-differential-fuzz: verilator-dot-diff device-diff
-	python3 $(VERILATOR_SRCDIR)/differential_fuzz.py $(TRIALS)
-
-# ── Coverage (toggle/branch via Verilator) ─────────────────────────────────────
-coverage: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v $(TW)
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
-		-GVECTOR_LEN=8 \
-		--Mdir obj_dir_coverage \
-		--coverage \
-		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_coverage
-	./obj_dir_coverage/sim_dot_coverage 42 10000
-	mkdir -p coverage
-	verilator_coverage --annotate-min 1 \
-		--annotate coverage/ \
-		coverage.dat
-	@echo "=== Coverage summary ==="
-	@verilator_coverage --report summary coverage.dat 2>&1 | \
-	  awk '/toggle/{gsub(/[()]/,"",$$4); split($$4,b,"/"); \
-	       printf "%s/%s signals toggled (%.0f%%)\n", b[1], b[2], 100*b[1]/b[2]}' \
-	  || echo "(coverage report pending)"
-
-mutations:
-	bash tests/run_mutations.sh

@@ -88,41 +88,45 @@ jobs:
 
     - name: Lint RTL files with Verilator
       run: |
+        set -euo pipefail
         echo "Linting RTL files..."
 
+        # Keep warnings fatal. Suppress only warnings caused by intentional
+        # interfaces/debug hooks in the currently shipped RTL.
+        LINT_FLAGS=(
+          --lint-only -Wall
+          -Wno-DECLFILENAME
+          -Wno-UNOPTFLAT
+          -Wno-WIDTHEXPAND
+          -Wno-WIDTHTRUNC
+          -Wno-TIMESCALEMOD
+          -Wno-PINMISSING
+          -Wno-BLKSEQ
+          -Wno-UNUSEDPARAM
+          -Wno-UNUSEDSIGNAL
+        )
+
         # Lint ternary_mac.v (+ shared ternary_weight cell)
-        verilator --lint-only -Wall -Wno-DECLFILENAME \
-          rtl/ternary_weight.v rtl/ternary_mac.v || echo "Warning: Lint issues in ternary_mac.v"
+        verilator "${LINT_FLAGS[@]}" \
+          rtl/ternary_weight.v rtl/ternary_mac.v
 
         # Lint ternary_dot.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME \
-          rtl/ternary_weight.v rtl/ternary_dot.v || echo "Warning: Lint issues in ternary_dot.v"
+        verilator "${LINT_FLAGS[@]}" \
+          rtl/ternary_weight.v rtl/ternary_dot.v
 
         # Lint ternary_gemm.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME \
-          rtl/ternary_weight.v rtl/ternary_dot.v rtl/ternary_gemm.v || echo "Warning: Lint issues in ternary_gemm.v"
+        verilator "${LINT_FLAGS[@]}" \
+          rtl/ternary_weight.v rtl/ternary_dot.v rtl/ternary_gemm.v
 
         # Lint axi_gemm_wrapper.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME \
-          rtl/ternary_weight.v rtl/ternary_dot.v rtl/ternary_gemm.v rtl/axi_gemm_wrapper.v \
-          || echo "Warning: Lint issues in axi_gemm_wrapper.v"
+        verilator "${LINT_FLAGS[@]}" \
+          rtl/ternary_weight.v rtl/ternary_dot.v rtl/ternary_gemm.v \
+          rtl/axi_gemm_wrapper.v
 
         # Lint weight_bram.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/weight_bram.v || echo "Warning: Lint issues in weight_bram.v"
+        verilator "${LINT_FLAGS[@]}" rtl/weight_bram.v
 
-        echo "Linting completed"
-
-    - name: Check for common Verilog issues
-      run: |
-        echo "Checking for common Verilog issues..."
-
-        # Check for latches (incomplete sensitivity lists)
-        grep -r "always @" rtl/ || true
-
-        # Check for uninitialized registers
-        grep -r "reg.*;" rtl/ | grep -v "= " || true
-
-        echo "Common issue check completed"
+        echo "Strict linting completed"
 
   verilator-sim:
     name: Verilator Simulation (fast C++)
@@ -137,22 +141,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y verilator build-essential
 
-    - name: Run Verilator MAC test
+    - name: Run all shipped Verilator tests
       run: |
         cd sim
-        make verilator-mac
-
-    - name: Run Verilator Dot test
-      run: |
-        cd sim
-        make verilator-dot
-
-    - name: Run Verilator GEMM test
-      run: |
-        cd sim
-        make verilator-gemm
-
-    # Note: verilator-pipeline-large / verilator-dot-diff require sources from later PRs.
+        make verilator-all
 
   formal-verification:
     name: Formal Verification (SymbiYosys)
