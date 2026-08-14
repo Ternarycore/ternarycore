@@ -28,11 +28,11 @@ module ternary_mac #(
     output reg                   valid_out
 );
 
-    // Ternary multiply: mux only, no DSP block consumed
-    wire signed [DATA_WIDTH-1:0] weighted;
-    assign weighted = (weight_enc == 2'b00) ? {DATA_WIDTH{1'b0}}  :  // w = 0
-                      (weight_enc == 2'b01) ? $signed(activation)  :  // w = +1
-                                              -$signed(activation);    // w = -1
+    // One shared definition of the ternary select -- see ternary_weight.v.
+    wire [ACC_WIDTH-1:0] weighted_ext;
+    ternary_weight #(.DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH)) u_w (
+        .activation(activation), .weight_enc(weight_enc),
+        .weighted_ext(weighted_ext));
 
     // Sign-extend and accumulate
     always @(posedge clk or negedge rst_n) begin
@@ -42,7 +42,7 @@ module ternary_mac #(
         end else begin
             valid_out <= valid_in;
             if (valid_in)
-                acc_out <= acc_in + {{(ACC_WIDTH-DATA_WIDTH){weighted[DATA_WIDTH-1]}}, weighted};
+                acc_out <= acc_in + weighted_ext;
         end
     end
 
