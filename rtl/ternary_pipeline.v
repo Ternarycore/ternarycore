@@ -8,7 +8,7 @@ module ternary_pipeline #(
     parameter VECTOR_LEN = 4,
     parameter COLS       = 4,
     parameter PRECISION  = 15,
-    parameter INV_WIDTH  = PRECISION + DATA_WIDTH
+    parameter INV_WIDTH  = PRECISION + DATA_WIDTH - 1
 )(
     input  wire                         clk,
     input  wire                         rst_n,

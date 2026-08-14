@@ -6,7 +6,7 @@
 // where Q_MAX = 2^(Q_WIDTH-1) - 1 (127 for INT8, 7 for INT4)
 //
 // inv = round(2^PRECISION * Q_MAX / absmax), precomputed in software.
-// INV_WIDTH = PRECISION + Q_WIDTH (22 for INT8 Q15, 19 for INT4 Q15).
+// INV_WIDTH = PRECISION + Q_WIDTH - 1 (22 for INT8 Q15, 18 for INT4 Q15).
 
 `timescale 1ns / 1ps
 
@@ -14,7 +14,7 @@ module activation_quant #(
     parameter DATA_WIDTH = 8,     // input activation width
     parameter Q_WIDTH    = 8,     // quantized output width (4 or 8)
     parameter PRECISION  = 15,    // reciprocal fixed-point shift
-    parameter INV_WIDTH  = PRECISION + Q_WIDTH
+    parameter INV_WIDTH  = PRECISION + Q_WIDTH - 1
 )(
     input  wire                       clk,
     input  wire                       rst_n,
