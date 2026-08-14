@@ -8,7 +8,7 @@ module ternary_pipeline #(
     parameter VECTOR_LEN = 4,
     parameter COLS       = 4,
     parameter PRECISION  = 15,
-    parameter INV_WIDTH  = 22
+    parameter INV_WIDTH  = PRECISION + DATA_WIDTH
 )(
     input  wire                         clk,
     input  wire                         rst_n,
@@ -17,14 +17,17 @@ module ternary_pipeline #(
     input  wire [INV_WIDTH-1:0]         inv,
     input  wire [COLS*(PRECISION+1)-1:0] alpha,
     input  wire [2*COLS-1:0]            weight_enc,
-    output reg  [COLS*ACC_WIDTH-1:0]    result,
-    output reg                          valid_out
+    output wire [COLS*ACC_WIDTH-1:0]    result,
+    output wire                         valid_out
 );
 
     wire [DATA_WIDTH-1:0] q;
     wire                  q_valid;
 
-    activation_quant #(.DATA_WIDTH(DATA_WIDTH), .PRECISION(PRECISION), .INV_WIDTH(INV_WIDTH)) quant (
+    activation_quant #(
+        .DATA_WIDTH(DATA_WIDTH), .Q_WIDTH(DATA_WIDTH),
+        .PRECISION(PRECISION), .INV_WIDTH(INV_WIDTH)
+    ) quant (
         .clk(clk), .rst_n(rst_n),
         .valid_in(valid_in), .x(activation), .inv(inv),
         .q(q), .valid_out(q_valid)
@@ -75,6 +78,9 @@ module ternary_pipeline #(
 
     wire scale_valid = gemm_valid_d1 && !gemm_valid_d2;
 
+    // inv is sampled with each valid activation. alpha is sampled when a
+    // completed vector enters the scale stage; software must keep both values
+    // stable for the transactions to which they apply.
     ternary_scale #(.ACC_WIDTH(ACC_WIDTH), .COLS(COLS), .PRECISION(PRECISION)) scale (
         .clk(clk), .rst_n(rst_n),
         .valid_in(scale_valid),

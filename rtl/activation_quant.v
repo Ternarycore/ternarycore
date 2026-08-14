@@ -14,7 +14,7 @@ module activation_quant #(
     parameter DATA_WIDTH = 8,     // input activation width
     parameter Q_WIDTH    = 8,     // quantized output width (4 or 8)
     parameter PRECISION  = 15,    // reciprocal fixed-point shift
-    parameter INV_WIDTH  = 22     // PRECISION + Q_WIDTH
+    parameter INV_WIDTH  = PRECISION + Q_WIDTH
 )(
     input  wire                       clk,
     input  wire                       rst_n,
