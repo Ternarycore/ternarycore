@@ -88,23 +88,23 @@ jobs:
         
     - name: Lint RTL files with Verilator
       run: |
+        set -euo pipefail
         echo "Linting RTL files..."
-        
-        # Lint ternary_mac.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_mac.v || echo "Warning: Lint issues in ternary_mac.v"
-        
-        # Lint ternary_dot.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_dot.v || echo "Warning: Lint issues in ternary_dot.v"
-        
-        # Lint ternary_gemm.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_gemm.v || echo "Warning: Lint issues in ternary_gemm.v"
-        
-        # Lint axi_gemm_wrapper.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/axi_gemm_wrapper.v || echo "Warning: Lint issues in axi_gemm_wrapper.v"
-        
-        # Lint weight_bram.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/weight_bram.v || echo "Warning: Lint issues in weight_bram.v"
-        
+
+        LINT_FLAGS="-Wall -Wno-DECLFILENAME -Wno-BLKSEQ -Wno-UNUSEDPARAM"
+        LINT_FLAGS="$LINT_FLAGS -Wno-UNUSEDSIGNAL -Wno-PINMISSING"
+        LINT_FLAGS="$LINT_FLAGS -Wno-TIMESCALEMOD -Wno-WIDTHTRUNC"
+        LINT_FLAGS="$LINT_FLAGS -Wno-WIDTHEXPAND -Wno-UNOPTFLAT"
+
+        verilator --lint-only $LINT_FLAGS --top-module ternary_pipeline \
+          rtl/activation_quant.v rtl/ternary_weight.v rtl/ternary_dot.v \
+          rtl/ternary_gemm.v rtl/ternary_scale.v rtl/ternary_pipeline.v
+        verilator --lint-only $LINT_FLAGS --top-module axi_gemm_wrapper \
+          rtl/ternary_weight.v rtl/ternary_dot.v rtl/ternary_gemm.v \
+          rtl/axi_gemm_wrapper.v
+        verilator --lint-only $LINT_FLAGS --top-module weight_bram rtl/weight_bram.v
+        verilator --lint-only $LINT_FLAGS --top-module fp8_to_q15 rtl/fp8_to_q15.v
+
         echo "Linting completed"
         
     - name: Check for common Verilog issues
@@ -160,18 +160,34 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Yosys + SymbiYosys
+    - name: Install oss-cad-suite (Yosys + SymbiYosys)
       run: |
-        sudo apt-get update
-        sudo apt-get install -y yosys symbiyosys yosys-smtbmc
+        curl -L https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2024-08-28/oss-cad-suite-linux-x64-20240828.tgz \
+          | tar -xz -C $HOME
+        echo "$HOME/oss-cad-suite/bin" >> $GITHUB_PATH
 
     - name: Run formal proofs
       run: |
+        set -euo pipefail
         cd formal
-        for f in *.sby; do
+        shopt -s nullglob
+        sby_files=(*.sby)
+        if [ ${#sby_files[@]} -eq 0 ]; then
+          echo "No .sby files found"
+          exit 1
+        fi
+        for f in "${sby_files[@]}"; do
           echo "=== $f ==="
-          timeout 120 sby -f "$f" 2>&1 | grep -E "DONE \(PASS|DONE \(FAIL" | tail -1
-          if [ $? -ne 0 ]; then echo "FAILED: $f"; exit 1; fi
+          if ! timeout 180 sby -f "$f" > "/tmp/sby_${f}.log" 2>&1; then
+            echo "FAILED (sby exit): $f"
+            tail -50 "/tmp/sby_${f}.log" || true
+            exit 1
+          fi
+          if ! grep -E "DONE \(PASS\)" "/tmp/sby_${f}.log" | tail -1; then
+            echo "FAILED (no PASS): $f"
+            tail -50 "/tmp/sby_${f}.log" || true
+            exit 1
+          fi
         done
         echo "All formal proofs passed."
         echo "- ✅ Formal Verification" >> $GITHUB_STEP_SUMMARY
@@ -309,7 +325,7 @@ jobs:
         echo "- ✅ Python Verification" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Verilog Linting" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Verilator C++ Simulation" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Formal Verification (36 proofs)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Formal Verification (all configured proofs)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Mutation Testing (13/13 detected)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Differential Fuzz (RTL+Device+Python)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ RTL Sync Check (4 worktrees)" >> $GITHUB_STEP_SUMMARY

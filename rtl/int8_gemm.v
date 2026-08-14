@@ -21,9 +21,7 @@ module int8_gemm #(
     output wire [ACC_WIDTH*COLS-1:0]     acc_out,
     output wire                          valid_out
 );
-/* verilator lint_off UNUSEDSIGNAL */
     wire [COLS-1:0] col_valids;
-/* verilator lint_on UNUSEDSIGNAL */
     assign valid_out = col_valids[0];
 
     genvar i;

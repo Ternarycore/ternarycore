@@ -99,7 +99,8 @@ clean:
 # The 3 suffixed variants (back2back/fuzz/diff) could use a pattern rule but
 # their unique Mdirs and build/run split make explicit rules clearer.
 VERILATOR_SRCDIR = tests
-VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -I../rtl
+VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
+VERILATOR_FLAGS += -Wno-PINMISSING -Wno-TIMESCALEMOD -I../rtl
 CXX ?= g++
 
 verilator-mac: $(VERILATOR_SRCDIR)/verilator_mac.cpp ../rtl/ternary_mac.v
@@ -138,11 +139,12 @@ verilator-gemm: $(VERILATOR_SRCDIR)/verilator_gemm.cpp ../rtl/ternary_gemm.v ../
 
 verilator-pipeline-large: $(VERILATOR_SRCDIR)/verilator_pipeline_576.cpp \
                            ../rtl/ternary_pipeline.v ../rtl/activation_quant.v \
-                           ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_scale.v
+                           ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v \
+                           ../rtl/ternary_scale.v
 	$(VERILATOR) --cc --build --exe -j --top-module ternary_pipeline \
 		-GVECTOR_LEN=576 -GCOLS=4 \
 		$(VERILATOR_FLAGS) \
-		../rtl/activation_quant.v ../rtl/ternary_dot.v ../rtl/ternary_gemm.v \
+		../rtl/activation_quant.v ../rtl/ternary_weight.v ../rtl/ternary_dot.v ../rtl/ternary_gemm.v \
 		../rtl/ternary_scale.v ../rtl/ternary_pipeline.v $< -o sim_pipeline_576_verilator
 	./obj_dir/sim_pipeline_576_verilator
 

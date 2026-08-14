@@ -10,6 +10,7 @@ smtbmc
 [script]
 read -formal ternary_gemm.v
 read -formal ternary_dot.v
+read -formal ternary_weight.v
 read -formal ternary_gemm_stream.v
 read -formal ternary_gemm_stream_formal.v
 setattr -unset keep *
@@ -20,8 +21,8 @@ flatten
 opt
 
 [files]
-../rtl/ternary_defines.vh
 ../rtl/ternary_gemm.v
 ../rtl/ternary_dot.v
+../rtl/ternary_weight.v
 ../rtl/ternary_gemm_stream.v
 ternary_gemm_stream_formal.v

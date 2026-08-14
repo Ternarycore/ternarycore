@@ -32,6 +32,8 @@ module ternary_pipeline #(
 
     wire [COLS*ACC_WIDTH-1:0] gemm_result;
     wire                      gemm_valid;
+    reg                       gemm_valid_d1;
+    reg                       gemm_valid_d2;
     // weight_enc must be delayed by exactly the activation_quant latency
     // (2 register stages: product, then q) so that element i of a row pairs
     // with weight i (q[i] * w[i]), not q[i] * w[i+1]. The delay registers
@@ -57,9 +59,25 @@ module ternary_pipeline #(
         .acc_out(gemm_result), .valid_out(gemm_valid)
     );
 
+    // The shipped GEMM contract raises valid_out before acc_out is registered
+    // and may hold it high until the next vector starts. Delay the level long
+    // enough for acc_out to settle, then convert its rising edge to one pulse
+    // so the scale stage consumes each completed vector exactly once.
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            gemm_valid_d1 <= 1'b0;
+            gemm_valid_d2 <= 1'b0;
+        end else begin
+            gemm_valid_d1 <= gemm_valid;
+            gemm_valid_d2 <= gemm_valid_d1;
+        end
+    end
+
+    wire scale_valid = gemm_valid_d1 && !gemm_valid_d2;
+
     ternary_scale #(.ACC_WIDTH(ACC_WIDTH), .COLS(COLS), .PRECISION(PRECISION)) scale (
         .clk(clk), .rst_n(rst_n),
-        .valid_in(gemm_valid),
+        .valid_in(scale_valid),
         .acc_in(gemm_result), .alpha(alpha),
         .result(result), .valid_out(valid_out)
     );

@@ -209,9 +209,9 @@ module ternary_pipeline_formal #(
 
     reg signed [ACC_WIDTH+PRECISION:0] s_prod [0:COLS-1];
     reg        [COLS*ACC_WIDTH-1:0]    s_result;
-    reg                               s_d1, svalid;
+    reg                               s_d1, s_d2, svalid;
     initial begin
-        s_d1 = 0; svalid = 0; s_result = 0;
+        s_d1 = 0; s_d2 = 0; svalid = 0; s_result = 0;
     end
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -219,15 +219,17 @@ module ternary_pipeline_formal #(
                 s_prod[c] <= 0;
             s_result <= 0;
             s_d1 <= 0;
+            s_d2 <= 0;
             svalid <= 0;
         end else begin
             s_d1 <= dot_done;
-            svalid <= s_d1;
-            if (dot_done) begin
+            s_d2 <= s_d1;
+            svalid <= s_d2;
+            if (s_d1) begin
                 for (c = 0; c < COLS; c = c + 1)
                     s_prod[c] <= $signed(acc_sum[c]) * $signed({1'b0, alpha[c*(PRECISION+1) +: PRECISION+1]});
             end
-            if (s_d1)
+            if (s_d2)
                 for (c = 0; c < COLS; c = c + 1)
                     s_result[c*ACC_WIDTH +: ACC_WIDTH] <= ref_scale(s_prod[c]);
         end

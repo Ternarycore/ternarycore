@@ -18,6 +18,7 @@ smtbmc
 [script]
 read -formal activation_quant.v
 read -formal ternary_dot.v
+read -formal ternary_weight.v
 read -formal ternary_gemm.v
 read -formal ternary_scale.v
 read -formal ternary_pipeline.v
@@ -32,7 +33,7 @@ opt
 [files]
 ../rtl/activation_quant.v
 ../rtl/ternary_dot.v
-../rtl/ternary_defines.vh
+../rtl/ternary_weight.v
 ../rtl/ternary_gemm.v
 ../rtl/ternary_scale.v
 ../rtl/ternary_pipeline.v
