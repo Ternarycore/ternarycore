@@ -22,7 +22,9 @@ void decode(const u8 *packed, i8 *pos, i8 *neg, int cols, int vlen) {
         for (int k = 0; k < vlen; k++) {
             u8 enc = (packed[k] >> (2 * c)) & 3;
             pos[c * vlen + k] = (enc == 1) ? 1 : 0;
-            neg[c * vlen + k] = (enc == 2) ? 1 : 0;
+            // ternary_weight.v maps every non-00/non-01 code to -1,
+            // including the reserved 2'b11 encoding.
+            neg[c * vlen + k] = (enc >= 2) ? 1 : 0;
         }
 }
 
@@ -30,8 +32,8 @@ static i32 dot(const i8 *acts, const i8 *pos, const i8 *neg, int vlen) {
     i32 acc = 0;
     size_t vl;
 
-    for (size_t k = 0; k < vlen; k += vl) {
-        vl = __riscv_vsetvl_e8m1(vlen - k);
+    for (size_t k = 0; k < (size_t)vlen; k += vl) {
+        vl = __riscv_vsetvl_e8m1((size_t)vlen - k);
 
         // Load int8, widen to int16
         vint16m2_t v_act16 = __riscv_vsext_vf2_i16m2(
@@ -70,8 +72,10 @@ void gemm(const i8 *acts, const u8 *packed, const u16 *alphas,
     // Bounds check: static pos/neg buffers sized for MAX_C * MAX_V.
     // The caller must ensure vlen <= MAX_V. This check catches misuse
     // during development rather than silently corrupting memory.
-    if (vlen > MAX_V || cols > MAX_C) {
-        for (int c = 0; c < cols; c++) results[c] = 0;
+    if (vlen <= 0 || cols <= 0 || vlen > MAX_V || cols > MAX_C) {
+        // Never walk beyond the implementation's fixed result capacity,
+        // even when the caller supplied a nonsensical column count.
+        for (int c = 0; c < cols && c < MAX_C; c++) results[c] = 0;
         return;
     }
 

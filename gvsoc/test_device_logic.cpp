@@ -23,15 +23,15 @@ static constexpr int ACC_WIDTH  = 32;
 static constexpr int Q_WIDTH    = 8;      // quantized activation width
 static constexpr int PRECISION  = 15;     // Q15 for alpha (1.0 = 0x8000)
 static constexpr int INV_WIDTH  = 22;     // PRECISION + Q_WIDTH
-static constexpr int Q_MAX      = 127;    // 2^(Q_WIDTH-1) - 1
-static constexpr int Q_MIN      = -127;   // -(2^(Q_WIDTH-1)) + 1
+static constexpr int Q_MAX      = (1 << (Q_WIDTH - 1)) - 1;
+static constexpr int Q_MIN      = -Q_MAX;
 
-// Weight encoding: 00=zero, 01=+1, 10=-1
+// Match ternary_weight.v exactly: 00=zero, 01=+1, all other codes=-1.
 static inline int decode_weight(uint8_t enc) {
     switch (enc) {
         case 0b01: return +1;
-        case 0b10: return -1;
-        default:   return  0;  // 0b00 or 0b11
+        case 0b00: return  0;
+        default:   return -1;
     }
 }
 
@@ -39,7 +39,8 @@ static inline int decode_weight(uint8_t enc) {
 // Matches activation_quant.v (2-stage: multiply -> shift+round+clip)
 static inline int8_t quantize_activation(int x, uint32_t inv) {
     // Stage 1: product (32-bit signed, matching Verilog product width)
-    int64_t product = (int64_t)x * (int64_t)(int32_t)(inv & 0x3FFFFF);
+    int64_t product = (int64_t)x *
+        (int64_t)(int32_t)(inv & ((1u << INV_WIDTH) - 1));
 
     // Stage 2: shift + round + clip
     int64_t round_amt = 1 << (PRECISION - 1);
@@ -58,14 +59,14 @@ static inline int compute_inv(int absmax) {
 
 // Run the full ternary pipeline: quantize -> GEMM -> scale
 // activations: array of VECTOR_LEN signed 8-bit values
-// weights_packed: 2*COLS bits per column, stored as array of 2-bit values
-//   (each column has VECTOR_LEN weights, each 2-bit encoded)
+// weights_packed: one packed row per depth position, matching device MMIO:
+//   weights_packed[k] = {col3[k], col2[k], col1[k], col0[k]}
 // alphas: array of COLS Q15 scale factors
 // inv: precomputed inverse absmax for activation quantization
 // result: output array of COLS int32_t values
 void ternary_pipeline_cpp(
     const int8_t* activations, int vector_len,
-    const uint8_t* weights_packed,  // [COLS][VECTOR_LEN] packed 2-bit
+    const uint8_t* weights_packed,  // [VECTOR_LEN], 2 bits per column
     const uint16_t* alphas, int cols,
     uint32_t inv,
     int32_t* result)
@@ -79,9 +80,9 @@ void ternary_pipeline_cpp(
     // Stage 2: GEMM - for each column, accumulate weighted activations
     int32_t* acc = new int32_t[cols]();
 
-    for (int c = 0; c < cols; c++) {
-        for (int k = 0; k < vector_len; k++) {
-            int w = decode_weight(weights_packed[c * vector_len + k]);
+    for (int k = 0; k < vector_len; k++) {
+        for (int c = 0; c < cols; c++) {
+            int w = decode_weight((weights_packed[k] >> (2 * c)) & 0x3);
             if (w == +1) acc[c] += q[k];
             else if (w == -1) acc[c] -= q[k];
             // w == 0: no-op
@@ -126,27 +127,12 @@ void test_simple_gemm_4x4() {
     int8_t acts[4] = {10, 20, 30, 40};
 
     // Weights: col0=[+1,-1,0,+1], col1=[0,0,+1,-1], col2=[+1,+1,+1,+1], col3=[-1,-1,-1,-1]
-    uint8_t weights[16];
-    // Col 0
-    weights[0]  = 0b01; // +1
-    weights[1]  = 0b10; // -1
-    weights[2]  = 0b00; // 0
-    weights[3]  = 0b01; // +1
-    // Col 1
-    weights[4]  = 0b00; // 0
-    weights[5]  = 0b00; // 0
-    weights[6]  = 0b01; // +1
-    weights[7]  = 0b10; // -1
-    // Col 2
-    weights[8]  = 0b01; // +1
-    weights[9]  = 0b01; // +1
-    weights[10] = 0b01; // +1
-    weights[11] = 0b01; // +1
-    // Col 3
-    weights[12] = 0b10; // -1
-    weights[13] = 0b10; // -1
-    weights[14] = 0b10; // -1
-    weights[15] = 0b10; // -1
+    uint8_t weights[4] = {
+        0b10'01'00'01, // k0: [+1,  0, +1, -1]
+        0b10'01'00'10, // k1: [-1,  0, +1, -1]
+        0b10'01'01'00, // k2: [ 0, +1, +1, -1]
+        0b10'01'10'01, // k3: [+1, -1, +1, -1]
+    };
 
     uint16_t alphas[4] = {32768, 32768, 16384, (uint16_t)65536}; // 65536 truncated to 0 in Q15
     uint32_t inv = compute_inv(127);  // absmax=127
@@ -184,15 +170,9 @@ void test_large_vector_576() {
         acts[i] = (int8_t)((i % 255) - 127);
 
     // Fixed ternary weights per column: [+1, -1, 0, +1]
-    uint8_t* weights = new uint8_t[cols * vector_len];
-    int col_weights[4] = {1, -1, 0, 1};
-    for (int c = 0; c < cols; c++) {
-        for (int k = 0; k < vector_len; k++) {
-            // Set weight encoding from the fixed pattern
-            int w = col_weights[c];
-            weights[c * vector_len + k] = (w == 1) ? 0b01 : (w == -1) ? 0b10 : 0b00;
-        }
-    }
+    uint8_t* weights = new uint8_t[vector_len];
+    for (int k = 0; k < vector_len; k++)
+        weights[k] = 0b01'00'10'01; // columns [+1, -1, 0, +1]
 
     // Per-channel scales (Q15) - same as verilator test
     uint16_t alphas[4] = {32768, 16384, (uint16_t)65536, 32768}; // 65536 truncates to 0 in Q15
@@ -218,12 +198,12 @@ void test_weight_encodings() {
     printf("\n=== Test: All weight encodings ===\n");
 
     int8_t acts[1] = {100};
-    int cols = 3;
-    uint8_t weights[3] = {0b01, 0b10, 0b00}; // +1, -1, 0
-    uint16_t alphas[3] = {32768, 32768, 32768};
+    int cols = 4;
+    uint8_t weights[1] = {0b11'00'10'01}; // +1, -1, 0, reserved(11)->-1
+    uint16_t alphas[4] = {32768, 32768, 32768, 32768};
     uint32_t inv = compute_inv(127);
 
-    int32_t result[3];
+    int32_t result[4];
     ternary_pipeline_cpp(acts, 1, weights, alphas, cols, inv, result);
 
     // q = 100 (since 100*32768>>15 = 100)
@@ -233,6 +213,7 @@ void test_weight_encodings() {
     TEST_CHECK(result[0] == 100,  "weight +1: result = 100");
     TEST_CHECK(result[1] == -100, "weight -1: result = -100");
     TEST_CHECK(result[2] == 0,    "weight  0: result = 0");
+    TEST_CHECK(result[3] == -100, "weight 11 follows RTL default: result = -100");
 }
 
 void test_scale_with_rounding() {
@@ -242,7 +223,7 @@ void test_scale_with_rounding() {
     int cols = 2;
 
     // Two columns, same weights [+1, +1]
-    uint8_t weights[4] = {0b01, 0b01, 0b01, 0b01};
+    uint8_t weights[2] = {0b01'01, 0b01'01};
 
     // Alpha values that trigger rounding edge cases
     // alpha=1: result = 20*1>>15 = 0 (with rounding from lsb checks)
@@ -302,7 +283,7 @@ void test_zero_activations() {
     }
 }
 
-int main(int argc, char** argv) {
+int main() {
     printf("TernaryCore Device Logic Test\n");
     printf("=============================\n");
     printf("Parameters: DATA_WIDTH=%d ACC_WIDTH=%d PRECISION=%d Q_MAX=%d\n",

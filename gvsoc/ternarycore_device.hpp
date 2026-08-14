@@ -101,12 +101,12 @@ private:
     // Run the ternary GEMM pipeline (synchronous computation)
     void run_pipeline();
 
-    // Decode a 2-bit weight encoding: 00=0, 01=+1, 10=-1
+    // Match ternary_weight.v exactly: 00=0, 01=+1, all other codes=-1.
     static inline int decode_weight(uint8_t enc) {
         switch (enc) {
             case 0b01: return +1;
-            case 0b10: return -1;
-            default:   return  0;
+            case 0b00: return  0;
+            default:   return -1;
         }
     }
 };

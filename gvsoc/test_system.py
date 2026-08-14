@@ -49,12 +49,12 @@ def quantize_activation(x, inv):
 
 
 def decode_weight(enc):
-    """Decode 2-bit weight: 00=0, 01=+1, 10=-1"""
+    """Match RTL: 00=0, 01=+1, all other encodings=-1."""
     if enc == 0b01:
         return +1
-    elif enc == 0b10:
-        return -1
-    return 0
+    if enc == 0b00:
+        return 0
+    return -1
 
 
 def reference_pipeline(activations, weights, alphas, inv):
@@ -163,14 +163,14 @@ def verify_reference():
     # Test 3: Weight encodings
     print("\n--- Test 3: All weight encodings ---")
     acts = [100]
-    # 4 columns, col0=+1, col1=-1, col2=0, col3=+1
-    weights = [0b01_00_10_01]  # packed: col3=01, col2=00, col1=10, col0=01
+    # 4 columns: +1, -1, 0, and reserved 11 (which RTL maps to -1).
+    weights = [0b11_00_10_01]
     alphas = [32768, 32768, 32768, 32768]
     inv = compute_inv(127)
     results = reference_pipeline(acts, weights, alphas, inv)
     print(f"  Results: {results}")
-    status = "PASS" if results == [100, -100, 0, 100] else "FAIL"
-    print(f"  Expected: [100, -100, 0, 100]")
+    status = "PASS" if results == [100, -100, 0, -100] else "FAIL"
+    print(f"  Expected: [100, -100, 0, -100]")
     print(f"  {status}")
 
     # Test 4: Zero activations
