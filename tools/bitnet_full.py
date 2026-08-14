@@ -265,7 +265,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default=MODEL_ID, help="HuggingFace model ID (default: %(default)s)")
     parser.add_argument("--qfmt", default="int4", choices=["int4", "fp4"])
-    parser.add_argument("--profile", action="store_true")
+    parser.add_argument("--profile", action="store_true", help="print profiling information")
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--epochs", type=int, default=3)
     args = parser.parse_args()
