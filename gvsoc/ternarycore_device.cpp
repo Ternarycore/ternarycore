@@ -11,8 +11,6 @@
 //   3. Scale: result[c] = (acc[c] * alpha[c] + rounding) >> 15
 
 #include "ternarycore_device.hpp"
-#include <cstdio>
-#include <cmath>
 
 // ---------------------------------------------------------------------------
 // gvsoc entry point — the framework calls this to instantiate the device
@@ -37,7 +35,6 @@ TernarycoreDevice::TernarycoreDevice(vp::ComponentConf &config)
 
     // Initialize internal state
     this->status = 0;
-    this->irq_enable = 0;
     this->vector_len = 0;
     this->inv = 0;
     std::memset(this->act_buf, 0, sizeof(this->act_buf));
@@ -133,6 +130,9 @@ vp::IoReqStatus TernarycoreDevice::handle_alpha(vp::IoReq *req)
     if ((addr - TC_ALPHA_0) & 1)
         return vp::IO_REQ_INVALID;
 
+    if (size == 4 && idx + 1 >= TC_COLS)
+        return vp::IO_REQ_INVALID;
+
     if (is_write) {
         if (size == 2) {
             uint16_t tmp;
@@ -143,19 +143,16 @@ vp::IoReqStatus TernarycoreDevice::handle_alpha(vp::IoReq *req)
             uint32_t tmp;
             std::memcpy(&tmp, data, 4);
             this->alpha[idx] = (uint16_t)(tmp & 0xFFFF);
-            if (idx + 1 < TC_COLS)
-                this->alpha[idx + 1] = (uint16_t)((tmp >> 16) & 0xFFFF);
+            this->alpha[idx + 1] = (uint16_t)((tmp >> 16) & 0xFFFF);
         }
     } else {
         if (size == 2) {
             uint16_t tmp = this->alpha[idx];
             std::memcpy(data, &tmp, 2);
         } else {
-            // 32-bit read: pack two halfwords when in range; zero-extend high
-            // half when reading the last alpha so upper bits are never garbage
+            // 32-bit read: pack two adjacent halfwords.
             uint32_t tmp = (uint32_t)this->alpha[idx];
-            if (idx + 1 < TC_COLS)
-                tmp |= (uint32_t)this->alpha[idx + 1] << 16;
+            tmp |= (uint32_t)this->alpha[idx + 1] << 16;
             std::memcpy(data, &tmp, 4);
         }
     }
@@ -190,7 +187,13 @@ vp::IoReqStatus TernarycoreDevice::handle_register(uint64_t addr, vp::IoReq *req
                 this->vector_len, this->inv);
             this->status |= TC_STATUS_BUSY;
             this->status &= ~TC_STATUS_DONE;
-            this->run_pipeline();
+            if (!this->run_pipeline()) {
+                this->status &= ~(TC_STATUS_BUSY | TC_STATUS_DONE);
+                this->trace.msg(vp::Trace::LEVEL_WARNING,
+                    "Rejected pipeline start with vector_len=%u\n",
+                    this->vector_len);
+                return vp::IO_REQ_INVALID;
+            }
             this->status &= ~TC_STATUS_BUSY;
             this->status |= TC_STATUS_DONE;
             this->trace.msg(vp::Trace::LEVEL_INFO,
@@ -198,7 +201,6 @@ vp::IoReqStatus TernarycoreDevice::handle_register(uint64_t addr, vp::IoReq *req
                 this->result[0], this->result[1],
                 this->result[2], this->result[3]);
         }
-        this->irq_enable = (ctrl_val & TC_CTRL_IRQ_ENABLE) ? 1 : 0;
         return vp::IO_REQ_OK;
     }
 
@@ -226,7 +228,8 @@ vp::IoReqStatus TernarycoreDevice::handle_register(uint64_t addr, vp::IoReq *req
         if (is_write && size == 4) {
             uint32_t val;
             std::memcpy(&val, data, 4);
-            if (val > TC_MAX_VECTOR_LEN) val = TC_MAX_VECTOR_LEN;
+            if (val > TC_MAX_VECTOR_LEN)
+                return vp::IO_REQ_INVALID;
             this->vector_len = val;
         } else if (!is_write && size == 4) {
             uint32_t tmp = this->vector_len;
@@ -239,8 +242,11 @@ vp::IoReqStatus TernarycoreDevice::handle_register(uint64_t addr, vp::IoReq *req
     if (addr == TC_INV) {
         if (size != 4)
             return vp::IO_REQ_INVALID;
-        if (is_write && size == 4)
-            std::memcpy(&this->inv, data, 4);
+        if (is_write && size == 4) {
+            uint32_t value;
+            std::memcpy(&value, data, 4);
+            this->inv = value & ((1u << ternarycore::INV_WIDTH) - 1);
+        }
         else if (!is_write && size == 4)
             std::memcpy(data, &this->inv, 4);
         return vp::IO_REQ_OK;
@@ -250,66 +256,11 @@ vp::IoReqStatus TernarycoreDevice::handle_register(uint64_t addr, vp::IoReq *req
 }
 
 // ---------------------------------------------------------------------------
-// Act quant: q = round(clip(x * inv >> 15, -127, 127))
-// Matches activation_quant.v (2-stage: multiply -> shift+round+clip)
-// ---------------------------------------------------------------------------
-static inline int8_t quantize_activation(int x, uint32_t inv)
-{
-    static constexpr int PRECISION = 15;
-    static constexpr int Q_MAX = 127;
-    static constexpr int Q_MIN = -127;
-
-    int64_t product = (int64_t)x * (int64_t)(int32_t)(inv & 0x3FFFFF);
-    int64_t round_amt = (int64_t)1 << (PRECISION - 1);
-    int64_t biased = product + round_amt;
-    int64_t shifted = biased >> PRECISION;
-
-    if (shifted > Q_MAX) return Q_MAX;
-    if (shifted < Q_MIN) return Q_MIN;
-    return (int8_t)shifted;
-}
-
-// ---------------------------------------------------------------------------
 // Run the full ternary GEMM pipeline
 // ---------------------------------------------------------------------------
-void TernarycoreDevice::run_pipeline()
+bool TernarycoreDevice::run_pipeline()
 {
-    uint32_t vl = this->vector_len;
-    if (vl == 0) return;
-
-    // Stage 1: Quantize activations
-    int8_t q[TC_MAX_VECTOR_LEN];
-    for (uint32_t i = 0; i < vl; i++) {
-        // Read as signed int8 (buffer stores raw bytes)
-        int8_t act = (int8_t)this->act_buf[i];
-        q[i] = quantize_activation(act, this->inv);
-    }
-
-    // Stage 2: Ternary GEMM — for each column, accumulate weighted activations
-    // Weight buffer layout:
-    //   wgt_buf[k] = {col3[k]:2, col2[k]:2, col1[k]:2, col0[k]:2}
-    //   where bits 1:0 = col0, bits 3:2 = col1, bits 5:4 = col2, bits 7:6 = col3
-    int32_t acc[TC_COLS] = {0};
-
-    for (uint32_t k = 0; k < vl; k++) {
-        uint8_t packed = this->wgt_buf[k];
-        for (int c = 0; c < TC_COLS; c++) {
-            uint8_t enc = (packed >> (2 * c)) & 0x3;
-            int w = decode_weight(enc);
-            if (w == +1) acc[c] += q[k];
-            else if (w == -1) acc[c] -= q[k];
-        }
-    }
-
-    // Stage 3: Scale multiply (matches ternary_scale.v)
-    //   result = (acc * alpha + round) >> 15
-    //   round = 1 if any of the lower 15 bits are set, else 0
-    static constexpr int PRECISION = 15;
-    for (int c = 0; c < TC_COLS; c++) {
-        int64_t prod = (int64_t)acc[c] * (int64_t)(int32_t)(this->alpha[c] & 0xFFFF);
-        uint32_t trunc = prod & ((1 << PRECISION) - 1);
-        int round_bit = (trunc != 0) ? 1 : 0;
-        int64_t shifted = prod >> PRECISION;
-        this->result[c] = (int32_t)(shifted) + round_bit;
-    }
+    return ternarycore::run_pipeline(
+        this->act_buf, this->wgt_buf, this->alpha, this->vector_len,
+        TC_COLS, this->inv, this->result);
 }

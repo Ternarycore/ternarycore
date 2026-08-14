@@ -1,15 +1,14 @@
 # test_system.py
 # GVSoC system test for the TernaryCore BitNet b1.58 GEMM accelerator.
 #
-# This file provides one test approach:
-#   1. GVSoC System Test (requires gvsoc installed + PULP toolchain):
-#      Defines a minimal PULP platform with the ternarycore device and
-#      a firmware test that exercises it.
+# This file provides a dependency-free reference test and a PULP firmware
+# template. Running the firmware requires an existing GVSoC target that maps
+# libternarycore_device.so at TC_BASE_ADDR.
 #
 # Usage:
 #   # Prerequisites:
 #   #   - gvsoc installed and sourced (sourceme.sh)
-#   #   - libternarycore_device.so built (make)
+#   #   - libternarycore_device.so built (`make plugin`)
 #   #
 #   # System test with firmware:
 #   #   python3 test_system.py
@@ -24,11 +23,10 @@
 #   Offset 0x0820: VECTOR_LEN (32-bit R/W)
 #   Offset 0x0824: INV      (32-bit R/W)
 
-import os
-import sys
-import struct
-import math
 import argparse
+import os
+import subprocess
+import sys
 
 # ============================================================================
 # Reference GEMM pipeline (same logic as the device model)
@@ -60,12 +58,18 @@ def decode_weight(enc):
 def reference_pipeline(activations, weights, alphas, inv):
     """Pure-Python reference: returns [result0, result1, result2, result3]"""
     COLS = 4
+    if not 0 < len(activations) <= 1024:
+        raise ValueError("activation length must be between 1 and 1024")
+    if len(weights) != len(activations):
+        raise ValueError("weights and activations must have the same length")
+    if len(alphas) != COLS:
+        raise ValueError(f"expected {COLS} alpha values")
     # Quantize
     q = [quantize_activation(a, inv) for a in activations]
     # GEMM
     acc = [0] * COLS
     for k in range(len(activations)):
-        packed = weights[k] if k < len(weights) else 0
+        packed = weights[k]
         for c in range(COLS):
             enc = (packed >> (2 * c)) & 0x3
             w = decode_weight(enc)
@@ -88,13 +92,20 @@ def reference_pipeline(activations, weights, alphas, inv):
 # Test vectors (same as verilator_pipeline_576.cpp)
 # ============================================================================
 
+
 def compute_inv(absmax):
     """Compute inv = round(2^PRECISION * Q_MAX / absmax)"""
+    if absmax <= 0:
+        raise ValueError("absmax must be positive")
     return int(round((1 << PRECISION) * Q_MAX / absmax))
 
 
 def generate_test_vectors(vector_len=576, cols=4):
     """Generate test vectors matching the Verilator C++ test."""
+    if not 0 < vector_len <= 1024:
+        raise ValueError("vector_len must be between 1 and 1024")
+    if cols != 4:
+        raise ValueError("the packed device model exposes exactly 4 columns")
     # Activations: ramp -127..127 repeating
     acts = [(i % 255) - 127 for i in range(vector_len)]
 
@@ -122,11 +133,14 @@ def generate_test_vectors(vector_len=576, cols=4):
 # Python verification (runs without gvsoc)
 # ============================================================================
 
+
 def verify_reference():
     """Run the reference pipeline on the standard test vectors and print results."""
     print("=" * 60)
     print("Reference Pipeline Verification (no gvsoc required)")
     print("=" * 60)
+
+    errors = 0
 
     # Test 1: Simple 4x4
     print("\n--- Test 1: Simple 4x4 GEMM ---")
@@ -148,6 +162,7 @@ def verify_reference():
     status = "PASS" if results == expected else "FAIL"
     print(f"  Expected: {expected}")
     print(f"  {status}")
+    errors += results != expected
 
     # Test 2: VECTOR_LEN=576
     print("\n--- Test 2: VECTOR_LEN=576 (SmolVLM hidden dim) ---")
@@ -159,6 +174,7 @@ def verify_reference():
     status = "PASS" if results == expected else "FAIL"
     print(f"  Expected: {expected}")
     print(f"  {status}")
+    errors += results != expected
 
     # Test 3: Weight encodings
     print("\n--- Test 3: All weight encodings ---")
@@ -170,8 +186,9 @@ def verify_reference():
     results = reference_pipeline(acts, weights, alphas, inv)
     print(f"  Results: {results}")
     status = "PASS" if results == [100, -100, 0, -100] else "FAIL"
-    print(f"  Expected: [100, -100, 0, -100]")
+    print("  Expected: [100, -100, 0, -100]")
     print(f"  {status}")
+    errors += results != [100, -100, 0, -100]
 
     # Test 4: Zero activations
     print("\n--- Test 4: Zero activations ---")
@@ -183,8 +200,10 @@ def verify_reference():
     status = "PASS" if all(r == 0 for r in results) else "FAIL"
     print(f"  Results: {results}")
     print(f"  {status}")
+    errors += not all(r == 0 for r in results)
 
-    return 0
+    print(f"\nReference errors: {errors}")
+    return int(errors)
 
 
 # ============================================================================
@@ -196,72 +215,21 @@ def verify_reference():
 TC_BASE_ADDR = 0x1A100000
 
 # Register offsets (from ternarycore_device.hpp)
-TC_ACT_BUF      = 0x0000
-TC_WGT_BUF      = 0x0400
-TC_ALPHA_0      = 0x0800
-TC_ALPHA_1      = 0x0802
-TC_ALPHA_2      = 0x0804
-TC_ALPHA_3      = 0x0806
-TC_RESULT_0     = 0x0808
-TC_RESULT_1     = 0x080C
-TC_RESULT_2     = 0x0810
-TC_RESULT_3     = 0x0814
-TC_CTRL         = 0x0818
-TC_STATUS       = 0x081C
-TC_VECTOR_LEN   = 0x0820
-TC_INV          = 0x0824
-TC_ADDR_MAX     = 0x0828
-
-
-def create_gvsoc_platform_config(output_dir):
-    """
-    Create a minimal gvsoc platform configuration that instantiates
-    the ternarycore device. This produces JSON config files that gvsoc loads.
-
-    The platform creates:
-      - A minimal PULP cluster with 1 RISC-V core
-      - The ternarycore device mapped into the cluster's address space
-      - A testbench component to drive the test
-    """
-    from gvsoc.systree import Component, Sram, Cluster
-
-    class TernarycoreTestPlatform(Component):
-        def __init__(self, parent, name):
-            super().__init__(parent, name)
-
-            # Add the ternarycore device model
-            # This registers the shared library and maps it into memory
-            self.add_component(
-                "ternarycore_device",
-                "ternarycore.ternarycore_device",
-                # The device model .so file must be on gvsoc's model search path
-                # or specified with an absolute path
-                shared_lib="libternarycore_device.so",
-                # Address mapping (PULP standard: 32-bit physical address)
-                address=TC_BASE_ADDR,
-                size=TC_ADDR_MAX,
-            )
-
-    # Generate the JSON config
-    config = {
-        "target": {
-            "gvsoc": {
-                "models": {
-                    "dirs": [
-                        # Directory containing libternarycore_device.so
-                        os.path.join(os.path.dirname(__file__), "build")
-                    ]
-                }
-            }
-        }
-    }
-
-    import json
-    os.makedirs(output_dir, exist_ok=True)
-    with open(os.path.join(output_dir, "config.json"), "w") as f:
-        json.dump(config, f, indent=2)
-
-    return config
+TC_ACT_BUF = 0x0000
+TC_WGT_BUF = 0x0400
+TC_ALPHA_0 = 0x0800
+TC_ALPHA_1 = 0x0802
+TC_ALPHA_2 = 0x0804
+TC_ALPHA_3 = 0x0806
+TC_RESULT_0 = 0x0808
+TC_RESULT_1 = 0x080C
+TC_RESULT_2 = 0x0810
+TC_RESULT_3 = 0x0814
+TC_CTRL = 0x0818
+TC_STATUS = 0x081C
+TC_VECTOR_LEN = 0x0820
+TC_INV = 0x0824
+TC_ADDR_MAX = 0x0828
 
 
 # ============================================================================
@@ -302,6 +270,7 @@ PULP_FIRMWARE_C = r"""
 #define TC_INV          0x0824
 
 #define TC_CTRL_START   (1 << 0)
+#define TC_STATUS_DONE  (1 << 1)
 
 #define TC_MAX_VL       1024
 #define TC_COLS         4
@@ -363,10 +332,15 @@ int test_ternarycore(int vector_len)
     tc_write32(TC_CTRL, TC_CTRL_START);
 
     // --- Poll for done ---
-    uint32_t status;
-    do {
+    uint32_t status = 0;
+    int timeout = 100000;
+    while ((status & TC_STATUS_DONE) == 0 && timeout-- > 0) {
         status = tc_read32(TC_STATUS);
-    } while (status & 1);  // wait while busy
+    }
+    if ((status & TC_STATUS_DONE) == 0) {
+        printf("FAIL: timeout waiting for DONE, status=0x%08x\n", status);
+        return 1;
+    }
 
     // --- Read results ---
     int32_t results[TC_COLS];
@@ -435,7 +409,7 @@ def create_firmware_source(output_dir):
     return path
 
 
-def run_gvsoc_test(firmware_binary):
+def run_gvsoc_test(firmware_binary, target):
     """
     Run the gvsoc system test with a compiled PULP firmware binary.
 
@@ -444,21 +418,9 @@ def run_gvsoc_test(firmware_binary):
       - PULP SDK toolchain configured
       - libternarycore_device.so built and installed
     """
-    import subprocess
-    from gvsoc import runner as gvsoc_runner
-
-    # Define the gvsoc target
-    class TernarycoreTarget(gvsoc_runner.Target):
-        gapy_description = "TernaryCore test platform"
-        name = "ternarycore-test"
-
-        def __init__(self, parser, options=None):
-            super().__init__(parser, options)
-
-    # Run the test
     cmd = [
         "gvsoc-run",
-        "--target=ternarycore-test",
+        f"--target={target}",
         "--binary=%s" % firmware_binary,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -473,27 +435,36 @@ def run_gvsoc_test(firmware_binary):
 # ============================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="TernaryCore GVSoC System Test"
+    parser = argparse.ArgumentParser(description="TernaryCore GVSoC System Test")
+    parser.add_argument(
+        "--no-verify",
+        action="store_false",
+        dest="verify",
+        default=True,
+        help="Skip Python reference verification",
     )
     parser.add_argument(
-        "--verify", action="store_true", default=True,
-        help="Run Python reference verification (default: yes)"
+        "--firmware",
+        type=str,
+        default=None,
+        help="Path to compiled PULP firmware binary",
     )
     parser.add_argument(
-        "--no-verify", action="store_false", dest="verify",
-        help="Skip Python reference verification"
+        "--target",
+        default=None,
+        help="Existing GVSoC target that maps the plugin at TC_BASE_ADDR",
     )
     parser.add_argument(
-        "--firmware", type=str, default=None,
-        help="Path to compiled PULP firmware binary"
-    )
-    parser.add_argument(
-        "--create-firmware-source", type=str, default=None,
-        help="Write firmware C source to directory"
+        "--create-firmware-source",
+        type=str,
+        default=None,
+        help="Write firmware C source to directory",
     )
 
     args = parser.parse_args()
+
+    if args.firmware and not args.target:
+        parser.error("--firmware requires --target")
 
     exit_code = 0
 
@@ -513,7 +484,7 @@ if __name__ == "__main__":
         print("\n" + "=" * 60)
         print("Running GVSoC system test...")
         print("=" * 60)
-        exit_code = run_gvsoc_test(args.firmware)
+        exit_code = run_gvsoc_test(args.firmware, args.target)
         if exit_code != 0:
             print("GVSoC system test FAILED")
 

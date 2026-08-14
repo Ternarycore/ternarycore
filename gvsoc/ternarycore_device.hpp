@@ -16,7 +16,7 @@
 //   0x080C    RESULT_1    32     R       Result for column 1
 //   0x0810    RESULT_2    32     R       Result for column 2
 //   0x0814    RESULT_3    32     R       Result for column 3
-//   0x0818    CTRL        32     W       Control: bit0=start, bit1=irq_enable
+//   0x0818    CTRL        32     W       Control: bit0=start
 //   0x081C    STATUS      32     R       Status: bit0=busy, bit1=done
 //   0x0820    VECTOR_LEN  32     R/W     Number of active elements (max 1024)
 //   0x0824    INV         32     R/W     Inverse absmax for activation quant
@@ -28,17 +28,19 @@
 //   2. For each column c: accumulate frac(activation[k] * weight[c][k])
 //   3. For each column c: result = (acc * alpha[c] + round) >> 15
 
-#ifndef __TERNARYCORE_DEVICE_HPP__
-#define __TERNARYCORE_DEVICE_HPP__
+#ifndef TERNARYCORE_DEVICE_HPP
+#define TERNARYCORE_DEVICE_HPP
 
-#include <vp/vp.hpp>
-#include <vp/itf/io.hpp>
 #include <cstdint>
 #include <cstring>
+#include <vp/itf/io.hpp>
+#include <vp/vp.hpp>
+
+#include "ternarycore_model.hpp"
 
 // Max supported vector length
-static constexpr int TC_MAX_VECTOR_LEN = 1024;
-static constexpr int TC_COLS = 4;
+static constexpr int TC_MAX_VECTOR_LEN = ternarycore::MAX_VECTOR_LEN;
+static constexpr int TC_COLS = ternarycore::MAX_COLS;
 
 // Register offsets
 static constexpr uint64_t TC_ACT_BUF      = 0x0000;
@@ -60,8 +62,7 @@ static constexpr uint64_t TC_INV          = 0x0824;
 static constexpr uint64_t TC_ADDR_MAX     = 0x0828;
 
 // CTRL bits
-static constexpr uint32_t TC_CTRL_START      = 1 << 0;
-static constexpr uint32_t TC_CTRL_IRQ_ENABLE = 1 << 1;
+static constexpr uint32_t TC_CTRL_START = 1 << 0;
 
 // STATUS bits
 static constexpr uint32_t TC_STATUS_BUSY = 1 << 0;
@@ -85,7 +86,6 @@ private:
     uint32_t vector_len;                         // Number of elements to process
     uint32_t inv;                                // Activation quantization parameter
     uint32_t status;                             // Status register
-    uint32_t irq_enable;                         // IRQ enable flag
 
     vp::Trace trace;
 
@@ -99,16 +99,7 @@ private:
     vp::IoReqStatus handle_register(uint64_t addr, vp::IoReq *req);
 
     // Run the ternary GEMM pipeline (synchronous computation)
-    void run_pipeline();
-
-    // Match ternary_weight.v exactly: 00=0, 01=+1, all other codes=-1.
-    static inline int decode_weight(uint8_t enc) {
-        switch (enc) {
-            case 0b01: return +1;
-            case 0b00: return  0;
-            default:   return -1;
-        }
-    }
+    bool run_pipeline();
 };
 
 #endif

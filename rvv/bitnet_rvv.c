@@ -1,4 +1,5 @@
 #include <riscv_vector.h>
+#include "bitnet_rvv.h"
 
 typedef unsigned char      u8;
 typedef signed char        i8;
@@ -9,15 +10,15 @@ typedef          int       i32;
 typedef          long long i64;
 
 // Max columns and vector length supported by the static pos/neg buffers.
-#define MAX_C 4
-#define MAX_V 64
+#define MAX_C TERNARYCORE_RVV_MAX_COLS
+#define MAX_V TERNARYCORE_RVV_MAX_VECTOR_LEN
 #define Q_MAX 127
 #define Q_MIN -127
 
 // Weight buffer layout (matches GVSoC device model):
 //   packed[k] = {col3[k]:2, col2[k]:2, col1[k]:2, col0[k]:2}
 //   where bits 1:0 = col0, bits 3:2 = col1, bits 5:4 = col2, bits 7:6 = col3
-void decode(const u8 *packed, i8 *pos, i8 *neg, int cols, int vlen) {
+static void decode(const u8 *packed, i8 *pos, i8 *neg, int cols, int vlen) {
     for (int c = 0; c < cols; c++)
         for (int k = 0; k < vlen; k++) {
             u8 enc = (packed[k] >> (2 * c)) & 3;
@@ -56,29 +57,39 @@ static i32 dot(const i8 *acts, const i8 *pos, const i8 *neg, int vlen) {
     return acc;
 }
 
+static i64 arithmetic_shift_right(i64 value, unsigned int bits) {
+    const i64 divisor = (i64)1 << bits;
+    if (value >= 0)
+        return value / divisor;
+    return -((-value + divisor - 1) / divisor);
+}
+
 // Quantize a single activation: q = clip((x * inv + 2^14) >> 15, -127, 127)
 // Mirrors activation_quant.v and the device model quantize_activation().
 static i8 quantize(i32 x, u32 inv) {
     i64 product = (i64)x * (i64)(inv & 0x3FFFFF);
     i64 biased = product + (1 << 14);
-    i64 shifted = biased >> 15;
+    i64 shifted = arithmetic_shift_right(biased, 15);
     if (shifted > Q_MAX) return Q_MAX;
     if (shifted < Q_MIN) return Q_MIN;
     return (i8)shifted;
 }
 
-void gemm(const i8 *acts, const u8 *packed, const u16 *alphas,
-          i32 *results, int cols, int vlen, u32 inv) {
-    // Bounds check: static pos/neg buffers sized for MAX_C * MAX_V.
-    // The caller must ensure vlen <= MAX_V. This check catches misuse
-    // during development rather than silently corrupting memory.
-    if (vlen <= 0 || cols <= 0 || vlen > MAX_V || cols > MAX_C) {
+int ternarycore_rvv_gemm(const i8 *acts, const u8 *packed, const u16 *alphas,
+                         i32 *results, int cols, int vlen, u32 inv) {
+    // Bounds check: static pos/neg buffers are sized for MAX_C * MAX_V.
+    if (results == 0)
+        return -1;
+    if (acts == 0 || packed == 0 || alphas == 0 || vlen <= 0 || cols <= 0
+        || vlen > MAX_V || cols > MAX_C) {
         // Never walk beyond the implementation's fixed result capacity,
         // even when the caller supplied a nonsensical column count.
         for (int c = 0; c < cols && c < MAX_C; c++) results[c] = 0;
-        return;
+        return -1;
     }
 
+    // Fixed scratch storage keeps the bare-metal API allocation-free. Calls
+    // must be serialized; this reference implementation is not reentrant.
     static i8 pos[MAX_C * MAX_V];
     static i8 neg[MAX_C * MAX_V];
     // Decode 2-bit packed weights into separate +1/-1 arrays
@@ -93,11 +104,12 @@ void gemm(const i8 *acts, const u8 *packed, const u16 *alphas,
         // Stage 2: ternary GEMM dot (uses quantized q[])
         i32 d = dot(q, pos + c * vlen, neg + c * vlen, vlen);
 
-        // Stage 3: scale with round-to-nearest (mirrors ternary_scale.v scale_ch)
+        // Stage 3: scale with the RTL-defined upward rounding rule.
         i64 prod = (i64)d * (i64)alphas[c];
-        u32 trunc = (u32)(prod & 0x7FFF);       // lower 15 bits
+        u32 trunc = (u32)prod & 0x7FFF;         // lower 15 bits
         int round_bit = (trunc != 0) ? 1 : 0;
-        i64 shifted = prod >> 15;
+        i64 shifted = arithmetic_shift_right(prod, 15);
         results[c] = (i32)(shifted + round_bit);
     }
+    return 0;
 }

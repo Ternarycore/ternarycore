@@ -6,12 +6,12 @@
 //
 // Compile: g++ -std=c++17 -O2 -o test_device_logic test_device_logic.cpp && ./test_device_logic
 
-#include <cstdio>
-#include <cstdint>
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
 #include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+
+#include "ternarycore_model.hpp"
 
 // ============================================================================
 // Device-logic: exact C++ model of the RTL ternary pipeline
@@ -19,42 +19,14 @@
 
 // Data widths matching the RTL params
 static constexpr int DATA_WIDTH = 8;
-static constexpr int ACC_WIDTH  = 32;
-static constexpr int Q_WIDTH    = 8;      // quantized activation width
-static constexpr int PRECISION  = 15;     // Q15 for alpha (1.0 = 0x8000)
-static constexpr int INV_WIDTH  = 22;     // PRECISION + Q_WIDTH
-static constexpr int Q_MAX      = (1 << (Q_WIDTH - 1)) - 1;
-static constexpr int Q_MIN      = -Q_MAX;
-
-// Match ternary_weight.v exactly: 00=zero, 01=+1, all other codes=-1.
-static inline int decode_weight(uint8_t enc) {
-    switch (enc) {
-        case 0b01: return +1;
-        case 0b00: return  0;
-        default:   return -1;
-    }
-}
-
-// Activation quantization: q = round(clip(x * inv >> PRECISION, -Q_MAX, Q_MAX))
-// Matches activation_quant.v (2-stage: multiply -> shift+round+clip)
-static inline int8_t quantize_activation(int x, uint32_t inv) {
-    // Stage 1: product (32-bit signed, matching Verilog product width)
-    int64_t product = (int64_t)x *
-        (int64_t)(int32_t)(inv & ((1u << INV_WIDTH) - 1));
-
-    // Stage 2: shift + round + clip
-    int64_t round_amt = 1 << (PRECISION - 1);
-    int64_t biased = product + round_amt;
-    int64_t shifted = biased >> PRECISION;
-
-    if (shifted > Q_MAX) return Q_MAX;
-    if (shifted < Q_MIN) return Q_MIN;
-    return (int8_t)shifted;
-}
+static constexpr int ACC_WIDTH = 32;
 
 // Compute inv = round(2^PRECISION * Q_MAX / absmax)
 static inline int compute_inv(int absmax) {
-    return (int)round((double)(1 << PRECISION) * Q_MAX / absmax);
+    assert(absmax > 0);
+    return static_cast<int>(std::round(
+        static_cast<double>(1 << ternarycore::PRECISION)
+        * ternarycore::Q_MAX / absmax));
 }
 
 // Run the full ternary pipeline: quantize -> GEMM -> scale
@@ -71,37 +43,10 @@ void ternary_pipeline_cpp(
     uint32_t inv,
     int32_t* result)
 {
-    // Stage 1: Quantize activations
-    int8_t* q = new int8_t[vector_len];
-    for (int i = 0; i < vector_len; i++) {
-        q[i] = quantize_activation(activations[i], inv);
-    }
-
-    // Stage 2: GEMM - for each column, accumulate weighted activations
-    int32_t* acc = new int32_t[cols]();
-
-    for (int k = 0; k < vector_len; k++) {
-        for (int c = 0; c < cols; c++) {
-            int w = decode_weight((weights_packed[k] >> (2 * c)) & 0x3);
-            if (w == +1) acc[c] += q[k];
-            else if (w == -1) acc[c] -= q[k];
-            // w == 0: no-op
-        }
-    }
-
-    // Stage 3: Scale multiply (matching ternary_scale.v)
-    //   result = (acc * alpha + round_bit) >> PRECISION
-    //   rounding: if any lower bits are set, add 1
-    for (int c = 0; c < cols; c++) {
-        int64_t prod = (int64_t)acc[c] * (int64_t)(int32_t)(alphas[c] & 0xFFFF);
-        uint32_t trunc = prod & ((1 << PRECISION) - 1);
-        int round_bit = (trunc != 0) ? 1 : 0;
-        int64_t shifted = prod >> PRECISION;
-        result[c] = (int32_t)(shifted) + round_bit;
-    }
-
-    delete[] q;
-    delete[] acc;
+    const bool accepted = ternarycore::run_pipeline(
+        reinterpret_cast<const uint8_t *>(activations), weights_packed,
+        alphas, static_cast<uint32_t>(vector_len), cols, inv, result);
+    assert(accepted);
 }
 
 // ============================================================================
@@ -134,7 +79,7 @@ void test_simple_gemm_4x4() {
         0b10'01'10'01, // k3: [+1, -1, +1, -1]
     };
 
-    uint16_t alphas[4] = {32768, 32768, 16384, (uint16_t)65536}; // 65536 truncated to 0 in Q15
+    uint16_t alphas[4] = {32768, 32768, 16384, 0};
     uint32_t inv = compute_inv(127);  // absmax=127
 
     int32_t result[4];
@@ -147,9 +92,9 @@ void test_simple_gemm_4x4() {
     // Col 0: 10(q0) + (-20)(q1) + 0 + 40(q3) = 30
     // Col 1: 0 + 0 + 30(q2) + (-40)(q3) = -10
     // Col 2: 10+20+30+40 = 100 → 100*16384 >> 15 = 50, rounding? Lower bits: 100*16384 = 1638400, >> 15 = 50 exactly. Result = 50
-    // Col 3: (-10)+(-20)+(-30)+(-40) = -100 → -100*65536 >> 15 = -200
+    // Col 3 uses alpha=0, so its result is zero.
 
-    int32_t expected[4] = {30, -10, 50, 0}; // alpha[3]=65536 truncates to 0
+    int32_t expected[4] = {30, -10, 50, 0};
 
     for (int c = 0; c < cols; c++) {
         char buf[64];
@@ -175,7 +120,7 @@ void test_large_vector_576() {
         weights[k] = 0b01'00'10'01; // columns [+1, -1, 0, +1]
 
     // Per-channel scales (Q15) - same as verilator test
-    uint16_t alphas[4] = {32768, 16384, (uint16_t)65536, 32768}; // 65536 truncates to 0 in Q15
+    uint16_t alphas[4] = {32768, 16384, 0, 32768};
 
     // inv from absmax=127
     uint32_t inv = compute_inv(127);
@@ -186,12 +131,35 @@ void test_large_vector_576() {
 
     printf("Results: [%d, %d, %d, %d]\n", result[0], result[1], result[2], result[3]);
 
-    // Quick sanity: results should be non-zero and deterministic
-    TEST_CHECK(result[0] != 0, "result[0] != 0");
-    TEST_CHECK(result[1] != 0, "result[1] != 0");
+    const int32_t expected[4] = {-6237, 3119, 0, -6237};
+    for (int col = 0; col < cols; ++col) {
+        char message[80];
+        snprintf(message, sizeof(message),
+                 "result[%d] = %d (expected %d)",
+                 col, result[col], expected[col]);
+        TEST_CHECK(result[col] == expected[col], message);
+    }
 
     delete[] acts;
     delete[] weights;
+}
+
+void test_max_vector_1024() {
+    printf("\n=== Test: Maximum VECTOR_LEN=1024 ===\n");
+    uint8_t acts[ternarycore::MAX_VECTOR_LEN];
+    uint8_t weights[ternarycore::MAX_VECTOR_LEN];
+    for (int index = 0; index < ternarycore::MAX_VECTOR_LEN; ++index) {
+        acts[index] = 127;
+        weights[index] = 0b01'01'01'01;
+    }
+    uint16_t alphas[4] = {32768, 32768, 32768, 32768};
+    int32_t result[4] = {};
+    bool accepted = ternarycore::run_pipeline(
+        acts, weights, alphas, ternarycore::MAX_VECTOR_LEN, 4,
+        compute_inv(127), result);
+    TEST_CHECK(accepted, "maximum vector length is accepted");
+    for (int value : result)
+        TEST_CHECK(value == 1024 * 127, "maximum vector result is exact");
 }
 
 void test_weight_encodings() {
@@ -240,6 +208,8 @@ void test_scale_with_rounding() {
     //   shifted=655360>>15=20, result=20
     TEST_CHECK(result[0] == 1,  "alpha=1: rounding adds 1 (acc=20, trunc nonzero)");
     TEST_CHECK(result[1] == 20, "alpha=1.0: result = acc (20)");
+    TEST_CHECK(ternarycore::scale_accumulator(-20, 1) == 0,
+               "negative fractional result follows RTL upward rounding");
 }
 
 void test_quantization_clipping() {
@@ -254,17 +224,21 @@ void test_quantization_clipping() {
     uint32_t inv_max = 65535;
     int8_t q;
 
-    q = quantize_activation(127, inv_max);
+    q = ternarycore::quantize_activation(127, inv_max);
     TEST_CHECK(q == 127, "quantize(127, 65535) clips to max");
     printf("  quantize(127, %u) = %d ✓\n", inv_max, q);
 
-    q = quantize_activation(-128, inv_max);
+    q = ternarycore::quantize_activation(-128, inv_max);
     TEST_CHECK(q == -127, "quantize(-128, 65535) clips to min");
     printf("  quantize(-128, %u) = %d ✓\n", inv_max, q);
 
-    q = quantize_activation(50, inv_max);
+    q = ternarycore::quantize_activation(50, inv_max);
     TEST_CHECK(q == 100, "quantize(50, 65535) within range");
     printf("  quantize(50, %u) = %d ✓\n", inv_max, q);
+
+    q = ternarycore::quantize_activation(
+        1, (1u << ternarycore::INV_WIDTH) | 32768u);
+    TEST_CHECK(q == 1, "quantization masks INV to the RTL port width");
 }
 
 void test_zero_activations() {
@@ -283,18 +257,46 @@ void test_zero_activations() {
     }
 }
 
+void test_invalid_dimensions_clear_results() {
+    printf("\n=== Test: Invalid dimensions are rejected ===\n");
+    uint8_t acts[1] = {1};
+    uint8_t weights[1] = {0b01};
+    uint16_t alphas[4] = {32768, 32768, 32768, 32768};
+    int32_t result[4] = {1, 2, 3, 4};
+
+    bool accepted = ternarycore::run_pipeline(
+        acts, weights, alphas, 0, 4, 32768, result);
+    TEST_CHECK(!accepted, "zero vector length is rejected");
+    for (int value : result)
+        TEST_CHECK(value == 0, "rejected run clears visible results");
+
+    accepted = ternarycore::run_pipeline(
+        acts, weights, alphas, ternarycore::MAX_VECTOR_LEN + 1, 4,
+        32768, result);
+    TEST_CHECK(!accepted, "oversized vector length is rejected");
+
+    accepted = ternarycore::run_pipeline(
+        nullptr, weights, alphas, 1, 4, 32768, result);
+    TEST_CHECK(!accepted, "null activation buffer is rejected");
+    accepted = ternarycore::run_pipeline(
+        acts, weights, alphas, 1, 4, 32768, nullptr);
+    TEST_CHECK(!accepted, "null result buffer is rejected");
+}
+
 int main() {
     printf("TernaryCore Device Logic Test\n");
     printf("=============================\n");
     printf("Parameters: DATA_WIDTH=%d ACC_WIDTH=%d PRECISION=%d Q_MAX=%d\n",
-           DATA_WIDTH, ACC_WIDTH, PRECISION, Q_MAX);
+           DATA_WIDTH, ACC_WIDTH, ternarycore::PRECISION, ternarycore::Q_MAX);
 
     test_simple_gemm_4x4();
     test_large_vector_576();
+    test_max_vector_1024();
     test_weight_encodings();
     test_scale_with_rounding();
     test_quantization_clipping();
     test_zero_activations();
+    test_invalid_dimensions_clear_results();
 
     printf("\n=============================\n");
     printf("Total errors: %d\n", total_errors);
