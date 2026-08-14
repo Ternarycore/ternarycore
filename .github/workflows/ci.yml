@@ -30,47 +30,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip numpy
 
-    - name: Run MAC unit tests
+    - name: Run all Icarus regressions and Python references
       run: |
         cd sim
-        make tb_ternary_mac
-        echo "MAC tests completed"
-
-    - name: Run Dot Product tests
-      run: |
-        cd sim
-        make tb_ternary_dot
-        echo "Dot product tests completed"
-
-    - name: Run GEMM tests
-      run: |
-        cd sim
-        make tb_ternary_gemm
-        echo "GEMM tests completed"
-
-    - name: Run AXI GEMM wrapper tests
-      run: |
-        cd sim
-        make tb_axi_gemm_wrapper
-        echo "AXI GEMM wrapper tests completed"
-
-    - name: Run BRAM weight cache tests
-      run: |
-        cd sim
-        make tb_weight_bram
-        echo "BRAM weight cache tests completed"
-
-    - name: Run Python verification
-      run: |
-        cd sim
+        make extended
         make verify
-        echo "Python verification completed"
-
-    - name: Run all tests (final verification)
-      run: |
-        cd sim
-        make all
-        echo "All tests passed successfully"
 
   lint-verilog:
     name: Lint Verilog Files
@@ -162,30 +126,7 @@ jobs:
 
     - name: Run formal proofs
       run: |
-        set -euo pipefail
-        cd formal
-        shopt -s nullglob
-        sby_files=(*.sby)
-        if [ ${#sby_files[@]} -eq 0 ]; then
-          echo "No .sby files found"
-          exit 1
-        fi
-        for f in "${sby_files[@]}"; do
-          echo "=== $f ==="
-          # Capture full log; surface PASS/FAIL; fail the job on non-PASS.
-          if ! timeout 180 sby -f "$f" > "/tmp/sby_${f}.log" 2>&1; then
-            echo "FAILED (sby exit): $f"
-            tail -50 "/tmp/sby_${f}.log" || true
-            exit 1
-          fi
-          if ! grep -E "DONE \(PASS\)" "/tmp/sby_${f}.log" | tail -1; then
-            echo "FAILED (no PASS): $f"
-            grep -E "DONE \(FAIL|ERROR|Assert" "/tmp/sby_${f}.log" | tail -20 || true
-            tail -50 "/tmp/sby_${f}.log" || true
-            exit 1
-          fi
-        done
-        echo "All formal proofs passed."
+        bash formal/run_all.sh
         echo "- ✅ Formal Verification" >> $GITHUB_STEP_SUMMARY
 
   check-documentation:

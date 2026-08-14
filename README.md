@@ -148,7 +148,9 @@ make tb_ternary_mac    # ternary_mac — 8 tests
 make tb_ternary_dot    # ternary_dot — 7 tests (VLEN=8)
 make tb_ternary_gemm   # ternary_gemm — 4×4 matrix multiply
 make all               # run the complete Icarus regression suite
+make extended          # include streaming, INT8 baseline, and AXI-gap tests
 make verilator-all     # run MAC, dot, randomized dot, and GEMM C++ tests
+make formal            # run every SymbiYosys task (requires sby/yosys)
 ```
 
 ### Cross-verify with Python

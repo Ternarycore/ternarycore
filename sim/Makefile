@@ -7,11 +7,15 @@ VVP      = vvp
 SIMDIR   = .
 VERILATOR = verilator
 
-.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram clean verify
+.PHONY: all extended tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram clean verify formal
+.PHONY: tb_gemm_stream tb_int8_gemm tb_axi_gemm_gaps
 .PHONY: verilator-mac verilator-dot verilator-gemm verilator-all
 .PHONY: verilator-dot-fuzz
 
 all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram
+
+# Every Icarus regression currently shipped by the repository.
+extended: all tb_gemm_stream tb_int8_gemm tb_axi_gemm_gaps
 
 # ── MAC unit ──────────────────────────────────────────────────────────────────
 tb_ternary_mac: ../tb/tb_ternary_mac.v ../rtl/ternary_mac.v ../rtl/ternary_weight.v
@@ -86,6 +90,9 @@ verify:
 	python3 verify/verify_dot.py
 	python3 verify/verify_gemm.py
 
+formal:
+	bash ../formal/run_all.sh
+
 clean:
 	rm -f $(SIMDIR)/sim_* $(SIMDIR)/*.vcd
 	rm -rf obj_dir obj_dir_dot obj_dir_dot_fuzz
@@ -98,7 +105,6 @@ VERILATOR_SRCDIR = tests
 # TIMESCALEMOD: ternary_weight.v has no timescale (shared cell)
 # PINMISSING: optional debug_* ports on ternary_dot left unconnected by gemm
 VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-TIMESCALEMOD -Wno-PINMISSING -Wno-BLKSEQ -Wno-UNUSEDPARAM -Wno-UNUSEDSIGNAL -I../rtl
-CXX ?= g++
 # Shared ternary select cell (required after ternary_weight.v split on main)
 TW = ../rtl/ternary_weight.v
 

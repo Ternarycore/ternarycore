@@ -49,35 +49,27 @@ module ternary_mac_formal(
         (weight_enc == 2'b01) ?  a_ext
                               : -a_ext;
 
-    reg signed [ACC_WIDTH-1:0] ref_next;
+    reg signed [ACC_WIDTH-1:0] expected_acc;
+    reg                        expected_valid;
     always @(posedge clk) begin
         if (!rst_n) begin
-            ref_next <= 0;
-        end else if (valid_in) begin
-            ref_next <= acc_in +
-                {{(ACC_WIDTH-DATA_WIDTH-1){ref_weighted[DATA_WIDTH]}}, ref_weighted};
+            expected_acc <= 0;
+            expected_valid <= 0;
+        end else begin
+            expected_valid <= valid_in;
+            if (valid_in)
+                expected_acc <= acc_in +
+                    {{(ACC_WIDTH-DATA_WIDTH-1){ref_weighted[DATA_WIDTH]}}, ref_weighted};
         end
     end
 
-    // valid_d1: valid_in delayed by 1 cycle (matches main's valid_out <= valid_in)
-    reg valid_d1;
+    // Assertions observe pre-NBA state, so expected_* and DUT outputs both
+    // describe the transaction accepted on the preceding clock edge.
     always @(posedge clk) begin
-        if (!rst_n) valid_d1 <= 0;
-        else valid_d1 <= valid_in;
-    end
-
-    reg [1:0] assume_cnt;
-    initial assume_cnt = 0;
-    always @(posedge clk) begin
-        if (reset_cnt < 2) assume_cnt <= 0;
-        else if (assume_cnt < 3) assume_cnt <= assume_cnt + 1;
-    end
-
-    always @(posedge clk) begin
-        if (run_cnt >= 10 && valid_in) begin
-            // acc_out latches acc_in + weighted when valid_in is high.
-            // valid_out timing is verified by cover test.
-            assert(acc_out == ref_next);
+        if (run_cnt >= 4) begin
+            assert(valid_out == expected_valid);
+            if (expected_valid)
+                assert(acc_out == expected_acc);
         end
     end
 
@@ -86,7 +78,9 @@ module ternary_mac_formal(
         if (run_cnt >= 4) begin
             cover(valid_in && weight_enc == 2'b01);
             cover(valid_in && weight_enc == 2'b10);
+            cover(valid_in && weight_enc == 2'b11);
             cover(valid_in && weight_enc == 2'b00);
+            cover(valid_in && activation == {1'b1, {(DATA_WIDTH-1){1'b0}}});
             cover(!valid_in);
             cover(valid_out);
         end
