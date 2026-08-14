@@ -1,4 +1,4 @@
-CROSS ?= riscv64-elf-gcc
+CROSS ?= riscv64-unknown-elf-gcc
 ARCH ?= rv64gcv_zvl128b
 ABI ?= lp64d
 CFLAGS = -march=$(ARCH) -mabi=$(ABI) -O3 -nostdlib -nostdinc
