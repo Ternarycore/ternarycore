@@ -88,7 +88,8 @@ verify:
 
 clean:
 	rm -f $(SIMDIR)/sim_* $(SIMDIR)/*.vcd
-	rm -rf obj_dir obj_dir_dot obj_dir_dot_b2b obj_dir_dot_fuzz obj_dir_dot_diff
+	# All Verilator build dirs (default obj_dir, obj_dir_dot*, obj_dir_coverage, …)
+	rm -rf obj_dir*
 	rm -rf build
 
 # ── Verilator C++ simulation (fast) ──────────────────────────────────────────
