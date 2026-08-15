@@ -71,7 +71,8 @@ module activation_quant_formal(
         end
     end
 
-    wire signed [29:0] ref_prod   = $signed(x_d2) * $signed({1'b0, inv_d2});
+    wire signed [29:0] ref_prod   = $signed({{22{x_d2[7]}}, x_d2}) *
+                                      $signed({{8{1'b0}}, inv_d2});
     wire signed [29:0] ref_biased = ref_prod + 30'sd16384;
     wire signed [29:0] ref_shifted = ref_biased >>> 15;
     wire signed [7:0] ref_q =

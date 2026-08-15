@@ -31,6 +31,14 @@ module activation_quant #(
     reg signed [DATA_WIDTH+INV_WIDTH-1:0] product;
     reg                                   product_valid;
 
+    // Explicitly extend both operands before multiplication. Verilog sizes a
+    // multiply from its operands, so assigning a narrow expression to the
+    // wider product register can otherwise discard the high product bits.
+    wire signed [DATA_WIDTH+INV_WIDTH-1:0] x_extended =
+        {{INV_WIDTH{x[DATA_WIDTH-1]}}, x};
+    wire signed [DATA_WIDTH+INV_WIDTH-1:0] inv_extended =
+        {{DATA_WIDTH{1'b0}}, inv};
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             product       <= 0;
@@ -38,7 +46,7 @@ module activation_quant #(
         end else begin
             product_valid <= valid_in;
             if (valid_in)
-                product <= x * $signed({1'b0, inv});
+                product <= x_extended * inv_extended;
         end
     end
 

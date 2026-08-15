@@ -91,10 +91,10 @@ module ternary_scale_formal(
         end
     endfunction
 
-    wire [47:0] ref_prod_0 = $signed(acc_d2[0*32 +: 32]) * $signed({1'b0, alpha_d2[0*16 +: 16]});
-    wire [47:0] ref_prod_1 = $signed(acc_d2[1*32 +: 32]) * $signed({1'b0, alpha_d2[1*16 +: 16]});
-    wire [47:0] ref_prod_2 = $signed(acc_d2[2*32 +: 32]) * $signed({1'b0, alpha_d2[2*16 +: 16]});
-    wire [47:0] ref_prod_3 = $signed(acc_d2[3*32 +: 32]) * $signed({1'b0, alpha_d2[3*16 +: 16]});
+    wire [47:0] ref_prod_0 = $signed({{16{acc_d2[31]}}, acc_d2[0*32 +: 32]}) * $signed({{32{1'b0}}, alpha_d2[0*16 +: 16]});
+    wire [47:0] ref_prod_1 = $signed({{16{acc_d2[63]}}, acc_d2[1*32 +: 32]}) * $signed({{32{1'b0}}, alpha_d2[1*16 +: 16]});
+    wire [47:0] ref_prod_2 = $signed({{16{acc_d2[95]}}, acc_d2[2*32 +: 32]}) * $signed({{32{1'b0}}, alpha_d2[2*16 +: 16]});
+    wire [47:0] ref_prod_3 = $signed({{16{acc_d2[127]}}, acc_d2[3*32 +: 32]}) * $signed({{32{1'b0}}, alpha_d2[3*16 +: 16]});
     wire [127:0] ref_result = {ref_scale(ref_prod_3), ref_scale(ref_prod_2),
                                ref_scale(ref_prod_1), ref_scale(ref_prod_0)};
 

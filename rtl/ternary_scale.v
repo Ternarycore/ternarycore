@@ -30,7 +30,11 @@ module ternary_scale #(
             for (i = 0; i < COLS; i = i + 1) prod[i] <= 0;
         end else if (valid_in) begin
             for (i = 0; i < COLS; i = i + 1)
-                prod[i] <= $signed(acc_in[i*ACC_WIDTH +: ACC_WIDTH]) * $signed({1'b0, alpha[i*(PRECISION+1) +: PRECISION+1]});
+                // Extend both operands to the product width before the
+                // multiply; otherwise Verilog may size the expression to
+                // the narrower operand and truncate large products.
+                prod[i] <= $signed({{(PRECISION+1){acc_in[i*ACC_WIDTH + ACC_WIDTH - 1]}}, acc_in[i*ACC_WIDTH +: ACC_WIDTH]}) *
+                           $signed({{ACC_WIDTH{1'b0}}, alpha[i*(PRECISION+1) +: PRECISION+1]});
         end
     end
 
