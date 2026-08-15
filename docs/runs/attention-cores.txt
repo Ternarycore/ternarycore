@@ -1,0 +1,17 @@
+stage 9: attention at 4 positions, block 0
+
+  input_layernorm x4          all exact
+  k_proj     1024x1024  1 page(s),  25.8s   4/4 exact
+  v_proj     1024x1024  1 page(s),  25.8s   4/4 exact
+  q_proj     2048x1024  2 page(s),  51.7s   4/4 exact
+  QK-norm/RoPE/V x4          cache written
+  attention at position 3, 4 keys, 16 heads
+    probabilities              max |d| 0
+    head output                rel 0.000047
+
+PASS
+block driver on the board, normalizer in fabric
+
+  block  0   rel 0.003136   x0.25 rel 0.014635   sensitivity 232.5x    0.06 s   ok
+
+PASS

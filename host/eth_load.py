@@ -43,5 +43,8 @@ dt = time.time() - t0
 
 print(f"sent {n} frames, {len(data)} bytes in {dt:.2f}s "
       f"= {len(data)/dt/1e6:.1f} MB/s")
-print(f"host checksum 0x{sum(data) & 0xFFFFFFFF:08x}")
+import struct as _s
+words = _s.unpack("<%dI" % (len(data)//4), data[:len(data)//4*4])
+chk = sum(w * (i + 1) for i, w in enumerate(words)) & 0xFFFFFFFF
+print(f"host checksum 0x{chk:08x}  (position-weighted)")
 print(f"board command: ETHLOAD <off> {n} {a.chunk}")

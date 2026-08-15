@@ -1,0 +1,5 @@
+block driver on the board, normalizer in fabric
+
+  block  0   rel 0.002367   x0.25 rel 0.008127   sensitivity 308.0x    0.11 s   ok
+
+PASS

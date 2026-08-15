@@ -1,0 +1,121 @@
+// Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+// Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+// -------------------------------------------------------------------------------
+// This file contains confidential and proprietary information
+// of AMD and is protected under U.S. and international copyright
+// and other intellectual property laws.
+//
+// DISCLAIMER
+// This disclaimer is not a license and does not grant any
+// rights to the materials distributed herewith. Except as
+// otherwise provided in a valid license issued to you by
+// AMD, and to the maximum extent permitted by applicable
+// law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
+// WITH ALL FAULTS, AND AMD HEREBY DISCLAIMS ALL WARRANTIES
+// AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
+// BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, NON-
+// INFRINGEMENT, OR FITNESS FOR ANY PARTICULAR PURPOSE; and
+// (2) AMD shall not be liable (whether in contract or tort,
+// including negligence, or under any other theory of
+// liability) for any loss or damage of any kind or nature
+// related to, arising under or in connection with these
+// materials, including for any direct, or any indirect,
+// special, incidental, or consequential loss or damage
+// (including loss of data, profits, goodwill, or any type of
+// loss or damage suffered as a result of any action brought
+// by a third party) even if such damage or loss was
+// reasonably foreseeable or AMD had been advised of the
+// possibility of the same.
+//
+// CRITICAL APPLICATIONS
+// AMD products are not designed or intended to be fail-
+// safe, or for use in any application requiring fail-safe
+// performance, such as life-support or safety devices or
+// systems, Class III medical devices, nuclear facilities,
+// applications related to the deployment of airbags, or any
+// other applications that could lead to death, personal
+// injury, or severe property or environmental damage
+// (individually and collectively, "Critical
+// Applications"). Customer assumes the sole risk and
+// liability of any use of AMD products in Critical
+// Applications, subject only to applicable laws and
+// regulations governing limitations on product liability.
+//
+// THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
+// PART OF THIS FILE AT ALL TIMES.
+//
+// DO NOT MODIFY THIS FILE.
+
+// MODULE VLNV: amd.com:blockdesign:arty_ddr:1.0
+
+// The following must be inserted into your System Verilog file for this
+// module to be instantiated. Change the instance name, port and interface connections
+// (in parentheses) to your own signal names.
+
+// IMPORTANT: Please check the generated 'arty_ddr_sv.sv' wrapper file is also included in the project.
+//            This file can be found in the .gen folder of the respective IP or Block Design after
+//            running the generate output products step.
+
+// INCLUDE_TAG     ------ Begin cut for INTERFACE INSTANTIATION Include ------
+`include "vivado_interfaces.svh"
+// INCLUDE_TAG_END ------  End cut for INTERFACE INSTANTIATION Include  ------
+
+// INTF_TAG     ------ Begin cut for INTERFACE INSTANTIATION Template ------
+
+// INTF_TAG_END ------  End cut for INTERFACE INSTANTIATION Template  ------
+
+// INST_TAG     ------ Begin cut for WRAPPER INSTANTIATION Template ------
+arty_ddr_sv your_instance_name (
+  .DDR3_0_dq(DDR3_0_dq), // inout wire [15:0] DDR3_0_dq
+  .DDR3_0_dqs_p(DDR3_0_dqs_p), // inout wire [1:0] DDR3_0_dqs_p
+  .DDR3_0_dqs_n(DDR3_0_dqs_n), // inout wire [1:0] DDR3_0_dqs_n
+  .DDR3_0_addr(DDR3_0_addr), // output wire [13:0] DDR3_0_addr
+  .DDR3_0_ba(DDR3_0_ba), // output wire [2:0] DDR3_0_ba
+  .DDR3_0_ras_n(DDR3_0_ras_n), // output wire DDR3_0_ras_n
+  .DDR3_0_cas_n(DDR3_0_cas_n), // output wire DDR3_0_cas_n
+  .DDR3_0_we_n(DDR3_0_we_n), // output wire DDR3_0_we_n
+  .DDR3_0_reset_n(DDR3_0_reset_n), // output wire DDR3_0_reset_n
+  .DDR3_0_ck_p(DDR3_0_ck_p), // output wire [0:0] DDR3_0_ck_p
+  .DDR3_0_ck_n(DDR3_0_ck_n), // output wire [0:0] DDR3_0_ck_n
+  .DDR3_0_cke(DDR3_0_cke), // output wire [0:0] DDR3_0_cke
+  .DDR3_0_cs_n(DDR3_0_cs_n), // output wire [0:0] DDR3_0_cs_n
+  .DDR3_0_dm(DDR3_0_dm), // output wire [1:0] DDR3_0_dm
+  .DDR3_0_odt(DDR3_0_odt), // output wire [0:0] DDR3_0_odt
+  .eth_mdio_mdc(eth_mdio_mdc), // output wire eth_mdio_mdc
+  .eth_mdio_mdio_i(eth_mdio_mdio_i), // input wire eth_mdio_mdio_i
+  .eth_mdio_mdio_o(eth_mdio_mdio_o), // output wire eth_mdio_mdio_o
+  .eth_mdio_mdio_t(eth_mdio_mdio_t), // output wire eth_mdio_mdio_t
+  .UART_0_baudoutn(UART_0_baudoutn), // output wire UART_0_baudoutn
+  .UART_0_ctsn(UART_0_ctsn), // input wire UART_0_ctsn
+  .UART_0_dcdn(UART_0_dcdn), // input wire UART_0_dcdn
+  .UART_0_ddis(UART_0_ddis), // output wire UART_0_ddis
+  .UART_0_dsrn(UART_0_dsrn), // input wire UART_0_dsrn
+  .UART_0_dtrn(UART_0_dtrn), // output wire UART_0_dtrn
+  .UART_0_out1n(UART_0_out1n), // output wire UART_0_out1n
+  .UART_0_out2n(UART_0_out2n), // output wire UART_0_out2n
+  .UART_0_ri(UART_0_ri), // input wire UART_0_ri
+  .UART_0_rtsn(UART_0_rtsn), // output wire UART_0_rtsn
+  .UART_0_rxd(UART_0_rxd), // input wire UART_0_rxd
+  .UART_0_rxrdyn(UART_0_rxrdyn), // output wire UART_0_rxrdyn
+  .UART_0_txd(UART_0_txd), // output wire UART_0_txd
+  .UART_0_txrdyn(UART_0_txrdyn), // output wire UART_0_txrdyn
+  .sys_clk(sys_clk), // input wire sys_clk
+  .sys_rst_n(sys_rst_n), // input wire sys_rst_n
+  .eth_tx_clk(eth_tx_clk), // input wire eth_tx_clk
+  .eth_rx_clk(eth_rx_clk), // input wire eth_rx_clk
+  .eth_crs(eth_crs), // input wire eth_crs
+  .eth_col(eth_col), // input wire eth_col
+  .eth_rx_dv(eth_rx_dv), // input wire eth_rx_dv
+  .eth_rxd(eth_rxd), // input wire [3:0] eth_rxd
+  .eth_rxerr(eth_rxerr), // input wire eth_rxerr
+  .eth_tx_en(eth_tx_en), // output wire eth_tx_en
+  .eth_txd(eth_txd), // output wire [3:0] eth_txd
+  .eth_rstn(eth_rstn), // output wire eth_rstn
+  .eth_ref_clk(eth_ref_clk), // output wire eth_ref_clk
+  .gpio_io_o_0(gpio_io_o_0) // output wire [3:0] gpio_io_o_0
+);
+// INST_TAG_END ------  End cut for WRAPPER INSTANTIATION Template  ------
+
+// You must compile the wrapper file arty_ddr_sv.sv when simulating
+// the module, arty_ddr_sv. When compiling the wrapper file, be sure to
+// reference the System Verilog simulation library.

@@ -108,7 +108,14 @@ static void cmd_pagedma(const char *p) {
     while (IO32(CDMA_CR) & 0x04u)
         if (++spin > 1000000u) { uart_puts("ERR cdma reset\\n"); return; }
 
-    dcache_flush_range(DDR_BASE + off, PAGE_BYTES);
+    /* No flush of the source. It cost 0.744 ms of a 1.537 ms page --
+       8192 wdc.flush instructions over 256 KB -- which is 312 ms of every
+       token, and it was protecting against a dirty line that cannot
+       exist: the weight image is written by the Ethernet DMA and read by
+       this CDMA, and the CPU never touches it. That is the whole
+       argument, and it stops holding the moment anything on the CPU
+       writes or reads DDR below 0x068F0000. Proven by a block check
+       against the golden model, not by this comment. */
 
     uart_puts("MARK PAGEDMA_START\\n");
     for (k = 0; k < n; k++) {
@@ -242,7 +249,7 @@ static const unsigned int exp2_lut[33] = {
 static int fx_exp2(int z) {
     int i, f, k, r, a, b, v;
     if (z <= -(31 << 16)) return 0;
-    i = (-z) >> 16;
+    i = -(z >> 16);   /* floors, so this is ceil(-z/65536) */
     f = z & 0xFFFF;
     k = f >> 11; r = f & 0x7FF;
     a = (int)exp2_lut[k]; b = (int)exp2_lut[k + 1];
@@ -350,10 +357,10 @@ static void build_luts(void) {
     for (i = 0; i < LUTN; i++) {
         xq = ((i - 512) << 16) / 16;
         ax = (xq < 0) ? -xq : xq;
-        e  = fx_exp2(-(int)(((long)ax * 94548) >> 16));
+        e  = fx_exp2(-(int)(((long long)ax * 94548) >> 16));
         s  = (int)((1u << 28) / (unsigned int)(((65536 + e) >> 4) ? ((65536 + e) >> 4) : 1));
         if (xq < 0) s = 65536 - s;
-        silu_lut[i] = (int)(((long)xq * s) >> 16);
+        silu_lut[i] = (int)(((long long)xq * s) >> 16);
     }
     luts_ready = 1;
 }
@@ -392,6 +399,41 @@ static void bench_mac(int n) {
     int acc = 0;
     for (i = 0; i < n; i++) acc += bench_buf[i] * bench_out[i];
     bench_out[0] = acc;
+}
+
+
+/* ---- Phase-5: attention on the ternary array ----
+   AMAC computes Q.K^T for 64 keys at once. The bit-sliced K must already be
+   in the weight BRAM (LOADW or ETHLOAD) and Q must be in act_ram, each value
+   written eight times -- see SLOAD8. CTRL bit3 puts the feeder in int8 mode,
+   where it expands one bit-slice per sub-cycle into the array's 2-bit codes
+   and shifts the activation. No multiplier and no DSP anywhere in that path. */
+
+static void cmd_sload8(void) {
+    unsigned long k; int b;
+    IO32(STREAM_BASE + S_CTRL) = 0x4u;                  /* act ptr reset */
+    for (k = 0; k < 128u; k++)
+        for (b = 0; b < 8; b++)
+            IO32(STREAM_BASE + S_ACTWR) = (unsigned int)(unsigned char)activations[k];
+    uart_puts("OK SL8\\n");
+}
+
+static void cmd_amac(void) {
+    int c;
+    long v;
+    unsigned long checksum = 0;
+    IO32(STREAM_BASE + S_CTRL) = 0x9u;                  /* START | INT8 */
+    while (!(IO32(STREAM_BASE + S_STATUS) & 0x2u)) { }
+    IO32(STREAM_BASE + S_CTRL) = 0x2u;                  /* clear done */
+    uart_puts("ACYC "); uart_putdec((long)IO32(STREAM_BASE + S_CYC));
+    uart_puts("\\nAOUT");
+    for (c = 0; c < 64; c++) {
+        IO32(STREAM_BASE + S_RIDX) = (unsigned int)c;
+        v = (long)(int)IO32(STREAM_BASE + S_RDATA);
+        checksum += (unsigned long)v * (unsigned long)(c + 1);
+        if (c < 8) { uart_puts(" "); uart_putdec(v); }
+    }
+    uart_puts("\\nACHK "); uart_puthex(checksum); uart_puts("\\nOK AM\\n");
 }
 
 static void cmd_bench(const char *p) {
@@ -495,10 +537,168 @@ s = s.replace(anchor, anchor +
     '\n        else if (starts(line, "PAGEDMA ")) cmd_pagedma(line + 8);' +
     '\n        else if (starts(line, "PAGE "))  cmd_page(line + 5);' +
     '\n        else if (starts(line, "ETHLINK")) cmd_ethlink();' +
-    '\n        else if (starts(line, "BENCH ")) cmd_bench(line + 6);\n        else if (starts(line, "ETHLOAD ")) cmd_ethload(line + 8);\n        else if (starts(line, "ETHRX")) cmd_ethrx(line + 5);', 1)
+    '\n        else if (starts(line, "SL8")) cmd_sload8();\n        else if (starts(line, "AMAC")) cmd_amac();\n        else if (starts(line, "BENCH ")) cmd_bench(line + 6);\n        else if (starts(line, "ETHLOAD ")) cmd_ethload(line + 8);\n        else if (starts(line, "ETHRX")) cmd_ethrx(line + 5);', 1)
+
+import fw_ops
+s = s.replace(fw_ops.ANCHOR, fw_ops.OPS + fw_ops.ANCHOR, 1)
+assert fw_ops.DISPATCH_OLD in s
+s = s.replace(fw_ops.DISPATCH_OLD, fw_ops.DISPATCH_NEW, 1)
+
+assert fw_ops.CMD_OLD in s
+s = s.replace(fw_ops.CMD_OLD, fw_ops.CMD_NEW, 1)
 
 s = s.replace("IO32(UART_RBR_THR) = 54u;", "IO32(UART_RBR_THR) = 44u;", 1)
 s = s.replace("/* DLL: 100e6/(16*115200) */", "/* DLL: 81.25e6/(16*115200) */", 1)
+s = s.replace("    uart_init();\n    led(0x1);", "    uart_init();\n    led(0x1);\n    cmd_cache(\"1\");   /* 16 KB D-cache: 4x on every DDR access */", 1)
+import fw_exec
+s = s.replace(fw_exec.ANCHOR, fw_exec.EXEC + fw_exec.ANCHOR, 1)
+assert fw_exec.CMD_OLD in s
+s = s.replace(fw_exec.CMD_OLD, fw_exec.CMD_NEW, 1)
+
+import fw_exec_s3
+s = s.replace(fw_exec_s3.ANCHOR, fw_exec_s3.EXEC3 + fw_exec_s3.ANCHOR, 1)
+assert fw_exec_s3.CMD_OLD in s
+s = s.replace(fw_exec_s3.CMD_OLD, fw_exec_s3.CMD_NEW, 1)
+
+
+# Buffers that do not belong in 64 KB of local memory.
+s = s.replace('static int bench_buf[BN];',
+              'static int * const bench_buf = (int *)(DDR_BASE + 0x0E000000u);', 1)
+s = s.replace('static int bench_out[BN];',
+              'static int * const bench_out = (int *)(DDR_BASE + 0x0E010000u);', 1)
+s = s.replace('static signed char bench_i8[BN];',
+              'static signed char * const bench_i8 = (signed char *)(DDR_BASE + 0x0E020000u);', 1)
+s = s.replace('static long sw_out[COLS_TOTAL];',
+              'static long * const sw_out = (long *)(DDR_BASE + 0x0E030000u);', 1)
+
+import fw_exec_s4
+s = s.replace(fw_exec_s4.ANCHOR, fw_exec_s4.EXEC4 + fw_exec_s4.ANCHOR, 1)
+assert fw_exec_s4.CMD_OLD in s
+s = s.replace(fw_exec_s4.CMD_OLD, fw_exec_s4.CMD_NEW, 1)
+
+import fw_exec_s5
+s = s.replace(fw_exec_s5.ANCHOR, fw_exec_s5.EXEC5 + fw_exec_s5.ANCHOR, 1)
+assert fw_exec_s5.CMD_OLD in s
+s = s.replace(fw_exec_s5.CMD_OLD, fw_exec_s5.CMD_NEW, 1)
+
+import fw_exec_s6
+s = s.replace(fw_exec_s6.ANCHOR, fw_exec_s6.EXEC6 + fw_exec_s6.ANCHOR, 1)
+assert fw_exec_s6.CMD_OLD in s
+s = s.replace(fw_exec_s6.CMD_OLD, fw_exec_s6.CMD_NEW, 1)
+
+import fw_exec_s7
+s = s.replace(fw_exec_s7.ANCHOR, fw_exec_s7.EXEC7 + fw_exec_s7.ANCHOR, 1)
+assert fw_exec_s7.CMD_OLD in s
+s = s.replace(fw_exec_s7.CMD_OLD, fw_exec_s7.CMD_NEW, 1)
+
+# accel_out is 4 KB read once per verification, not once per token.
+s = s.replace("static long accel_out[COLS_TOTAL];",
+              "static long * const accel_out = (long *)(DDR_BASE + 0x0E040000u);", 1)
+
+import fw_exec_s8
+s = s.replace(fw_exec_s8.ANCHOR, fw_exec_s8.EXEC8 + fw_exec_s8.ANCHOR, 1)
+assert fw_exec_s8.CMD_OLD in s
+s = s.replace(fw_exec_s8.CMD_OLD, fw_exec_s8.CMD_NEW, 1)
+
+import fw_exec_s9
+s = s.replace(fw_exec_s9.ANCHOR, fw_exec_s9.EXEC9 + fw_exec_s9.ANCHOR, 1)
+assert fw_exec_s9.CMD_OLD in s
+s = s.replace(fw_exec_s9.CMD_OLD, fw_exec_s9.CMD_NEW, 1)
+
+import fw_exec_s10
+s = s.replace(fw_exec_s10.ANCHOR, fw_exec_s10.EXEC10 + fw_exec_s10.ANCHOR, 1)
+assert fw_exec_s10.CMD_OLD in s
+s = s.replace(fw_exec_s10.CMD_OLD, fw_exec_s10.CMD_NEW, 1)
+
+import fw_exec_s10b
+s = s.replace(fw_exec_s10b.ANCHOR, fw_exec_s10b.EXEC10B + fw_exec_s10b.ANCHOR, 1)
+assert fw_exec_s10b.CMD_OLD in s
+s = s.replace(fw_exec_s10b.CMD_OLD, fw_exec_s10b.CMD_NEW, 1)
+
+import fw_exec_s11
+s = s.replace(fw_exec_s11.ANCHOR, fw_exec_s11.EXEC11 + fw_exec_s11.ANCHOR, 1)
+assert fw_exec_s11.CMD_OLD in s
+s = s.replace(fw_exec_s11.CMD_OLD, fw_exec_s11.CMD_NEW, 1)
+
+import fw_exec_s12
+assert fw_exec_s12.MUTE_OLD in s
+s = s.replace(fw_exec_s12.MUTE_OLD, fw_exec_s12.MUTE_NEW, 1)
+s = s.replace(fw_exec_s12.ANCHOR, fw_exec_s12.EXEC12 + fw_exec_s12.ANCHOR, 1)
+assert fw_exec_s12.CMD_OLD in s
+s = s.replace(fw_exec_s12.CMD_OLD, fw_exec_s12.CMD_NEW, 1)
+
+# The two interpolation tables are 4 KB each of local memory holding
+# constants that are read and never written, and the data cache keeps
+# them resident after the first touch. LMB is 64 KB and the block driver
+# needs the room more than they do.
+s = s.replace('static int exp_lut[LUTN];',
+              'static int * const exp_lut = (int *)(DDR_BASE + 0x0E050000u);', 1)
+s = s.replace('static int silu_lut[LUTN];',
+              'static int * const silu_lut = (int *)(DDR_BASE + 0x0E060000u);', 1)
+
+import fw_exec_s14
+assert fw_exec_s14.DEFS_ANCHOR in s
+s = s.replace(fw_exec_s14.DEFS_ANCHOR,
+              fw_exec_s14.DEFS + fw_exec_s14.DEFS_ANCHOR, 1)
+for old, new in fw_exec_s14.EDITS:
+    assert old in s, "s14 anchor missing:\n" + old[:90]
+    assert s.count(old) == 1, "s14 anchor not unique:\n" + old[:90]
+    s = s.replace(old, new, 1)
+
+import fw_exec_s15
+assert fw_exec_s15.DEFS_ANCHOR in s
+s = s.replace(fw_exec_s15.DEFS_ANCHOR,
+              fw_exec_s15.DEFS + fw_exec_s15.DEFS_ANCHOR, 1)
+assert s.count(fw_exec_s15.SCALE_OLD) == 1
+s = s.replace(fw_exec_s15.SCALE_OLD, fw_exec_s15.SCALE_NEW, 1)
+
+import fw_exec_s16
+assert fw_exec_s16.DEFS_ANCHOR in s
+s = s.replace(fw_exec_s16.DEFS_ANCHOR,
+              fw_exec_s16.DEFS + fw_exec_s16.DEFS_ANCHOR, 1)
+assert s.count(fw_exec_s16.SLOTS_OLD) == 1
+s = s.replace(fw_exec_s16.SLOTS_OLD, fw_exec_s16.SLOTS_NEW, 1)
+
+import fw_exec_s13
+for old, new in ((fw_exec_s13.MLP_OLD, fw_exec_s13.MLP_NEW),
+                 (fw_exec_s13.MLP_TAIL_OLD, fw_exec_s13.MLP_TAIL_NEW),
+                 (fw_exec_s13.MLP_BIAS_OLD, fw_exec_s13.MLP_BIAS_NEW),
+                 (fw_exec_s13.CMD_OLD, fw_exec_s13.CMD_NEW)):
+    assert old in s, old[:60]
+    s = s.replace(old, new, 1)
+s = s.replace(fw_exec_s13.ANCHOR, fw_exec_s13.EXEC13 + fw_exec_s13.ANCHOR, 1)
+
+s = s.replace(fw_exec_s15.ANCHOR, fw_exec_s15.EXEC15 + fw_exec_s15.ANCHOR, 1)
+assert fw_exec_s15.CMD_OLD in s
+s = s.replace(fw_exec_s15.CMD_OLD, fw_exec_s15.CMD_NEW, 1)
+
+s = s.replace(fw_exec_s16.ANCHOR, fw_exec_s16.EXEC16 + fw_exec_s16.ANCHOR, 1)
+assert fw_exec_s16.CMD_OLD in s
+s = s.replace(fw_exec_s16.CMD_OLD, fw_exec_s16.CMD_NEW, 1)
+
+import fw_exec_s17
+s = s.replace(fw_exec_s17.ANCHOR, fw_exec_s17.EXEC17 + fw_exec_s17.ANCHOR, 1)
+assert fw_exec_s17.CMD_OLD in s
+s = s.replace(fw_exec_s17.CMD_OLD, fw_exec_s17.CMD_NEW, 1)
+
+import fw_exec_s21
+s = fw_exec_s21.apply(s)
+
+import fw_exec_s20
+for _old, _new in fw_exec_s20.EDITS:
+    assert s.count(_old) == 1, _old[:70]
+    s = s.replace(_old, _new, 1)
+
+import fw_exec_s19
+s = s.replace(fw_exec_s19.ANCHOR, fw_exec_s19.EXEC19 + fw_exec_s19.ANCHOR, 1)
+assert fw_exec_s19.CMD_OLD in s
+s = s.replace(fw_exec_s19.CMD_OLD, fw_exec_s19.CMD_NEW, 1)
+
+import fw_exec_s18
+for _old, _new in fw_exec_s18.EDITS:
+    assert s.count(_old) == 1, _old[:60]
+    s = s.replace(_old, _new, 1)
+
 s = s.replace("Tier2 streaming firmware READY", "Phase2 DDR firmware READY", 1)
 
 open(dst, "w").write(s)

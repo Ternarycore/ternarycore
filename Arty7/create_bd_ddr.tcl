@@ -25,6 +25,7 @@ set repo_root [file normalize [file join [file dirname [file normalize [info scr
 set_property ip_repo_paths [list \
     [file join $repo_root ip weight_bram128] \
     [file join $repo_root ip axi_gemm_stream] \
+    [file join $repo_root ip rmsnorm_quant] \
 ] [current_project]
 update_ip_catalog
 
@@ -192,6 +193,27 @@ set_property offset 0x44100000 $mb
 set_property range  256K       $mb
 
 puts "ADDRMAP OK: microblaze + cdma both reach weight_bram @ 0x44100000"
+
+# The same assertion for the normalizer. A missing segment here is not a
+# build error -- it is a DECERR at run time on a bus nobody is checking,
+# which is how build 12 and build 13 both shipped.
+catch {assign_bd_address -target_address_space /microblaze_0/Data -offset 0x44400000 -range 128K [get_bd_addr_segs rmsnorm_0/s_axi/reg0]}
+catch {assign_bd_address -target_address_space /axi_cdma_0/Data  -offset 0x44400000 -range 128K [get_bd_addr_segs rmsnorm_0/s_axi/reg0]}
+catch {include_bd_addr_seg [get_bd_addr_segs -quiet -excluded axi_cdma_0/Data/SEG_rmsnorm_0_reg0]}
+catch {include_bd_addr_seg [get_bd_addr_segs -quiet -excluded microblaze_0/Data/SEG_rmsnorm_0_reg0]}
+catch {delete_bd_objs [get_bd_addr_segs -quiet microblaze_0/Instruction/SEG_rmsnorm_0_reg0]}
+
+foreach {space label} {microblaze_0/Data MicroBlaze axi_cdma_0/Data CDMA} {
+    set segs [get_bd_addr_segs -quiet -of_objects [get_bd_addr_spaces $space]]
+    set hit ""
+    foreach g $segs { if {[string match *rmsnorm* $g]} { set hit $g } }
+    if {$hit eq ""} {
+        error "ADDRMAP: $label has no rmsnorm segment (has: $segs)"
+    }
+    set_property offset 0x44400000 [get_bd_addr_segs $hit]
+    set_property range  128K       [get_bd_addr_segs $hit]
+}
+puts "ADDRMAP OK: microblaze + cdma both reach rmsnorm @ 0x44400000"
 
 
 

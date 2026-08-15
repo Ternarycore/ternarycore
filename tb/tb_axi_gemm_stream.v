@@ -80,6 +80,7 @@ module tb_axi_gemm_stream;
 
     // -- golden model --------------------------------------------------------
     integer k, c, t, errors;
+    integer walk_err;
     reg signed [7:0]  acts  [0:DEPTH-1];
     integer           tern  [0:DEPTH-1][0:127];   // 2 tiles x 64 cols
     integer           golden[0:127];
@@ -90,6 +91,7 @@ module tb_axi_gemm_stream;
 
     initial begin
         errors = 0;
+        walk_err = 0;
         g_awvalid=0; g_wvalid=0; g_arvalid=0;
         w_awvalid=0; w_wvalid=0;
 
@@ -146,13 +148,44 @@ module tb_axi_gemm_stream;
                 end
             end
             $display("tile %0d: %0d cycles for %0d elements", t, cyc, DEPTH);
+
+            //  The same sixty-four results, read the new way: set the index
+            //  once and then read RDATA sixty-four times. A read advances the
+            //  index, so this must agree with the loop above column for
+            //  column. It is the whole point of the change -- a result used
+            //  to cost two AXI-Lite accesses and now costs one -- and if the
+            //  index ever failed to advance this test would see column 0
+            //  sixty-four times, which no relative-error check upstream
+            //  would notice.
+            gwr(8'h14, 0);
+            for (c = 0; c < COLS; c = c + 1) begin
+                grd(8'h18, rd);
+                if ($signed(rd) !== golden[t*64 + c]) begin
+                    walk_err = walk_err + 1;
+                    if (walk_err < 8)
+                        $display("WALK FAIL t=%0d c=%0d got %0d exp %0d",
+                                 t, c, $signed(rd), golden[t*64 + c]);
+                end
+            end
+
+            //  And it has to wrap. The index is six bits, COLS is 64, so the
+            //  sixty-fourth read above left it back at zero and the next read
+            //  is column 0 again -- which is what lets a caller walk tile
+            //  after tile without touching the index at all.
+            grd(8'h18, rd);
+            if ($signed(rd) !== golden[t*64 + 0]) begin
+                walk_err = walk_err + 1;
+                $display("WRAP FAIL t=%0d got %0d exp %0d",
+                         t, $signed(rd), golden[t*64 + 0]);
+            end
+
             gwr(8'h00, 32'h2);                // CLEAR
         end
 
-        if (errors == 0)
-            $display("TB PASS: 128 columns exact across 2 tiles");
+        if (errors == 0 && walk_err == 0)
+            $display("TB PASS: 128 columns exact, indexed and self-walking, index wraps at 64");
         else
-            $display("TB FAIL: %0d errors", errors);
+            $display("TB FAIL: %0d indexed, %0d walking", errors, walk_err);
         $finish;
     end
 

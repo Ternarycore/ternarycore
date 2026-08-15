@@ -1,0 +1,5 @@
+#Person1#: Hi Mr. Smith. I am Doctor Hawkins. Why are you here today?
+#Person2#: I found it would be a good idea to get a check-up.
+#Person1#: Yes, well, you have not had one for 5 years. You should have one every year.
+#Person2#: I know. I figure as long as there is nothing wrong, why go see the doctor?
+Summary:

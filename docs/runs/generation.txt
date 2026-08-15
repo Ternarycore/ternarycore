@@ -1,0 +1,17 @@
+  'The movie was' -> 3 tokens, then 6 generated
+
+    The movie was positive positive positive positive positive positive
+
+     1. ' positive'                 22.1723
+     2. ' negative'                 17.2942
+     3. ' positives'                13.0322
+     4. ' Positive'                 11.3156
+     5. 'positive'                  11.0049
+
+  generated    ' positive positive positive positive positive positive'
+  8 positions x 28 blocks   37.06 s   (4.63 s/token, normalizer in fabric)
+
+  float64 reference on the host: ' positive positive positive positive positive positive'
+  token ids  board [6785, 6785, 6785, 6785, 6785, 6785]
+             host  [6785, 6785, 6785, 6785, 6785, 6785]
+  AGREE

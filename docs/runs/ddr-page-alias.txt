@@ -1,0 +1,10 @@
+  page0            first 6 [1198 2801 1662 -396 -790  526]
+  page1            first 6 [ -851 -2657   224   620  1273  3287]
+  page0 again      first 6 [1198 2801 1662 -396 -790  526]
+  page2 (k_proj)   first 6 [-2172 -1936  -901  -135 -4961 -2257]
+
+  page0 vs page1        max|d| 9726
+  page0 vs page0 again  max|d| 0
+  page0 vs page2        max|d| 8664
+
+  page0 vs page1 must be nonzero -- they are different weights.
