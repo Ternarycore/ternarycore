@@ -6,9 +6,9 @@ IVERILOG = iverilog
 VVP      = vvp
 SIMDIR   = .
 
-.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram clean verify
+.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_weight_bram128 tb_axi_gemm_stream clean verify
 
-all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram
+all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_weight_bram128 tb_axi_gemm_stream
 
 # ── MAC unit ──────────────────────────────────────────────────────────────────
 tb_ternary_mac: ../tb/tb_ternary_mac.v ../rtl/ternary_mac.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
@@ -60,6 +60,22 @@ tb_weight_bram_d4: ../tb/tb_weight_bram.v ../rtl/weight_bram.v
 tb_weight_bram_d8: ../tb/tb_weight_bram.v ../rtl/weight_bram.v
 	$(IVERILOG) -g2012 -DADDR_WIDTH_VAL=8 -o $(SIMDIR)/sim_weight_bram_d8 $^
 	$(VVP) $(SIMDIR)/sim_weight_bram_d8
+
+# ── Tier-2 streaming weight store and GEMM -------------------------------
+# Exercise the AXI4 burst path and 128-bit read path used by the DDR pager.
+tb_weight_bram128: tb_weight_bram128_burst tb_weight_bram128_wide
+
+tb_weight_bram128_burst: ../tb/tb_weight_bram128_burst.v ../rtl/weight_bram128.v
+	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_weight_bram128_burst $^
+	$(VVP) $(SIMDIR)/sim_weight_bram128_burst
+
+tb_weight_bram128_wide: ../tb/tb_weight_bram128_wide.v ../rtl/weight_bram128.v
+	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_weight_bram128_wide $^
+	$(VVP) $(SIMDIR)/sim_weight_bram128_wide
+
+tb_axi_gemm_stream: ../tb/tb_axi_gemm_stream.v ../rtl/axi_gemm_stream.v ../rtl/weight_bram128.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
+	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_axi_gemm_stream $^
+	$(VVP) $(SIMDIR)/sim_axi_gemm_stream
 
 # ── Python reference verification ─────────────────────────────────────────────
 verify:
