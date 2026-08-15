@@ -6,6 +6,7 @@ IVERILOG = iverilog -I../rtl
 VVP      = vvp
 SIMDIR   = .
 VERILATOR = verilator
+VERILATOR_JOBS ?= 2
 
 .PHONY: all extended tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram clean verify formal
 .PHONY: tb_gemm_stream tb_int8_gemm tb_axi_gemm_gaps
@@ -109,19 +110,19 @@ VERILATOR_FLAGS = -Wno-UNOPTFLAT -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-TIMESCALE
 TW = ../rtl/ternary_weight.v
 
 verilator-mac: $(VERILATOR_SRCDIR)/verilator_mac.cpp ../rtl/ternary_mac.v $(TW)
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_mac \
+	$(VERILATOR) --cc --build --exe -j $(VERILATOR_JOBS) --top-module ternary_mac \
 		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_mac.v $< -o sim_mac_verilator
 	./obj_dir/sim_mac_verilator
 
 verilator-dot: $(VERILATOR_SRCDIR)/verilator_dot.cpp ../rtl/ternary_dot.v $(TW)
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
+	$(VERILATOR) --cc --build --exe -j $(VERILATOR_JOBS) --top-module ternary_dot \
 		-GVECTOR_LEN=8 \
 		--Mdir obj_dir_dot \
 		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_verilator
 	./obj_dir_dot/sim_dot_verilator
 
 verilator-gemm: $(VERILATOR_SRCDIR)/verilator_gemm.cpp ../rtl/ternary_gemm.v ../rtl/ternary_dot.v $(TW)
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_gemm \
+	$(VERILATOR) --cc --build --exe -j $(VERILATOR_JOBS) --top-module ternary_gemm \
 		-GDEPTH=4 -GCOLS=4 \
 		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v ../rtl/ternary_gemm.v $< -o sim_gemm_verilator
 	./obj_dir/sim_gemm_verilator
@@ -130,7 +131,7 @@ verilator-gemm: $(VERILATOR_SRCDIR)/verilator_gemm.cpp ../rtl/ternary_gemm.v ../
 verilator-all: verilator-mac verilator-dot verilator-dot-fuzz verilator-gemm
 
 verilator-dot-fuzz: $(VERILATOR_SRCDIR)/verilator_dot_fuzz.cpp ../rtl/ternary_dot.v $(TW)
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_dot \
+	$(VERILATOR) --cc --build --exe -j $(VERILATOR_JOBS) --top-module ternary_dot \
 		-GVECTOR_LEN=8 \
 		--Mdir obj_dir_dot_fuzz \
 		$(VERILATOR_FLAGS) $(TW) ../rtl/ternary_dot.v $< -o sim_dot_fuzz_verilator
