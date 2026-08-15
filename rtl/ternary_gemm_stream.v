@@ -66,6 +66,7 @@ module ternary_gemm_stream #(
     ) gemm_i (
         .clk(clk), .rst_n(rst_n),
         .valid_in(v1),              // aligned to act_data/w_data (both +1 cycle)
+        .end_of_vector(1'b0),
         .activation(act_data),
         .weight_enc(w_data),
         .acc_out(gemm_acc_out),

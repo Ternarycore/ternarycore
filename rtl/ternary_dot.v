@@ -30,6 +30,7 @@ module ternary_dot #(
     input  wire                   clk,
     input  wire                   rst_n,
     input  wire                   valid_in,
+    input  wire                   end_of_vector,
     input  wire [DATA_WIDTH-1:0]  activation,
     input  wire [1:0]             weight_enc,   // 00=0, 01=+1, 10=-1
          output reg  [ACC_WIDTH-1:0]   acc_out,
@@ -106,7 +107,9 @@ module ternary_dot #(
              // ── Accumulation + counter stage ──────────────────────
              // Accumulate when valid_in is high and we're not done (or we're starting new vector)
              if (valid_in && (!vector_done || vector_done_delayed)) begin
-                 if (count == 16'b1) begin
+                 // Existing users still terminate at VECTOR_LEN. Streaming
+                 // callers may terminate a shorter vector explicitly.
+                 if (count == 16'b1 || (end_of_vector === 1'b1)) begin
                      // Last element — latch result, set done flag, reload counter
                      result_latch <= next_acc;
                      vector_done <= 1'b1;

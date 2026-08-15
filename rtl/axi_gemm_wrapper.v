@@ -214,6 +214,7 @@ module axi_gemm_wrapper #(
         .clk       (s_axi_aclk),
         .rst_n     (gemm_rst_n),
         .valid_in  (gemm_valid_in),
+        .end_of_vector(1'b0),
         .activation(activation_reg),
         .weight_enc(weight_enc_int),
         .acc_out   (acc_out_wire),

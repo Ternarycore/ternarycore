@@ -4,7 +4,11 @@
 // pass in iverilog before Vivado sees the RTL.
 `timescale 1ns / 1ps
 module tb_axi_gemm_stream;
-    localparam DEPTH = 1024;          // runtime depth for the test
+`ifdef STREAM_TEST_DEPTH
+    localparam DEPTH = `STREAM_TEST_DEPTH;
+`else
+    localparam DEPTH = 1024;
+`endif
     localparam COLS  = 64;
 
     reg clk = 0, rst_n = 0;
