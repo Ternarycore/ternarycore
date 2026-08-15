@@ -28,6 +28,7 @@ import textwrap
 from pathlib import Path
 
 import numpy as np
+from hardware_semantics import pack_ternary_weights
 
 # ── BitNet weight helpers (no torch dependency for synthetic mode) ───────────
 
@@ -63,8 +64,6 @@ def pack_weights(wt, cols=4):
         raise ValueError("weights must contain only -1, 0, or +1")
 
     out_f, in_f = wt.shape
-    enc_map = {0: 0, 1: 1, -1: 2}
-
     if out_f % cols != 0:
         raise ValueError(f"out_f ({out_f}) must be divisible by cols ({cols})")
     groups = out_f // cols
@@ -72,13 +71,8 @@ def pack_weights(wt, cols=4):
 
     for d in range(in_f):
         for g in range(groups):
-            byte = 0
-            for c in range(cols):
-                col_idx = g * cols + c
-                w = int(wt[col_idx, d])
-                enc = enc_map[w]
-                byte |= enc << (2 * c)
-            packed[d * groups + g] = byte
+            row = [int(wt[g * cols + c, d]) for c in range(cols)]
+            packed[d * groups + g] = pack_ternary_weights(row, cols)
     return packed
 
 

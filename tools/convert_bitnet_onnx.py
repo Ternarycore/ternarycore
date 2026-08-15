@@ -17,40 +17,11 @@ import json
 import sys
 from pathlib import Path
 
-# ── Ternary encoding ──────────────────────────────────────────────
-# BitNet b1.58 weight encoding (2 bits per weight):
-#   00 = 0 (zero)
-#   01 = +1 (positive)
-#   10 = -1 (negative)
-#   11 = invalid
-
-
-def pack_ternary_weights(weights: list[int], cols: int) -> int:
-    """Pack list of ternary values into 2*cols-bit weight_enc word."""
-    if cols <= 0:
-        raise ValueError("cols must be positive")
-    if len(weights) < cols:
-        raise ValueError(f"expected at least {cols} weights, got {len(weights)}")
-    if any(weight not in (-1, 0, 1) for weight in weights[:cols]):
-        raise ValueError("weights must contain only -1, 0, or +1")
-    packed = 0
-    for i, w in enumerate(weights[:cols]):
-        enc = {0: 0, 1: 1, -1: 2}[w]
-        packed |= enc << (2 * i)
-    return packed
-
-
-def quantize_activation(value: int, inv: int, precision: int = 15) -> int:
-    """Mirror activation_quant.v for one signed activation."""
-    shifted = (value * inv + (1 << (precision - 1))) >> precision
-    return max(-127, min(127, shifted))
-
-
-def scale_accumulator(acc: int, alpha: int, precision: int = 15) -> int:
-    """Mirror ternary_scale.v's arithmetic shift and remainder rounding."""
-    product = acc * alpha
-    remainder = product & ((1 << precision) - 1)
-    return (product >> precision) + int(remainder != 0)
+from hardware_semantics import (
+    pack_ternary_weights,
+    quantize_activation,
+    scale_accumulator,
+)
 
 
 def verilog_signed_literal(value: int, width: int = 32) -> str:

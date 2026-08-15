@@ -17,6 +17,7 @@ import math
 from pathlib import Path
 
 import torch
+from hardware_semantics import pack_ternary_weights
 from torch import nn
 
 # ── Config ────────────────────────────────────────────────────────
@@ -61,18 +62,8 @@ def ternarize_weights(w: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
 
 
 def pack_ternary_chunk(weights: list[int]) -> int:
-    """Pack 4 ternary values into an 8-bit weight_enc word.
-    Encoding: 00=0, 01=+1, 10=-1
-    col order: col0=bits[1:0], col1=bits[3:2], etc."""
-    if not 1 <= len(weights) <= 4:
-        raise ValueError("a packed chunk must contain between 1 and 4 weights")
-    if any(int(weight) not in (-1, 0, 1) for weight in weights):
-        raise ValueError("weights must contain only -1, 0, or +1")
-    packed = 0
-    for i, w in enumerate(weights):
-        enc = {0: 0, 1: 1, -1: 2}[int(w)]
-        packed |= enc << (2 * i)
-    return packed
+    """Pack one per-column ternary chunk using the shared RTL encoding."""
+    return pack_ternary_weights([int(weight) for weight in weights], len(weights))
 
 
 # ── Model loading ─────────────────────────────────────────────────

@@ -30,7 +30,7 @@ jobs:
           tools/bench.py tools/bitnet_full.py tools/convert_bitnet_onnx.py \
           tools/convert_smolvlm.py tools/eval.py tools/eval_vlm.py \
           tools/export_ternary.py tools/quant_search.py \
-          tools/smoke_test_vlm.py tools/train_bitnet.py tools/tests
+          tools/smoke_test_vlm.py tools/train_bitnet.py tools/hardware_semantics.py tools/tests
     - name: Run unit tests
       run: python -m unittest discover -s tools/tests -v
     - name: Exercise synthetic converters

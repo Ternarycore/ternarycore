@@ -10,12 +10,14 @@ sys.path.insert(0, str(TOOLS_DIR))
 
 import convert_bitnet_onnx as onnx_converter
 import export_ternary as exporter
+import hardware_semantics as semantics
 
 
 class ExporterTests(unittest.TestCase):
     def test_pack_weights_matches_hardware_layout(self):
         weights = np.array([[1], [-1], [1], [0]], dtype=np.int8)
         self.assertEqual(exporter.pack_weights(weights).tolist(), [0x19])
+        self.assertEqual(semantics.pack_ternary_weights([1, -1, 1, 0], 4), 0x19)
 
     def test_pack_weights_rejects_invalid_input(self):
         with self.assertRaisesRegex(ValueError, r"only -1, 0, or \+1"):
