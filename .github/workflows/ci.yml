@@ -129,6 +129,14 @@ jobs:
         bash formal/run_all.sh
         echo "- ✅ Formal Verification" >> $GITHUB_STEP_SUMMARY
 
+    - name: Upload formal logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: formal-logs
+        path: /tmp/ternarycore-sby
+        if-no-files-found: ignore
+
   check-documentation:
     name: Check Documentation
     runs-on: ubuntu-latest
