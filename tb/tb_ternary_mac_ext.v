@@ -48,8 +48,16 @@ module tb_ternary_mac_ext;
         check(-128, 2'b01,    0, -128, "w=+1 x most-negative activation");
         check( 127, 2'b10,    0, -127, "w=-1 x most-positive activation");
         if (errors == 0) $display("TB PASS: ternary_mac exact incl. -2^(N-1)");
-        else             $display("TB FAIL: %0d errors", errors);
+        else begin
+            $display("TB FAIL: %0d errors", errors);
+            $fatal(1, "extended ternary MAC regression failed");
+        end
         $finish;
+    end
+
+    initial begin
+        #5000000;
+        $fatal(1, "extended ternary MAC regression timeout");
     end
 endmodule
 `default_nettype wire

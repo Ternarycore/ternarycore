@@ -139,10 +139,17 @@ module tb_rmsnorm_quant;
         $display("");
         if (cases_ok == 5 && total_bad == 0)
             $display("TB PASS: 5/5 exact against silicon");
-        else
+        else begin
             $display("TB FAIL: %0d/5 cases exact, %0d elements differ",
                      cases_ok, total_bad);
+            $fatal(1, "RMSNorm quantizer regression failed");
+        end
         $finish;
+    end
+
+    initial begin
+        #5000000;
+        $fatal(1, "RMSNorm quantizer regression timeout");
     end
 endmodule
 

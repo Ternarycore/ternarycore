@@ -35,8 +35,11 @@ module tb_int8_gemm;
                 errors=errors+1; $display("FAIL col %0d: %0d exp %0d",c,$signed(acc_out[AW*c +: AW]),exp[c]);
             end
         if(errors==0) $display("INT8 baseline: ALL %0d COLUMNS CORRECT",COLS);
-        else $display("INT8 baseline: %0d errors",errors);
+        else begin
+            $display("INT8 baseline: %0d errors",errors);
+            $fatal(1, "INT8 GEMM regression failed");
+        end
         $finish;
     end
-    initial begin #50000; $display("TIMEOUT"); $finish; end
+    initial begin #50000; $fatal(1, "INT8 GEMM regression timeout"); end
 endmodule
