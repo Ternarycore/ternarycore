@@ -214,10 +214,17 @@ module tb_rmsnorm_quant_axi;
         $display("");
         if (cases_ok == 3 && total_bad == 0)
             $display("TB PASS: 3/3 exact through AXI");
-        else
+        else begin
             $display("TB FAIL: %0d/3 cases exact, %0d elements differ",
                      cases_ok, total_bad);
+            $fatal(1, "RMSNorm AXI regression failed");
+        end
         $finish;
+    end
+
+    initial begin
+        #5000000;
+        $fatal(1, "RMSNorm AXI regression timeout");
     end
 endmodule
 

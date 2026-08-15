@@ -113,7 +113,15 @@ module tb_axi_gemm_gaps;
         end
 
         if (errors == 0) $display("ALL GAP TESTS PASSED");
-        else $display("=== %0d error(s) ===", errors);
+        else begin
+            $display("=== %0d error(s) ===", errors);
+            $fatal(1, "AXI gap regression failed");
+        end
         $finish;
+    end
+
+    initial begin
+        #5000000;
+        $fatal(1, "AXI gap regression timeout");
     end
 endmodule

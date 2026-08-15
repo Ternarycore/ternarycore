@@ -97,9 +97,16 @@ module tb_int8_stream;
         end
         if (errors == 0)
             $display("TB PASS: %0d int8 dot products exact on the ternary array", COLS);
-        else
+        else begin
             $display("TB FAIL: %0d of %0d columns wrong", errors, COLS);
+            $fatal(1, "INT8 streaming regression failed");
+        end
         $finish;
+    end
+
+    initial begin
+        #5000000;
+        $fatal(1, "INT8 streaming regression timeout");
     end
 endmodule
 `default_nettype wire

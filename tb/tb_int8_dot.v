@@ -52,9 +52,16 @@ module tb_int8_dot;
                 product(i[7:0], j[7:0]);
         if (errors == 0)
             $display("TB PASS: %0d int8 products exact via ternary partials", n);
-        else
+        else begin
             $display("TB FAIL: %0d of %0d wrong", errors, n);
+            $fatal(1, "INT8 dot regression failed");
+        end
         $finish;
+    end
+
+    initial begin
+        #5000000;
+        $fatal(1, "INT8 dot regression timeout");
     end
 endmodule
 `default_nettype wire

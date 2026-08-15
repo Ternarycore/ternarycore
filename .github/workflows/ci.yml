@@ -59,6 +59,12 @@ jobs:
         cd sim
         make tb_weight_bram
         echo "BRAM weight cache tests completed"
+
+    - name: Run full inference datapath regression
+      run: |
+        cd sim
+        make full-inference
+        echo "INT8, RMSNorm, AXI-gap, and edge-case regressions completed"
         
     - name: Run Python verification
       run: |
@@ -104,6 +110,12 @@ jobs:
         
         # Lint weight_bram.v
         verilator --lint-only -Wall -Wno-DECLFILENAME rtl/weight_bram.v || echo "Warning: Lint issues in weight_bram.v"
+
+        # Lint non-ternary operators used by the transformer datapath
+        verilator --lint-only -Wall -Wno-fatal -Wno-DECLFILENAME rtl/int8_dot.v rtl/int8_gemm.v
+        verilator --lint-only -Wall -Wno-fatal -Wno-DECLFILENAME rtl/int8_expand.v rtl/ternary_weight.v
+        verilator --lint-only -Wall -Wno-fatal -Wno-DECLFILENAME rtl/rmsnorm_quant.v
+        verilator --lint-only -Wall -Wno-fatal -Wno-DECLFILENAME rtl/rmsnorm_quant_axi.v rtl/rmsnorm_quant.v
         
         echo "Linting completed"
         
