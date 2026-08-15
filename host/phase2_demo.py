@@ -13,6 +13,8 @@ Usage: python phase2_demo.py [--export ~/tc-export/d4-student-sst2-r2]
 import argparse, os, sys, termios, time
 import numpy as np
 
+PAGE_BYTES = 262144
+
 
 def open_serial(dev):
     fd = os.open(dev, os.O_RDWR | os.O_NOCTTY)
@@ -55,6 +57,8 @@ def main():
     ap.add_argument("--pager", choices=["cpu", "dma"], default="cpu",
                     help="cpu = MicroBlaze copy loop, dma = AXI CDMA hardware pager")
     ap.add_argument("--layers", default="0.self_attn.k_proj,27.self_attn.v_proj")
+    ap.add_argument("--clock-hz", type=float, default=100e6,
+                    help="streaming fabric clock used for throughput estimates")
     args = ap.parse_args()
     names = args.layers.split(",")
     ref = np.load(os.path.join(args.export, "reference.npz"))
@@ -67,8 +71,8 @@ def main():
     for i, name in enumerate(names):
         wb = open(os.path.join(args.export, "layers",
                                name.replace(".", "_") + ".bin"), "rb").read()
-        assert len(wb) == 262144
-        off = i * 262144
+        assert len(wb) == PAGE_BYTES
+        off = i * PAGE_BYTES
         t0 = time.time()
         b.send(f"LOADM {off} {len(wb)}\n")
         for j in range(0, len(wb), 4096):
@@ -86,7 +90,7 @@ def main():
 
         cmd, tag, ack = (("PAGEDMA", "PAGEDMA", "OK PD") if args.pager == "dma"
                          else ("PAGE", "PAGE", "OK P"))
-        b.send(f"{cmd} {i*262144}\n")
+        b.send(f"{cmd} {i*PAGE_BYTES}\n")
         b.expect(f"MARK {tag}_START"); tp0 = time.time()
         b.expect(f"MARK {tag}_END");   tp1 = time.time()
         b.expect(ack)
@@ -100,9 +104,15 @@ def main():
         b.expect("DONE")
         outs = [int(x) for x in schk.split("OUT")[1].strip().rstrip(",").split(",")]
         ok = outs == list(e[:8])
-        results.append((name, ok, cyc, tp1 - tp0))
+        page_s = tp1 - tp0
+        page_mib_s = PAGE_BYTES / page_s / (1024 * 1024) if page_s else 0.0
+        # One 1024x1024 ternary tile performs 2*1024*1024 operations.
+        # `cyc` is the hardware-reported tile latency, not UART wall time.
+        gops = (2 * 1024 * 1024) / (cyc / args.clock_hz) / 1e9 if cyc else 0.0
+        results.append((name, ok, cyc, page_s, page_mib_s, gops))
         print(f"LAYER {name}: {'EXACT-MATCH' if ok else 'FAIL '+str(outs)+' vs '+str(list(e[:8]))} "
-              f"(tile {cyc} cyc, page ~{(tp1-tp0)*1000:.0f} ms incl UART)", flush=True)
+              f"(tile {cyc} cyc, {gops:.2f} GOPS, page ~{page_s*1000:.0f} ms "
+              f"{page_mib_s:.2f} MiB/s incl UART)", flush=True)
 
     good = sum(1 for _, ok, _, _ in results if ok)
     print(f"PHASE2 DEMO: {good}/{len(results)} DDR-resident layers paged+computed exact", flush=True)
