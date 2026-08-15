@@ -6,11 +6,20 @@ ARCH ?= rv64gcv_zvl128b
 # Select lp64d explicitly when building with an ARCH that includes D.
 ABI ?= lp64
 CFLAGS ?= -march=$(ARCH) -mabi=$(ABI) -O3 -Wall -Wextra -Werror
+# The default keeps the RVV object usable with bare-metal toolchains that
+# expose riscv_vector.h but do not ship a C library/sysroot. Hosted builds can
+# use the platform stdint.h with FREESTANDING=0.
+FREESTANDING ?= 1
+ifeq ($(FREESTANDING),1)
+CFLAGS += -DTERNARYCORE_FREESTANDING
 INCLUDES ?= -I.
+else
+INCLUDES ?=
+endif
 
 all: bitnet_rvv.o
 
-bitnet_rvv.o: bitnet_rvv.c bitnet_rvv.h stdint.h
+bitnet_rvv.o: bitnet_rvv.c bitnet_rvv.h stdint.h ternarycore_freestanding_stdint.h
 	$(CROSS) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:

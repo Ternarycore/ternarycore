@@ -1,7 +1,11 @@
 #ifndef TERNARYCORE_BITNET_RVV_H
 #define TERNARYCORE_BITNET_RVV_H
 
+#ifdef TERNARYCORE_FREESTANDING
+#include "ternarycore_freestanding_stdint.h"
+#else
 #include <stdint.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

@@ -10,10 +10,13 @@ zero on success and `-1` for invalid pointers or dimensions.
 
 ```bash
 make
-make CROSS=riscv64-unknown-elf-gcc ARCH=rv64gcv_zvl128b ABI=lp64d
+make CROSS=riscv64-unknown-elf-gcc ARCH=rv64gcv_zvl128b ABI=lp64d FREESTANDING=0
 ```
 
 The Makefile auto-detects `riscv64-unknown-elf-gcc` and
 `riscv64-elf-gcc`. Override `CROSS`, `ARCH`, or `ABI` for another toolchain.
+Bare-metal builds use the bundled fixed-width type definitions by default;
+pass `FREESTANDING=0` when the selected toolchain provides a hosted
+`<stdint.h>`.
 The implementation uses fixed internal scratch buffers and is therefore not
 reentrant; callers must serialize `ternarycore_rvv_gemm()` calls.
