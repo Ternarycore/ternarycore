@@ -107,6 +107,14 @@ jobs:
     - name: Run every configured proof
       run: bash formal/run_all.sh
 
+    - name: Upload formal logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: formal-logs
+        path: /tmp/ternarycore-sby
+        if-no-files-found: ignore
+
   check-documentation:
     name: Repository documentation
     runs-on: ubuntu-latest
