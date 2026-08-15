@@ -5,6 +5,7 @@ IVERILOG = iverilog -I../rtl
 VVP      = vvp
 SIMDIR   = .
 VERILATOR = verilator
+VERILATOR_JOBS ?= 2
 
 .PHONY: all extended clean verify formal
 .PHONY: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram
@@ -99,7 +100,7 @@ verilator-pipeline-large: $(VERILATOR_SRCDIR)/verilator_pipeline_576.cpp \
                            ../rtl/ternary_pipeline.v ../rtl/activation_quant.v \
                            ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v \
                            ../rtl/ternary_scale.v
-	$(VERILATOR) --cc --build --exe -j --top-module ternary_pipeline \
+	$(VERILATOR) --cc --build --exe -j $(VERILATOR_JOBS) --top-module ternary_pipeline \
 		-GVECTOR_LEN=576 -GCOLS=4 --Mdir obj_dir_pipeline \
 		$(VERILATOR_FLAGS) \
 		../rtl/activation_quant.v ../rtl/ternary_weight.v ../rtl/ternary_dot.v \
