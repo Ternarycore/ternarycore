@@ -18,8 +18,8 @@ import argparse
 import math
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 from transformers import AutoModel
 
 MODEL_ID = "HuggingFaceTB/SmolVLM-256M-Instruct"
@@ -117,11 +117,11 @@ def fp8_encode(val):
         return 0
     sgn = 1 if val < 0 else 0
     v = abs(val)
-    e = min(max(int(math.floor(math.log2(v))) + 7, 0), 14)  # clamp exp
+    e = min(max(math.floor(math.log2(v)) + 7, 0), 14)  # clamp exp
     m = (
-        int(round((v / 2 ** (e - 7) - 1) * 8))
+        round((v / 2 ** (e - 7) - 1) * 8)
         if e > 0
-        else int(round(v / 2 ** (-6) * 8))
+        else round(v / 2 ** (-6) * 8)
     )
     m = max(0, min(m, 7))
     return (sgn << 7) | (e << 3) | m

@@ -188,17 +188,18 @@ def _extract_bitnet_layers(module, prefix="", layers=None):
         layers = {}
     # BitNetLinear from bitnet_full.py or train_bitnet.py
     cls_name = type(module).__name__
-    if cls_name == "BitNetLinear" or cls_name == "Linear":
-        if hasattr(module, "gamma") or cls_name == "BitNetLinear":
-            name = prefix if prefix else "layer"
-            layers[name] = {
-                "weight": module.weight.detach().cpu().numpy(),
-                "gamma": module.gamma.detach().cpu().numpy(),
-                "in_f": module.in_features,
-                "out_f": module.out_features,
-                "has_bias": module.bias is not None,
-            }
-            return layers
+    if (cls_name == "BitNetLinear" or cls_name == "Linear") and (
+        hasattr(module, "gamma") or cls_name == "BitNetLinear"
+    ):
+        name = prefix if prefix else "layer"
+        layers[name] = {
+            "weight": module.weight.detach().cpu().numpy(),
+            "gamma": module.gamma.detach().cpu().numpy(),
+            "in_f": module.in_features,
+            "out_f": module.out_features,
+            "has_bias": module.bias is not None,
+        }
+        return layers
     for name, child in module.named_children():
         full = f"{prefix}.{name}" if prefix else name
         _extract_bitnet_layers(child, full, layers)
@@ -739,7 +740,7 @@ def main():
     # 2. layer0_test.cpp
     layer_name = args.layer
     if layer_name is None:
-        layer_name = list(layers.keys())[0]
+        layer_name = next(iter(layers))
     print(
         f"Generating {out_dir / 'layer0_test.cpp'} for layer '{layer_name}'...",
         file=sys.stderr,

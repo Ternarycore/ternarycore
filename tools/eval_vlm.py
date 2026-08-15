@@ -23,15 +23,15 @@ from pathlib import Path
 
 import torch
 from PIL import Image, ImageDraw
-from transformers import SmolVLMForConditionalGeneration, AutoProcessor
+from transformers import AutoProcessor, SmolVLMForConditionalGeneration
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from bitnet_full import (
-    convert_module,
-    BitNetLinear,
     BitNetConv2d,
     BitNetEmbedding,
     BitNetLayerNorm,
+    BitNetLinear,
+    convert_module,
 )
 
 MODEL_ID = "HuggingFaceTB/SmolVLM-256M-Instruct"
@@ -350,8 +350,7 @@ def generate_caption(
     # Strip the prompt from the decoded caption
     # The decode includes the full conversation; extract just the assistant reply
     reply = caption.split("<|im_start|>assistant")[-1].strip()
-    if reply.startswith("\n"):
-        reply = reply[1:]
+    reply = reply.removeprefix("\n")
     if reply.endswith("<|im_end|>"):
         reply = reply[: -len("<|im_end|>")].strip()
 

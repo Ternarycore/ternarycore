@@ -257,21 +257,26 @@ def main():
         print(f"Loading ONNX model: {args.model}")
         try:
             import onnx
-
-            model = onnx.load(args.model)
-            onnx.checker.check_model(model)
-            print(f"  Model loaded: {model.graph.name}")
-            print(f"  {len(model.graph.node)} nodes")
-            print()
-            print(
-                "Error: ONNX weight extraction is not implemented; "
-                "use --synthetic for generated pipeline vectors.",
-                file=sys.stderr,
-            )
-            return 2
-        except Exception as e:
+        except ImportError as e:
             print(f"Error loading model: {e}", file=sys.stderr)
             return 1
+
+        try:
+            model = onnx.load(args.model)
+            onnx.checker.check_model(model)
+        except (OSError, ValueError, onnx.checker.ValidationError) as e:
+            print(f"Error loading model: {e}", file=sys.stderr)
+            return 1
+
+        print(f"  Model loaded: {model.graph.name}")
+        print(f"  {len(model.graph.node)} nodes")
+        print()
+        print(
+            "Error: ONNX weight extraction is not implemented; "
+            "use --synthetic for generated pipeline vectors.",
+            file=sys.stderr,
+        )
+        return 2
 
     return 0
 

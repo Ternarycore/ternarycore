@@ -17,7 +17,7 @@ import math
 from pathlib import Path
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 # ── Config ────────────────────────────────────────────────────────
 MODEL_ID = "HuggingFaceTB/SmolVLM-256M-Instruct"
@@ -41,7 +41,7 @@ def ternarize_weights(w: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     orig_shape = w.shape
     # Flatten to per-channel: weight is [out_features, in_features]
     if w.dim() == 2:
-        out_dim, in_dim = w.shape
+        out_dim, _ = w.shape
         flat = w
     elif w.dim() == 4:
         # Conv2D: [out, in, kH, kW] → view as [out, in*kH*kW]

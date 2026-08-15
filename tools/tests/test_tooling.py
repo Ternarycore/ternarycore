@@ -8,8 +8,8 @@ import numpy as np
 TOOLS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS_DIR))
 
-import convert_bitnet_onnx as onnx_converter  # noqa: E402
-import export_ternary as exporter  # noqa: E402
+import convert_bitnet_onnx as onnx_converter
+import export_ternary as exporter
 
 
 class ExporterTests(unittest.TestCase):

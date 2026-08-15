@@ -23,8 +23,8 @@ import time
 from pathlib import Path
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.data import DataLoader
 from transformers import AutoModel, AutoTokenizer, get_linear_schedule_with_warmup
 
@@ -107,10 +107,7 @@ def flatten_model(model, full_model=False):
     for name, module in model.named_modules():
         tname = type(module).__name__
         if full_model:
-            if tname == "BitNetLinear":
-                params.append(module.weight)
-                params.append(module.gamma)
-            elif tname == "BitNetConv2d":
+            if tname in ("BitNetLinear", "BitNetConv2d"):
                 params.append(module.weight)
                 params.append(module.gamma)
             elif tname == "BitNetEmbedding":

@@ -4,6 +4,7 @@
 import sys
 import time
 from pathlib import Path
+
 import torch
 from PIL import Image
 from transformers import AutoProcessor
