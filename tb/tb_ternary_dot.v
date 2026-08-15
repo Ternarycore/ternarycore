@@ -26,7 +26,7 @@ module tb_ternary_dot;
         .ACC_WIDTH(ACC_WIDTH),
         .VECTOR_LEN(VLEN)
     ) dut (
-        .clk(clk), .rst_n(rst_n), .valid_in(valid_in),
+        .clk(clk), .rst_n(rst_n), .valid_in(valid_in), .end_of_vector(1'b0),
         .activation(activation), .weight_enc(weight_enc),
         .acc_out(acc_out), .valid_out(valid_out)
     );

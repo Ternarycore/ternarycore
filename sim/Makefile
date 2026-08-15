@@ -6,7 +6,7 @@ IVERILOG = iverilog
 VVP      = vvp
 SIMDIR   = .
 
-.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_weight_bram128 tb_axi_gemm_stream clean verify
+.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_weight_bram128 tb_axi_gemm_stream tb_axi_gemm_stream_full tb_axi_gemm_stream_depth1 tb_axi_gemm_stream_depth7 tb_axi_gemm_stream_depth128 tb_axi_gemm_stream_depth768 clean verify
 
 all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_weight_bram128 tb_axi_gemm_stream
 
@@ -73,9 +73,27 @@ tb_weight_bram128_wide: ../tb/tb_weight_bram128_wide.v ../rtl/weight_bram128.v
 	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_weight_bram128_wide $^
 	$(VVP) $(SIMDIR)/sim_weight_bram128_wide
 
-tb_axi_gemm_stream: ../tb/tb_axi_gemm_stream.v ../rtl/axi_gemm_stream.v ../rtl/weight_bram128.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
+tb_axi_gemm_stream: tb_axi_gemm_stream_full tb_axi_gemm_stream_depth1 tb_axi_gemm_stream_depth7 tb_axi_gemm_stream_depth128 tb_axi_gemm_stream_depth768
+
+tb_axi_gemm_stream_full: ../tb/tb_axi_gemm_stream.v ../rtl/axi_gemm_stream.v ../rtl/weight_bram128.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
 	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_axi_gemm_stream $^
 	$(VVP) $(SIMDIR)/sim_axi_gemm_stream
+
+tb_axi_gemm_stream_depth1: ../tb/tb_axi_gemm_stream.v ../rtl/axi_gemm_stream.v ../rtl/weight_bram128.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
+	$(IVERILOG) -g2012 -DSTREAM_TEST_DEPTH=1 -o $(SIMDIR)/sim_axi_gemm_stream_d1 $^
+	$(VVP) $(SIMDIR)/sim_axi_gemm_stream_d1
+
+tb_axi_gemm_stream_depth7: ../tb/tb_axi_gemm_stream.v ../rtl/axi_gemm_stream.v ../rtl/weight_bram128.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
+	$(IVERILOG) -g2012 -DSTREAM_TEST_DEPTH=7 -o $(SIMDIR)/sim_axi_gemm_stream_d7 $^
+	$(VVP) $(SIMDIR)/sim_axi_gemm_stream_d7
+
+tb_axi_gemm_stream_depth128: ../tb/tb_axi_gemm_stream.v ../rtl/axi_gemm_stream.v ../rtl/weight_bram128.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
+	$(IVERILOG) -g2012 -DSTREAM_TEST_DEPTH=128 -o $(SIMDIR)/sim_axi_gemm_stream_d128 $^
+	$(VVP) $(SIMDIR)/sim_axi_gemm_stream_d128
+
+tb_axi_gemm_stream_depth768: ../tb/tb_axi_gemm_stream.v ../rtl/axi_gemm_stream.v ../rtl/weight_bram128.v ../rtl/ternary_gemm.v ../rtl/ternary_dot.v ../rtl/ternary_weight.v
+	$(IVERILOG) -g2012 -DSTREAM_TEST_DEPTH=768 -o $(SIMDIR)/sim_axi_gemm_stream_d768 $^
+	$(VVP) $(SIMDIR)/sim_axi_gemm_stream_d768
 
 # ── Python reference verification ─────────────────────────────────────────────
 verify:
