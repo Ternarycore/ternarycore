@@ -4,6 +4,10 @@ module activation_sparse24_formal;
     reg signed [7:0] x0,x1,x2,x3;
     wire valid_out; wire [3:0] keep_mask; wire [1:0] keep_count;
     wire signed [7:0] value0,value1;
+    wire [8:0] a0 = x0_d[7] ? (~{x0_d[7],x0_d} + 1'b1) : {x0_d[7],x0_d};
+    wire [8:0] a1 = x1_d[7] ? (~{x1_d[7],x1_d} + 1'b1) : {x1_d[7],x1_d};
+    wire [8:0] a2 = x2_d[7] ? (~{x2_d[7],x2_d} + 1'b1) : {x2_d[7],x2_d};
+    wire [8:0] a3 = x3_d[7] ? (~{x3_d[7],x3_d} + 1'b1) : {x3_d[7],x3_d};
     reg [1:0] reset_count; reg rst_d, valid_d;
     reg signed [7:0] x0_d,x1_d,x2_d,x3_d;
     initial begin
@@ -27,6 +31,25 @@ module activation_sparse24_formal;
                 if (keep_mask[1]) assert(value0==x1_d || value1==x1_d);
                 if (keep_mask[2]) assert(value0==x2_d || value1==x2_d);
                 if (keep_mask[3]) assert(value0==x3_d || value1==x3_d);
+                if (keep_mask[0] && !keep_mask[1]) assert(a0 >= a1);
+                if (keep_mask[0] && !keep_mask[2]) assert(a0 >= a2);
+                if (keep_mask[0] && !keep_mask[3]) assert(a0 >= a3);
+                if (keep_mask[1] && !keep_mask[0]) assert(a1 >= a0);
+                if (keep_mask[1] && !keep_mask[2]) assert(a1 >= a2);
+                if (keep_mask[1] && !keep_mask[3]) assert(a1 >= a3);
+                if (keep_mask[2] && !keep_mask[0]) assert(a2 >= a0);
+                if (keep_mask[2] && !keep_mask[1]) assert(a2 >= a1);
+                if (keep_mask[2] && !keep_mask[3]) assert(a2 >= a3);
+                if (keep_mask[3] && !keep_mask[0]) assert(a3 >= a0);
+                if (keep_mask[3] && !keep_mask[1]) assert(a3 >= a1);
+                if (keep_mask[3] && !keep_mask[2]) assert(a3 >= a2);
+                // Equal-magnitude ties must retain the lower lane.
+                if (keep_mask[1] && !keep_mask[0]) assert(a0 != a1);
+                if (keep_mask[2] && !keep_mask[0]) assert(a0 != a2);
+                if (keep_mask[2] && !keep_mask[1]) assert(a1 != a2);
+                if (keep_mask[3] && !keep_mask[0]) assert(a0 != a3);
+                if (keep_mask[3] && !keep_mask[1]) assert(a1 != a3);
+                if (keep_mask[3] && !keep_mask[2]) assert(a2 != a3);
                 if (!keep_mask[0] && !keep_mask[1] && !keep_mask[2] && !keep_mask[3]) begin
                     assert(value0==0 && value1==0);
                 end
