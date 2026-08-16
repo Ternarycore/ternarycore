@@ -2,7 +2,8 @@
 module activation_sparse24_formal;
     reg clk, rst_n, valid_in;
     reg signed [7:0] x0,x1,x2,x3;
-    wire valid_out; wire [3:0] keep_mask; wire signed [7:0] value0,value1;
+    wire valid_out; wire [3:0] keep_mask; wire [1:0] keep_count;
+    wire signed [7:0] value0,value1;
     reg [1:0] reset_count; reg rst_d, valid_d;
     reg signed [7:0] x0_d,x1_d,x2_d,x3_d;
     initial begin
@@ -20,6 +21,8 @@ module activation_sparse24_formal;
                 assert(valid_out);
                 assert($unsigned(keep_mask[0]) + $unsigned(keep_mask[1]) +
                        $unsigned(keep_mask[2]) + $unsigned(keep_mask[3]) <= 2);
+                assert(keep_count == $unsigned(keep_mask[0]) + $unsigned(keep_mask[1]) +
+                       $unsigned(keep_mask[2]) + $unsigned(keep_mask[3]));
                 if (keep_mask[0]) assert(value0==x0_d || value1==x0_d);
                 if (keep_mask[1]) assert(value0==x1_d || value1==x1_d);
                 if (keep_mask[2]) assert(value0==x2_d || value1==x2_d);

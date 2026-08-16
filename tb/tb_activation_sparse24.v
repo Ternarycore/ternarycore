@@ -2,17 +2,20 @@
 module tb_activation_sparse24;
     reg clk=0, rst_n=0, valid_in=0;
     reg signed [7:0] x0,x1,x2,x3;
-    wire valid_out; wire [3:0] keep_mask; wire signed [7:0] value0,value1;
+    wire valid_out; wire [3:0] keep_mask; wire [1:0] keep_count;
+    wire signed [7:0] value0,value1;
     integer errors=0, cases=0;
     always #5 clk=~clk;
     activation_sparse24 dut (.*);
 
     task automatic apply_case(input integer a,input integer b,input integer c,input integer d,
                               input [3:0] expected_mask);
+        integer expected_count;
         begin
+            expected_count = expected_mask[0]+expected_mask[1]+expected_mask[2]+expected_mask[3];
             @(negedge clk); x0=a;x1=b;x2=c;x3=d;valid_in=1;
             @(posedge clk); #1; cases=cases+1;
-            if (!valid_out || keep_mask !== expected_mask ||
+            if (!valid_out || keep_mask !== expected_mask || keep_count != expected_count ||
                 (keep_mask[0] && value0 != x0 && value1 != x0) ||
                 (keep_mask[1] && value0 != x1 && value1 != x1) ||
                 (keep_mask[2] && value0 != x2 && value1 != x2) ||

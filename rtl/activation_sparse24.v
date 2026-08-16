@@ -19,6 +19,7 @@ module activation_sparse24 #(
     input wire signed [DATA_WIDTH-1:0] x3,
     output reg                         valid_out,
     output reg [3:0]                   keep_mask,
+    output reg [1:0]                   keep_count,
     output reg signed [DATA_WIDTH-1:0] value0,
     output reg signed [DATA_WIDTH-1:0] value1
 );
@@ -33,6 +34,7 @@ module activation_sparse24 #(
 
     reg [1:0] max_idx, second_idx;
     reg [3:0] next_mask;
+    reg [1:0] next_count;
     reg signed [DATA_WIDTH-1:0] next_value0, next_value1;
     reg [DATA_WIDTH:0] max_abs, second_abs;
 
@@ -77,6 +79,7 @@ module activation_sparse24 #(
         endcase
 
         next_mask = 4'b0;
+        next_count = 0;
         next_value0 = 0;
         next_value1 = 0;
         case (max_idx)
@@ -91,19 +94,26 @@ module activation_sparse24 #(
             2: next_value1=x2;
             default: next_value1=x3;
         endcase
-        if (max_abs != 0) next_mask[max_idx] = 1'b1;
+        if (max_abs != 0) begin
+            next_mask[max_idx] = 1'b1;
+            next_count = next_count + 1'b1;
+        end
         else next_value0 = 0;
-        if (second_abs != 0) next_mask[second_idx] = 1'b1;
+        if (second_abs != 0) begin
+            next_mask[second_idx] = 1'b1;
+            next_count = next_count + 1'b1;
+        end
         else next_value1 = 0;
     end
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            valid_out <= 0; keep_mask <= 0; value0 <= 0; value1 <= 0;
+            valid_out <= 0; keep_mask <= 0; keep_count <= 0; value0 <= 0; value1 <= 0;
         end else begin
             valid_out <= valid_in;
             if (valid_in) begin
                 keep_mask <= next_mask;
+                keep_count <= next_count;
                 value0 <= next_value0;
                 value1 <= next_value1;
             end
