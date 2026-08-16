@@ -2,7 +2,7 @@
 module tb_ternary_sparse_lut_stream;
     reg clk=0,rst_n=0,activation_valid=0,weight_valid=0;
     reg signed [7:0] x0,x1,x2,x3; reg [7:0] packed_weights;
-    wire busy,ready; wire [3:0] keep_mask; wire [1:0] keep_count;
+    wire busy,ready,activation_ready; wire [3:0] keep_mask; wire [1:0] keep_count;
     wire signed [7:0] kept_value0, kept_value1;
     wire result_valid,error_out; wire signed [15:0] result;
     integer errors=0;

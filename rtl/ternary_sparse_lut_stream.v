@@ -18,6 +18,7 @@ module ternary_sparse_lut_stream #(
     input wire [7:0] packed_weights,
     output wire busy,
     output wire ready,
+    output wire activation_ready,
     output wire [3:0] keep_mask,
     output wire [1:0] keep_count,
     output wire signed [DATA_WIDTH-1:0] kept_value0,
@@ -33,9 +34,10 @@ module ternary_sparse_lut_stream #(
     wire signed [DATA_WIDTH-1:0] pending_x0, pending_x1, pending_x2, pending_x3;
     reg signed [DATA_WIDTH-1:0] x0_q, x1_q, x2_q, x3_q;
     reg load_valid;
+    wire activation_accept = activation_valid && !busy;
 
     activation_sparse24 #(.DATA_WIDTH(DATA_WIDTH)) sparse_i (
-        .clk(clk), .rst_n(rst_n), .valid_in(activation_valid),
+        .clk(clk), .rst_n(rst_n), .valid_in(activation_accept),
         .x0(x0), .x1(x1), .x2(x2), .x3(x3),
         .valid_out(sparse_valid), .keep_mask(sparse_mask),
         .keep_count(sparse_count), .value0(sparse_value0), .value1(sparse_value1));
@@ -44,6 +46,7 @@ module ternary_sparse_lut_stream #(
     assign keep_count = sparse_count;
     assign kept_value0 = sparse_value0;
     assign kept_value1 = sparse_value1;
+    assign activation_ready = !busy;
     assign pending_x0 = x0_q;
     assign pending_x1 = x1_q;
     assign pending_x2 = x2_q;
@@ -63,7 +66,7 @@ module ternary_sparse_lut_stream #(
             load_valid <= 0;
         end else begin
             load_valid <= sparse_valid;
-            if (activation_valid) begin
+            if (activation_accept) begin
                 x0_q <= x0; x1_q <= x1; x2_q <= x2; x3_q <= x3;
             end
         end
