@@ -68,6 +68,9 @@ jobs:
 
     - name: Run FPGA cost model tests
       run: python3 tools/test_fpga_cost_model.py
+
+    - name: Run ternary hardware generator tests
+      run: PYTHONPATH=tools python3 -m unittest discover -s tools/tests -v
         
     - name: Run all tests (final verification)
       run: |
