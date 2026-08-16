@@ -1,0 +1,21 @@
+[options]
+mode bmc
+depth 12
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal activation_sparse24.v
+read -formal ternary_decompress5.v
+read -formal ternary_lut4_bram.v
+read -formal ternary_feature_pipeline.v
+read -formal ternary_feature_pipeline_formal.v
+prep -top ternary_feature_pipeline_formal
+
+[files]
+../rtl/activation_sparse24.v
+../rtl/ternary_decompress5.v
+../rtl/ternary_lut4_bram.v
+../rtl/ternary_feature_pipeline.v
+ternary_feature_pipeline_formal.v
