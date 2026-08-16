@@ -1,0 +1,15 @@
+[options]
+mode prove
+depth 10
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal activation_sparse24.v
+read -formal activation_sparse24_formal.v
+prep -top activation_sparse24_formal
+
+[files]
+../rtl/activation_sparse24.v
+activation_sparse24_formal.v
