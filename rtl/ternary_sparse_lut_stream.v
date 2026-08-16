@@ -33,8 +33,9 @@ module ternary_sparse_lut_stream #(
     wire signed [DATA_WIDTH-1:0] sparse_value0, sparse_value1;
     wire signed [DATA_WIDTH-1:0] pending_x0, pending_x1, pending_x2, pending_x3;
     reg signed [DATA_WIDTH-1:0] x0_q, x1_q, x2_q, x3_q;
-    reg load_valid;
-    wire activation_accept = activation_valid && !busy;
+    // The selector has one cycle of latency.  Do not accept another group
+    // while its result is still in flight or while the LUT is rebuilding.
+    wire activation_accept = activation_valid && !busy && !sparse_valid;
 
     activation_sparse24 #(.DATA_WIDTH(DATA_WIDTH)) sparse_i (
         .clk(clk), .rst_n(rst_n), .valid_in(activation_accept),
@@ -46,14 +47,14 @@ module ternary_sparse_lut_stream #(
     assign keep_count = sparse_count;
     assign kept_value0 = sparse_value0;
     assign kept_value1 = sparse_value1;
-    assign activation_ready = !busy;
+    assign activation_ready = !busy && !sparse_valid;
     assign pending_x0 = x0_q;
     assign pending_x1 = x1_q;
     assign pending_x2 = x2_q;
     assign pending_x3 = x3_q;
 
     ternary_lut24_bram #(.DATA_WIDTH(DATA_WIDTH), .ACC_WIDTH(ACC_WIDTH)) lut_i (
-        .clk(clk), .rst_n(rst_n), .load_valid(load_valid),
+        .clk(clk), .rst_n(rst_n), .load_valid(sparse_valid),
         .keep_mask(sparse_mask), .x0(pending_x0), .x1(pending_x1),
         .x2(pending_x2), .x3(pending_x3),
         .query_valid(weight_valid), .packed_weights(packed_weights),
@@ -63,9 +64,7 @@ module ternary_sparse_lut_stream #(
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             x0_q <= 0; x1_q <= 0; x2_q <= 0; x3_q <= 0;
-            load_valid <= 0;
         end else begin
-            load_valid <= sparse_valid;
             if (activation_accept) begin
                 x0_q <= x0; x1_q <= x1; x2_q <= x2; x3_q <= x3;
             end

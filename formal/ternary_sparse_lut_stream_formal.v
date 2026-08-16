@@ -8,6 +8,6 @@ module ternary_sparse_lut_stream_formal;
     always @(posedge clk) begin
         assume(rst_n);
         assert(!(busy && ready));
-        assert(activation_ready == !busy);
+        assert(!(busy && activation_ready));
     end
 endmodule

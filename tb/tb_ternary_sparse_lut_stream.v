@@ -13,6 +13,14 @@ module tb_ternary_sparse_lut_stream;
         repeat(2) @(posedge clk); rst_n=1;
         @(negedge clk); activation_valid=1;
         @(posedge clk); #1; activation_valid=0;
+        if (activation_ready) begin
+            $display("FAIL activation_ready remained high while selector result was pending"); errors=errors+1;
+        end
+        // This group must be rejected while the first group's selector result
+        // is in flight; the eventual query must still use (3,-2,5,1).
+        @(negedge clk); x0=10; x1=10; x2=10; x3=10; activation_valid=1;
+        @(posedge clk); #1; activation_valid=0;
+        x0=3; x1=-2; x2=5; x3=1;
         wait(ready);
         if (keep_mask !== 4'b0101 || keep_count !== 2) begin
             $display("FAIL sparse metadata mask=%b count=%0d",keep_mask,keep_count); errors=errors+1;
