@@ -18,6 +18,11 @@ class SynthesisSweepTests(unittest.TestCase):
         self.assertEqual(first[0]["configuration"]["weight_bytes"], 64)
         self.assertNotIn("synthesis", first[0])
 
+    def test_explicit_synthesis_parameters_are_recorded_by_runner_contract(self):
+        rows = sweep(cols=[4], depths=[64], data_widths=[8],
+                     synth_params={"DEPTH": 64})
+        self.assertEqual(rows[0]["configuration"]["depth"], 64)
+
 
 if __name__ == "__main__":
     unittest.main()
