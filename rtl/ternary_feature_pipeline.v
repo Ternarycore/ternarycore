@@ -38,6 +38,7 @@ module ternary_feature_pipeline #(
     wire [3:0] sparse_mask;
     wire [1:0] sparse_count;
     wire signed [DATA_WIDTH-1:0] sparse_value0, sparse_value1;
+    reg signed [DATA_WIDTH-1:0] x0_pending, x1_pending, x2_pending, x3_pending;
     reg signed [DATA_WIDTH-1:0] x0_q, x1_q, x2_q, x3_q;
     reg [3:0] mask_q;
 
@@ -133,14 +134,18 @@ module ternary_feature_pipeline #(
         if (!rst_n) begin
             state <= S_IDLE;
             fill_addr <= 0;
+            x0_pending <= 0; x1_pending <= 0; x2_pending <= 0; x3_pending <= 0;
             x0_q <= 0; x1_q <= 0; x2_q <= 0; x3_q <= 0;
             mask_q <= 0;
         end else begin
             if (activation_valid) begin
-                x0_q <= x0; x1_q <= x1; x2_q <= x2; x3_q <= x3;
+                x0_pending <= x0; x1_pending <= x1;
+                x2_pending <= x2; x3_pending <= x3;
             end
             case (state)
                 S_IDLE: if (sparse_valid) begin
+                    x0_q <= x0_pending; x1_q <= x1_pending;
+                    x2_q <= x2_pending; x3_q <= x3_pending;
                     mask_q <= sparse_mask;
                     fill_addr <= 0;
                     state <= S_FILL;
