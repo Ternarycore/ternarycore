@@ -17,11 +17,19 @@ module ternary_decompress5 #(
     output reg                   error_out,
     output reg [9:0]             weight_enc
 );
+    localparam integer VALID_CODES = 243;
     integer code;
     reg [1:0] remainder;
     reg [1:0] digit0, digit1, digit2, digit3, digit4;
     reg [9:0] decoded_next;
     reg error_next;
+
+    // The packed format is deliberately fixed at one byte: 3^5 values fit
+    // in 8 bits, with 13 reserved codes available for error detection.
+    initial begin
+        if (CODE_WIDTH != 8)
+            $error("ternary_decompress5 requires CODE_WIDTH=8");
+    end
 
     always @* begin
         code = {{24{1'b0}}, packed_in};
@@ -34,7 +42,7 @@ module ternary_decompress5 #(
         remainder = code % 3; digit3 = remainder[1:0]; code = code / 3;
         remainder = code % 3; digit4 = remainder[1:0];
         /* verilator lint_on WIDTHTRUNC */
-        error_next = (packed_in >= 243);
+        error_next = (packed_in >= VALID_CODES);
         decoded_next = {digit4[1:0], digit3[1:0], digit2[1:0],
                         digit1[1:0], digit0[1:0]};
     end
