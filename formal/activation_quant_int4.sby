@@ -1,0 +1,15 @@
+[options]
+mode prove
+depth 12
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal activation_quant.v
+read -formal activation_quant_int4_formal.v
+prep -top activation_quant_int4_formal
+
+[files]
+../rtl/activation_quant.v
+activation_quant_int4_formal.v

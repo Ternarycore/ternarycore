@@ -6,7 +6,7 @@ IVERILOG = iverilog
 VVP      = vvp
 SIMDIR   = .
 
-.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_hadamard4 tb_activation_quant_int4 formal-hadamard4 clean verify
+.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_hadamard4 tb_activation_quant_int4 formal-hadamard4 formal-activation-quant clean verify
 
 all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_hadamard4 tb_activation_quant_int4
 
@@ -20,6 +20,9 @@ tb_activation_quant_int4: ../tb/tb_activation_quant_int4.v ../rtl/activation_qua
 
 formal-hadamard4:
 	cd ../formal && sby -f hadamard4.sby
+
+formal-activation-quant:
+	cd ../formal && sby -f activation_quant_int4.sby
 
 # ── MAC unit ──────────────────────────────────────────────────────────────────
 tb_ternary_mac: ../tb/tb_ternary_mac.v ../rtl/ternary_mac.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
