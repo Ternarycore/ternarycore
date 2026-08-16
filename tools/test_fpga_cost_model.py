@@ -8,9 +8,13 @@ class CostModelTests(unittest.TestCase):
     def test_default_shape(self):
         result = estimate(cols=4, depth=576)
         self.assertEqual(result.weight_bits, 4608)
+        self.assertEqual(result.weight_bytes, 576)
         self.assertEqual(result.weight_bram18, 1)
         self.assertEqual(result.activation_bytes_per_vector, 576)
+        self.assertEqual(result.output_bytes_per_vector, 16)
         self.assertEqual(result.cycles_per_vector, 577)
+        self.assertGreater(result.stream_bandwidth_mib_s,
+                           result.activation_bandwidth_mib_s)
 
     def test_scaling_is_monotonic(self):
         narrow = estimate(cols=4, depth=64)
