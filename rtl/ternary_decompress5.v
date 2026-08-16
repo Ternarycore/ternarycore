@@ -17,7 +17,7 @@ module ternary_decompress5 #(
     output reg                   error_out,
     output reg [9:0]             weight_enc
 );
-    localparam integer VALID_CODES = 243;
+    localparam [7:0] VALID_CODES = 8'd243;
     integer code;
     reg [1:0] remainder;
     reg [1:0] digit0, digit1, digit2, digit3, digit4;
