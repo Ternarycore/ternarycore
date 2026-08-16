@@ -23,6 +23,11 @@ module activation_sparse24 #(
     output reg signed [DATA_WIDTH-1:0] value0,
     output reg signed [DATA_WIDTH-1:0] value1
 );
+    initial begin
+        if (DATA_WIDTH < 1)
+            $error("activation_sparse24 DATA_WIDTH must be positive");
+    end
+
     wire signed [DATA_WIDTH:0] sx0 = {x0[DATA_WIDTH-1], x0};
     wire signed [DATA_WIDTH:0] sx1 = {x1[DATA_WIDTH-1], x1};
     wire signed [DATA_WIDTH:0] sx2 = {x2[DATA_WIDTH-1], x2};
