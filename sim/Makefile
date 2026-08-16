@@ -6,9 +6,13 @@ IVERILOG = iverilog
 VVP      = vvp
 SIMDIR   = .
 
-.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_ternary_decompress5 tb_ternary_lut4_bram tb_ternary_lut24_bram tb_ternary_feature_pipeline formal-ternary-lut4-bram formal-ternary-lut24-bram formal-ternary-feature-pipeline clean verify
+.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_ternary_decompress5 tb_ternary_lut4_bram tb_ternary_lut24_bram tb_ternary_sparse_lut_stream tb_ternary_feature_pipeline formal-ternary-lut4-bram formal-ternary-lut24-bram formal-ternary-sparse-lut-stream formal-ternary-feature-pipeline clean verify
 
-all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_ternary_decompress5 tb_ternary_lut4_bram tb_ternary_lut24_bram tb_ternary_feature_pipeline
+all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_ternary_decompress5 tb_ternary_lut4_bram tb_ternary_lut24_bram tb_ternary_sparse_lut_stream tb_ternary_feature_pipeline
+
+tb_ternary_sparse_lut_stream: ../tb/tb_ternary_sparse_lut_stream.v ../rtl/ternary_sparse_lut_stream.v ../rtl/ternary_lut24_bram.v ../rtl/activation_sparse24.v
+	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_ternary_sparse_lut_stream $^
+	$(VVP) $(SIMDIR)/sim_ternary_sparse_lut_stream
 
 tb_ternary_lut24_bram: ../tb/tb_ternary_lut24_bram.v ../rtl/ternary_lut24_bram.v
 	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_ternary_lut24_bram $^
@@ -34,6 +38,9 @@ formal-ternary-feature-pipeline:
 
 formal-ternary-lut24-bram:
 	cd ../formal && sby -f ternary_lut24_bram.sby
+
+formal-ternary-sparse-lut-stream:
+	cd ../formal && sby -f ternary_sparse_lut_stream.sby
 
 # ── MAC unit ──────────────────────────────────────────────────────────────────
 tb_ternary_mac: ../tb/tb_ternary_mac.v ../rtl/ternary_mac.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
