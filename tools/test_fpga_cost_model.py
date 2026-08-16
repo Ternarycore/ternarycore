@@ -9,7 +9,8 @@ class CostModelTests(unittest.TestCase):
         result = estimate(cols=4, depth=576)
         self.assertEqual(result.weight_bits, 4608)
         self.assertEqual(result.weight_bytes, 576)
-        self.assertEqual(result.weight_bram18, 1)
+        self.assertEqual(result.bram_bits, 18 * 1024)
+        self.assertEqual(result.bram_blocks, 1)
         self.assertEqual(result.activation_bytes_per_vector, 576)
         self.assertEqual(result.output_bytes_per_vector, 16)
         self.assertEqual(result.cycles_per_vector, 577)
@@ -23,6 +24,11 @@ class CostModelTests(unittest.TestCase):
         self.assertGreater(wide.weight_bits, narrow.weight_bits)
         self.assertGreater(deep.cycles_per_vector, narrow.cycles_per_vector)
         self.assertGreater(wide.relative_lut_cost, narrow.relative_lut_cost)
+
+    def test_reports_configured_bram_granularity(self):
+        result = estimate(cols=4, depth=576, bram_bits=4 * 1024)
+        self.assertEqual(result.bram_bits, 4 * 1024)
+        self.assertEqual(result.bram_blocks, 2)
 
     def test_rejects_invalid_parameters(self):
         with self.assertRaises(ValueError):

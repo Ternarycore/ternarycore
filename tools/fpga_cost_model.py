@@ -24,7 +24,8 @@ class Estimate:
     frequency_mhz: float
     weight_bits: int
     weight_bytes: int
-    weight_bram18: int
+    bram_bits: int
+    bram_blocks: int
     activation_bytes_per_vector: int
     output_bytes_per_vector: int
     cycles_per_vector: int
@@ -63,7 +64,8 @@ def estimate(*, cols: int, depth: int, data_width: int = 8,
         cols=cols, depth=depth, data_width=data_width, acc_width=acc_width,
         frequency_mhz=frequency_mhz, weight_bits=weight_bits,
         weight_bytes=math.ceil(weight_bits / 8),
-        weight_bram18=math.ceil(weight_bits / bram_bits),
+        bram_bits=bram_bits,
+        bram_blocks=math.ceil(weight_bits / bram_bits),
         activation_bytes_per_vector=activation_bytes,
         output_bytes_per_vector=output_bytes,
         cycles_per_vector=cycles,
