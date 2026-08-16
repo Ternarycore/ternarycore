@@ -2,7 +2,7 @@
 module tb_ternary_decompress5;
     reg clk=0,rst_n=0,valid_in=0; reg [7:0] packed_in;
     wire valid_out,error_out; wire [9:0] weight_enc;
-    integer errors=0,cases=0;
+    integer errors=0,cases=0,code_value;
     always #5 clk=~clk;
     ternary_decompress5 dut (.*);
 
@@ -26,11 +26,17 @@ module tb_ternary_decompress5;
 
     initial begin
         packed_in=0; repeat(2) @(posedge clk); rst_n=1;
-        apply_code(0); apply_code(1); apply_code(80); apply_code(242);
+        for(code_value=0; code_value<243; code_value=code_value+1)
+            apply_code(code_value);
         @(negedge clk); packed_in=243; valid_in=1;
         @(posedge clk); #1; cases=cases+1;
         if(valid_out || !error_out) begin
             $display("FAIL reserved code was accepted"); errors=errors+1;
+        end
+        @(negedge clk); packed_in=255; valid_in=1;
+        @(posedge clk); #1; cases=cases+1;
+        if(valid_out || !error_out) begin
+            $display("FAIL highest reserved code was accepted"); errors=errors+1;
         end
         if(errors!=0) $fatal(1,"ternary decompressor regression failed");
         $display("ternary decompressor regression: %0d cases passed",cases);

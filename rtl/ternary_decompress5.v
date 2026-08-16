@@ -18,17 +18,22 @@ module ternary_decompress5 #(
     output reg [9:0]             weight_enc
 );
     integer code;
-    integer digit0, digit1, digit2, digit3, digit4;
+    reg [1:0] remainder;
+    reg [1:0] digit0, digit1, digit2, digit3, digit4;
     reg [9:0] decoded_next;
     reg error_next;
 
     always @* begin
-        code = packed_in;
-        digit0 = code % 3; code = code / 3;
-        digit1 = code % 3; code = code / 3;
-        digit2 = code % 3; code = code / 3;
-        digit3 = code % 3; code = code / 3;
-        digit4 = code % 3;
+        code = {{24{1'b0}}, packed_in};
+        // The modulo result is mathematically in 0..2; the explicit slice
+        // keeps the hardware-facing digit representation two bits wide.
+        /* verilator lint_off WIDTHTRUNC */
+        remainder = code % 3; digit0 = remainder[1:0]; code = code / 3;
+        remainder = code % 3; digit1 = remainder[1:0]; code = code / 3;
+        remainder = code % 3; digit2 = remainder[1:0]; code = code / 3;
+        remainder = code % 3; digit3 = remainder[1:0]; code = code / 3;
+        remainder = code % 3; digit4 = remainder[1:0];
+        /* verilator lint_on WIDTHTRUNC */
         error_next = (packed_in >= 243);
         decoded_next = {digit4[1:0], digit3[1:0], digit2[1:0],
                         digit1[1:0], digit0[1:0]};
