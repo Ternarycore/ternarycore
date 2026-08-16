@@ -48,11 +48,11 @@ jobs:
         make tb_ternary_gemm
         echo "GEMM tests completed"
 
-    - name: Run 2:4 activation sparsity test
+    - name: Run ternary decompressor test
       run: |
         cd sim
-        make tb_activation_sparse24
-        echo "2:4 activation sparsity test completed"
+        make tb_ternary_decompress5
+        echo "Ternary decompressor test completed"
         
     - name: Run AXI GEMM wrapper tests
       run: |
@@ -111,8 +111,8 @@ jobs:
         # Lint weight_bram.v
         verilator --lint-only -Wall -Wno-DECLFILENAME rtl/weight_bram.v || echo "Warning: Lint issues in weight_bram.v"
 
-        # Lint activation_sparse24.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/activation_sparse24.v || echo "Warning: Lint issues in activation_sparse24.v"
+        # Lint ternary_decompress5.v
+        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_decompress5.v || echo "Warning: Lint issues in ternary_decompress5.v"
         
         echo "Linting completed"
         
