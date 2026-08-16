@@ -60,7 +60,7 @@ module ternary_feature_pipeline #(
         if (ACC_WIDTH < DATA_WIDTH)
             $error("ternary_feature_pipeline requires ACC_WIDTH >= DATA_WIDTH");
     end
-    assign busy = (state != S_IDLE);
+    assign busy = (state == S_FILL);
     assign ready = (state == S_READY);
 
     function signed [ACC_WIDTH-1:0] sparse_dot(input [6:0] code_value);
@@ -143,7 +143,7 @@ module ternary_feature_pipeline #(
                 x2_pending <= x2; x3_pending <= x3;
             end
             case (state)
-                S_IDLE: if (sparse_valid) begin
+                S_IDLE, S_READY: if (sparse_valid) begin
                     x0_q <= x0_pending; x1_q <= x1_pending;
                     x2_q <= x2_pending; x3_q <= x3_pending;
                     mask_q <= sparse_mask;
@@ -154,10 +154,6 @@ module ternary_feature_pipeline #(
                     state <= S_READY;
                 end else begin
                     fill_addr <= fill_addr + 1'b1;
-                end
-                S_READY: begin
-                    // The current group remains queryable until reset or a
-                    // new activation group is accepted after returning idle.
                 end
                 default: state <= S_IDLE;
             endcase

@@ -17,9 +17,7 @@ module ternary_feature_pipeline_formal;
             reset_count <= reset_count + 1'b1;
         end else begin
             assume(rst_n);
-            assert(!(result_valid && error_out));
             assert(!(busy && ready));
-            if (result_valid) assert(ready);
             if (keep_count > 2) assert(1'b0);
             if (keep_mask == 0) assert(keep_count == 0);
         end

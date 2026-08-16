@@ -56,6 +56,11 @@ module tb_ternary_feature_pipeline;
         query(19,-2);
         // digits [lane0..3] = [+, -, 0, +], fifth digit = 0: code 34.
         query(34,3);
+        // A second group must rebuild the table without requiring reset.
+        send_activation(1,2,3,4);
+        wait(busy); wait(ready);
+        // digit lane2 = +1: base-3 code 9, expected sparse value +3.
+        query(9,3);
         // 243 is reserved by the five-weight decoder.
         @(negedge clk); packed_weights=243; weight_valid=1;
         @(posedge clk); #1; weight_valid=0;
