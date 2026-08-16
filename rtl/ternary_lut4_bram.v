@@ -26,6 +26,13 @@ module ternary_lut4_bram #(
 );
     reg signed [ACC_WIDTH-1:0] table_mem [0:LUT_DEPTH-1];
 
+    initial begin
+        if (ACC_WIDTH < 1 || ADDR_WIDTH < 1 || LUT_DEPTH < 1)
+            $error("ternary_lut4_bram dimensions must be positive");
+        if (LUT_DEPTH > (1 << ADDR_WIDTH))
+            $error("LUT_DEPTH must fit in ADDR_WIDTH");
+    end
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             result_valid <= 0;
