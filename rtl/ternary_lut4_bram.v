@@ -36,8 +36,13 @@ module ternary_lut4_bram #(
             error_out <= query_valid && (query_addr >= LUT_DEPTH);
             if (wr_en && (wr_addr < LUT_DEPTH))
                 table_mem[wr_addr] <= wr_data;
-            if (query_valid && (query_addr < LUT_DEPTH))
-                result <= table_mem[query_addr];
+            if (query_valid && (query_addr < LUT_DEPTH)) begin
+                // Define the same-cycle collision explicitly as write-first.
+                if (wr_en && (wr_addr < LUT_DEPTH) && (wr_addr == query_addr))
+                    result <= wr_data;
+                else
+                    result <= table_mem[query_addr];
+            end
         end
     end
 endmodule

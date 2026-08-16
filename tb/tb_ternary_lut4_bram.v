@@ -35,6 +35,17 @@ module tb_ternary_lut4_bram;
               end
               @(negedge clk);query_valid=0; end
     endtask
+    task automatic write_and_query_entry(input integer addr,input integer new_data);
+        begin @(negedge clk); wr_addr=addr;wr_data=new_data;wr_en=1;
+              query_addr=addr;query_valid=1;
+              @(posedge clk); #1; cases=cases+1;
+              if(!result_valid || error_out || result!==new_data) begin
+                  $display("FAIL write-first collision addr=%0d result=%0d expected=%0d",
+                           addr,result,new_data);
+                  errors=errors+1;
+              end
+              @(negedge clk);wr_en=0;query_valid=0; end
+    endtask
 
     integer i;
     initial begin
@@ -45,6 +56,8 @@ module tb_ternary_lut4_bram;
         query_entry(1,dot_for_code(1));
         query_entry(40,dot_for_code(40));
         query_entry(80,dot_for_code(80));
+        write_and_query_entry(40,1234);
+        query_entry(40,1234);
         @(negedge clk);query_addr=81;query_valid=1;
         @(posedge clk);#1;cases=cases+1;
         if(result_valid || !error_out) begin $display("FAIL invalid LUT address accepted");errors=errors+1;end
