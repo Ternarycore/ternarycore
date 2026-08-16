@@ -33,6 +33,10 @@ module tb_ternary_lut24_bram;
             $display("FAIL reserved selected encoding"); errors=errors+1;
         end
         query_valid=0;
+        @(negedge clk); keep_mask=4'b0001; load_valid=1;
+        @(posedge clk); #1;
+        if (!error_out || busy) begin $display("FAIL one-lane mask accepted"); errors=errors+1; end
+        load_valid=0; keep_mask=4'b0101;
         if (errors != 0) $fatal(1,"compact ternary LUT regression failed");
         $display("compact ternary LUT regression: PASS"); $finish;
     end

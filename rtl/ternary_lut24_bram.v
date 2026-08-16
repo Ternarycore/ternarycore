@@ -36,7 +36,16 @@ module ternary_lut24_bram #(
     integer i;
 
     assign busy = building;
-    assign ready = !building && (mask_q != 4'b0);
+    // A load starts a new table at this edge; do not accept a query against
+    // the previous activation table in the same transaction boundary.
+    assign ready = !building && (mask_q != 4'b0) && !load_valid;
+
+    function [2:0] mask_count(input [3:0] mask);
+        begin
+            mask_count = {2'b0, mask[0]} + {2'b0, mask[1]} +
+                         {2'b0, mask[2]} + {2'b0, mask[3]};
+        end
+    endfunction
 
     function signed [ACC_WIDTH-1:0] lane_value(input integer lane);
         begin
@@ -113,8 +122,7 @@ module ternary_lut24_bram #(
             result_valid <= 0;
             error_out <= 0;
             if (load_valid && !building) begin
-                if ((keep_mask == 0) ||
-                    ((keep_mask[0] + keep_mask[1] + keep_mask[2] + keep_mask[3]) != 2)) begin
+                if (mask_count(keep_mask) != 2) begin
                     error_out <= 1;
                 end else begin
                     mask_q <= keep_mask;
