@@ -25,6 +25,8 @@ module ternary_lut4_bram #(
     output reg signed [ACC_WIDTH-1:0]  result
 );
     reg signed [ACC_WIDTH-1:0] table_mem [0:LUT_DEPTH-1];
+    reg entry_valid [0:LUT_DEPTH-1];
+    integer init_idx;
 
     initial begin
         if (ACC_WIDTH < 1 || ADDR_WIDTH < 1 || LUT_DEPTH < 1)
@@ -38,17 +40,28 @@ module ternary_lut4_bram #(
             result_valid <= 0;
             error_out <= 0;
             result <= 0;
+            for (init_idx = 0; init_idx < LUT_DEPTH; init_idx = init_idx + 1)
+                entry_valid[init_idx] <= 1'b0;
         end else begin
-            result_valid <= query_valid && (query_addr < LUT_DEPTH);
-            error_out <= query_valid && (query_addr >= LUT_DEPTH);
-            if (wr_en && (wr_addr < LUT_DEPTH))
+            result_valid <= 1'b0;
+            error_out <= 1'b0;
+            if (wr_en && (wr_addr < LUT_DEPTH)) begin
                 table_mem[wr_addr] <= wr_data;
-            if (query_valid && (query_addr < LUT_DEPTH)) begin
-                // Define the same-cycle collision explicitly as write-first.
-                if (wr_en && (wr_addr < LUT_DEPTH) && (wr_addr == query_addr))
-                    result <= wr_data;
-                else
-                    result <= table_mem[query_addr];
+                entry_valid[wr_addr] <= 1'b1;
+            end
+            if (query_valid) begin
+                // A same-cycle write makes the entry immediately readable.
+                if ((query_addr < LUT_DEPTH) &&
+                    (entry_valid[query_addr] ||
+                     (wr_en && (wr_addr < LUT_DEPTH) && (wr_addr == query_addr)))) begin
+                    result_valid <= 1'b1;
+                    if (wr_en && (wr_addr < LUT_DEPTH) && (wr_addr == query_addr))
+                        result <= wr_data;
+                    else
+                        result <= table_mem[query_addr];
+                end else begin
+                    error_out <= 1'b1;
+                end
             end
         end
     end

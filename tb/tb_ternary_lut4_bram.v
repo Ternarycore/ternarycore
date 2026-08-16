@@ -46,11 +46,21 @@ module tb_ternary_lut4_bram;
               end
               @(negedge clk);wr_en=0;query_valid=0; end
     endtask
+    task automatic query_uninitialized(input integer addr);
+        begin @(negedge clk);query_addr=addr;query_valid=1;
+              @(posedge clk); #1; cases=cases+1;
+              if(result_valid || !error_out) begin
+                  $display("FAIL uninitialized LUT address was reported valid");
+                  errors=errors+1;
+              end
+              @(negedge clk);query_valid=0; end
+    endtask
 
     integer i;
     initial begin
         wr_addr=0;query_addr=0;wr_data=0;
         repeat(2) @(posedge clk);rst_n=1;
+        query_uninitialized(40);
         for(i=0;i<81;i=i+1) write_entry(i,dot_for_code(i));
         query_entry(0,dot_for_code(0));
         query_entry(1,dot_for_code(1));
