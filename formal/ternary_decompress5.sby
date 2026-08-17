@@ -1,0 +1,15 @@
+[options]
+mode bmc
+depth 10
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal ternary_decompress5.v
+read -formal ternary_decompress5_formal.v
+prep -top ternary_decompress5_formal
+
+[files]
+../rtl/ternary_decompress5.v
+ternary_decompress5_formal.v
