@@ -8,6 +8,7 @@ proc rpt {name} {
     puts "  LATCH: [llength [get_cells -hier -filter {PRIMITIVE_GROUP == LATCH}]]"
 }
 read_verilog rtl/ternary_mac.v
+read_verilog rtl/ternary_weight.v
 read_verilog rtl/ternary_dot.v
 read_verilog rtl/ternary_gemm.v
 synth_design -top ternary_gemm -part $part -mode out_of_context -generic COLS=64 -generic DEPTH=768
