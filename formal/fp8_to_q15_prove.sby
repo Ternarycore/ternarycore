@@ -1,0 +1,15 @@
+[options]
+mode bmc
+depth 1
+
+[engines]
+smtbmc
+
+[script]
+read -formal fp8_to_q15.v
+read -formal fp8_to_q15_formal.v
+prep -top fp8_to_q15_formal
+
+[files]
+../rtl/fp8_to_q15.v
+fp8_to_q15_formal.v

@@ -1,0 +1,24 @@
+[options]
+mode cover
+depth 20
+
+[engines]
+smtbmc
+
+[script]
+read -formal axi_gemm_wrapper.v
+read -formal ternary_gemm.v
+read -formal ternary_dot.v
+read -formal ternary_weight.v
+read -formal axi_gemm_wrapper_formal.v
+setattr -unset keep *
+setattr -unset dont_touch *
+setattr -unset mark_debug *
+prep -top axi_gemm_wrapper_formal
+
+[files]
+../rtl/axi_gemm_wrapper.v
+../rtl/ternary_gemm.v
+../rtl/ternary_dot.v
+../rtl/ternary_weight.v
+axi_gemm_wrapper_formal.v

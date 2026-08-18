@@ -1,0 +1,15 @@
+[options]
+mode bmc
+depth 12
+
+[engines]
+smtbmc
+
+[script]
+read -formal weight_bram.v
+read -formal weight_bram_formal.v
+prep -top weight_bram_formal
+
+[files]
+../rtl/weight_bram.v
+weight_bram_formal.v

@@ -1,0 +1,15 @@
+[options]
+mode prove
+depth 20
+
+[engines]
+smtbmc
+
+[script]
+read -formal activation_quant.v
+read -formal activation_quant_formal.v
+prep -top activation_quant_formal
+
+[files]
+../rtl/activation_quant.v
+activation_quant_formal.v

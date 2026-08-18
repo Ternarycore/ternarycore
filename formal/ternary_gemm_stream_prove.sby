@@ -1,0 +1,28 @@
+# Bounded-model-checking proof for ternary_gemm_stream.
+# Depth 14 reaches reset→IDLE→RUN→WAIT→IDLE (~8 cycles) plus margin.
+[options]
+mode bmc
+depth 20
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_gemm.v
+read -formal ternary_dot.v
+read -formal ternary_weight.v
+read -formal ternary_gemm_stream.v
+read -formal ternary_gemm_stream_formal.v
+setattr -unset keep *
+setattr -unset dont_touch *
+setattr -unset mark_debug *
+prep -top ternary_gemm_stream_formal
+flatten
+opt
+
+[files]
+../rtl/ternary_gemm.v
+../rtl/ternary_dot.v
+../rtl/ternary_weight.v
+../rtl/ternary_gemm_stream.v
+ternary_gemm_stream_formal.v

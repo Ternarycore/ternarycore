@@ -2,210 +2,153 @@ name: CI - TernaryCore Verification
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main, dev ]
-  workflow_dispatch:  # Allow manual triggering
+    branches: [main, dev]
+  workflow_dispatch:
 
 jobs:
   verify-simulation:
-    name: Verify RTL Simulation
+    name: RTL and reference simulation
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Setup Python
+
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-        
-    - name: Install Icarus Verilog
+
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y iverilog
-        
-    - name: Install Python dependencies
-      run: |
         python -m pip install --upgrade pip numpy
-        
-    - name: Run MAC unit tests
+
+    - name: Run Icarus regressions and Python references
+      working-directory: sim
       run: |
-        cd sim
-        make tb_ternary_mac
-        echo "MAC tests completed"
-        
-    - name: Run Dot Product tests
-      run: |
-        cd sim
-        make tb_ternary_dot
-        echo "Dot product tests completed"
-        
-    - name: Run GEMM tests
-      run: |
-        cd sim
-        make tb_ternary_gemm
-        echo "GEMM tests completed"
-        
-    - name: Run AXI GEMM wrapper tests
-      run: |
-        cd sim
-        make tb_axi_gemm_wrapper
-        echo "AXI GEMM wrapper tests completed"
-        
-    - name: Run BRAM weight cache tests
-      run: |
-        cd sim
-        make tb_weight_bram
-        echo "BRAM weight cache tests completed"
-        
-    - name: Run Python verification
-      run: |
-        cd sim
+        make extended
         make verify
-        echo "Python verification completed"
-        
-    - name: Run all tests (final verification)
-      run: |
-        cd sim
-        make all
-        echo "All tests passed successfully"
-        
+
   lint-verilog:
-    name: Lint Verilog Files
+    name: Strict Verilog lint
     runs-on: ubuntu-latest
-    needs: verify-simulation  # Only run if simulation passes
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Install Verilator (for linting)
+
+    - name: Install Verilator
       run: |
         sudo apt-get update
         sudo apt-get install -y verilator
-        
-    - name: Lint RTL files with Verilator
+
+    - name: Lint shipped RTL tops
       run: |
-        echo "Linting RTL files..."
-        
-        # Lint ternary_mac.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_mac.v || echo "Warning: Lint issues in ternary_mac.v"
-        
-        # Lint ternary_dot.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_dot.v || echo "Warning: Lint issues in ternary_dot.v"
-        
-        # Lint ternary_gemm.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_gemm.v || echo "Warning: Lint issues in ternary_gemm.v"
-        
-        # Lint axi_gemm_wrapper.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/axi_gemm_wrapper.v || echo "Warning: Lint issues in axi_gemm_wrapper.v"
-        
-        # Lint weight_bram.v
-        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/weight_bram.v || echo "Warning: Lint issues in weight_bram.v"
-        
-        echo "Linting completed"
-        
-    - name: Check for common Verilog issues
-      run: |
-        echo "Checking for common Verilog issues..."
-        
-        # Check for latches (incomplete sensitivity lists)
-        grep -r "always @" rtl/ || true
-        
-        # Check for uninitialized registers
-        grep -r "reg.*;" rtl/ | grep -v "= " || true
-        
-        echo "Common issue check completed"
-        
-  check-documentation:
-    name: Check Documentation
+        set -euo pipefail
+        LINT_FLAGS=(
+          --lint-only -Wall
+          -Wno-DECLFILENAME
+          -Wno-UNOPTFLAT
+          -Wno-WIDTHEXPAND
+          -Wno-WIDTHTRUNC
+          -Wno-TIMESCALEMOD
+          -Wno-PINMISSING
+          -Wno-BLKSEQ
+          -Wno-UNUSEDPARAM
+          -Wno-UNUSEDSIGNAL
+        )
+
+        verilator "${LINT_FLAGS[@]}" --top-module ternary_pipeline \
+          rtl/activation_quant.v rtl/ternary_weight.v rtl/ternary_dot.v \
+          rtl/ternary_gemm.v rtl/ternary_scale.v rtl/ternary_pipeline.v
+        verilator "${LINT_FLAGS[@]}" --top-module axi_gemm_wrapper \
+          rtl/ternary_weight.v rtl/ternary_dot.v rtl/ternary_gemm.v \
+          rtl/axi_gemm_wrapper.v
+        verilator "${LINT_FLAGS[@]}" --top-module weight_bram \
+          rtl/weight_bram.v
+        verilator "${LINT_FLAGS[@]}" --top-module fp8_to_q15 \
+          rtl/fp8_to_q15.v
+
+  verilator-sim:
+    name: Full pipeline simulation
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Check for required documentation
+
+    - name: Install Verilator
       run: |
-        echo "Checking for required documentation..."
-        
-        # Check if essential docs exist
-        required_docs=("README.md" "AGENTS.md" "DEBUGGING.md" ".gitignore" ".gitattributes")
-        
-        for doc in "${required_docs[@]}"; do
-          if [ -f "$doc" ]; then
-            echo "✓ $doc exists"
-          else
-            echo "✗ $doc missing"
-            exit 1
-          fi
-        done
-        
-        # Check if Makefile exists
-        if [ -f "sim/Makefile" ]; then
-          echo "✓ sim/Makefile exists"
-        else
-          echo "✗ sim/Makefile missing"
-          exit 1
-        fi
-        
-        echo "All required documentation exists"
-        
-    - name: Validate AGENTS.md commands
-      run: |
-        echo "Validating AGENTS.md commands..."
-        
-        # Extract and test make commands from AGENTS.md
-        grep -o "make [a-zA-Z0-9_-]*" AGENTS.md | sort -u | while read cmd; do
-          echo "Checking command: $cmd"
-          # Remove 'make ' prefix
-          target="${cmd#make }"
-          if [ "$target" != "all" ] && [ "$target" != "verify" ] && [ "$target" != "clean" ]; then
-            echo "  Target '$target' will be validated during simulation"
-          fi
-        done
-        
-        echo "AGENTS.md command validation completed"
-        
-  enforce-test-results:
-    name: Enforce Test Results
+        sudo apt-get update
+        sudo apt-get install -y verilator build-essential
+
+    - name: Run all shipped Verilator tests
+      working-directory: sim
+      run: make verilator-all
+
+  formal-verification:
+    name: Formal verification
     runs-on: ubuntu-latest
-    needs: [verify-simulation, lint-verilog, check-documentation]
-    
+
     steps:
-    - name: Check all jobs passed
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install OSS CAD Suite
       run: |
-        echo "All required checks passed:"
-        echo "- Simulation tests passed"
-        echo "- Verilog linting completed"
-        echo "- Documentation checks passed"
-        echo ""
-        echo "✅ Ready for merge to main/dev"
-        
-    - name: Create test summary
+        curl -L https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2024-08-28/oss-cad-suite-linux-x64-20240828.tgz \
+          | tar -xz -C "$HOME"
+        echo "$HOME/oss-cad-suite/bin" >> "$GITHUB_PATH"
+
+    - name: Run every configured proof
+      run: bash formal/run_all.sh
+
+    - name: Upload formal logs
       if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: formal-logs
+        path: /tmp/ternarycore-sby
+        if-no-files-found: ignore
+
+  check-documentation:
+    name: Repository documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Check required project files
       run: |
-        echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Required Tests:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ RTL Simulation (MAC, Dot, GEMM)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Python Verification" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Verilog Linting" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Documentation Checks" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Test Counts:" >> $GITHUB_STEP_SUMMARY
-        echo "- MAC: 8 tests" >> $GITHUB_STEP_SUMMARY
-        echo "- Dot Product: 7 tests" >> $GITHUB_STEP_SUMMARY
-        echo "- GEMM: 16 tests (4×4 matrix)" >> $GITHUB_STEP_SUMMARY
-        echo "- AXI GEMM Wrapper: 47 tests" >> $GITHUB_STEP_SUMMARY
-        echo "- BRAM Weight Cache: 8 tests" >> $GITHUB_STEP_SUMMARY
-        echo "- **Total: 86 tests**" >> $GITHUB_STEP_SUMMARY
-        
-  # Note: Code coverage is not applicable for RTL in the traditional sense.
-  # Hardware verification uses functional coverage (test cases) rather than
-  # line coverage. Our "coverage" is the test suite itself.
+        set -euo pipefail
+        required_files=(README.md AGENTS.md DEBUGGING.md .gitignore .gitattributes sim/Makefile)
+        for required_file in "${required_files[@]}"; do
+          test -f "$required_file" || {
+            echo "Missing required file: $required_file" >&2
+            exit 1
+          }
+        done
+
+  required-checks:
+    name: Required checks
+    runs-on: ubuntu-latest
+    needs:
+      - verify-simulation
+      - lint-verilog
+      - verilator-sim
+      - formal-verification
+      - check-documentation
+
+    steps:
+    - name: Record success
+      run: |
+        echo "All required simulation, lint, formal, and documentation checks passed."
+        echo "## Verification complete" >> "$GITHUB_STEP_SUMMARY"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

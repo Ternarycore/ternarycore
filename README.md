@@ -220,6 +220,17 @@ benchmark firmware runs the same 768→768 projection through the accelerator
 and through pure C on the soft CPU, verifies element-by-element agreement,
 then reports cycles and speedup over UART.
 
+## Inference pipeline RTL
+
+Additional modules for BitNet-style end-to-end inference (see PR #11):
+
+| Module | Role |
+|--------|------|
+| `activation_quant` | Q8 quantizer (`x * inv`, shift/round/clip) |
+| `ternary_scale` | Per-channel Q15 scale after GEMM (parameterized over `COLS`) |
+| `fp8_to_q15` | Combinational **FP8 E5M2** → unsigned Q15 decoder (1.0 = 32768); not E4M3 |
+| `ternary_pipeline` | `activation_quant` → `ternary_gemm` → `ternary_scale` |
+
 ## Roadmap
 
 - [x] `ternary_mac` — single cell, all tests passing
