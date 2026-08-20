@@ -1,0 +1,30 @@
+name: GVSoC model
+
+on:
+  pull_request:
+    paths:
+      - gvsoc/**
+      - rvv/**
+      - .github/workflows/gvsoc.yml
+  push:
+    branches: [main, dev]
+    paths:
+      - gvsoc/**
+      - rvv/**
+      - .github/workflows/gvsoc.yml
+  workflow_dispatch:
+
+jobs:
+  host-model:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build and run strict C++ tests
+      run: make -C gvsoc test
+    - name: Run Python reference tests
+      run: python3 gvsoc/test_system.py
+    - name: Run C++ tests with sanitizers
+      run: |
+        make -C gvsoc clean
+        make -C gvsoc test \
+          TEST_CXXFLAGS="-std=c++17 -O1 -g -Wall -Wextra -Wpedantic -Werror -fsanitize=address,undefined"
