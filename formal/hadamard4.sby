@@ -1,0 +1,15 @@
+[options]
+mode prove
+depth 12
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal hadamard4.v
+read -formal hadamard4_formal.v
+prep -top hadamard4_formal
+
+[files]
+../rtl/hadamard4.v
+hadamard4_formal.v
