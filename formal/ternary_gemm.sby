@@ -1,0 +1,23 @@
+[options]
+mode cover
+# Need room for: 2 reset + warm-up + DEPTH feeds + 1 cycle for acc_out latch
+depth 16
+
+[engines]
+smtbmc
+
+[script]
+read -formal ternary_weight.v
+read -formal ternary_gemm.v
+read -formal ternary_dot.v
+read -formal ternary_gemm_formal.v
+setattr -unset keep *
+setattr -unset dont_touch *
+setattr -unset mark_debug *
+prep -top ternary_gemm_formal
+
+[files]
+../rtl/ternary_weight.v
+../rtl/ternary_gemm.v
+../rtl/ternary_dot.v
+ternary_gemm_formal.v

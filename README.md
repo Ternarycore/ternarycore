@@ -5,7 +5,7 @@
 BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix multiplication — the core operation of every transformer layer — into additions, subtractions, and conditional skips. No multiplies. TernaryCore is hardware built to match that arithmetic natively.
 
 [![License: CERN-OHL-S v2](https://img.shields.io/badge/License-CERN--OHL--S%20v2-blue)](https://ohwr.org/cern_ohl_s_v2.txt)
-[![Simulation: All Passing](https://img.shields.io/badge/Simulation-31%2F31%20Passing-brightgreen)]()
+[![Simulation: Passing](https://img.shields.io/badge/Simulation-Passing-brightgreen)]()
 
 ---
 
@@ -17,23 +17,22 @@ BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix mu
 | `ternary_dot` | 7/7 | ✅ All passing |
 | `ternary_gemm` | 16/16 (4×4) | ✅ All passing |
 
-> **All tests passing!** The system has been fully verified with RTL simulation matching Python reference implementation. Recent fixes addressed timing bugs in `ternary_dot.v` and testbench race conditions.
+> **All configured checks pass.** Icarus and Verilator simulations are backed by
+> Python references and bounded formal checks for the core datapaths.
 
-### Recent Fixes (April 2026)
+### Verified `ternary_dot` Interface
 
-1. **Fixed `ternary_dot.v` timing bugs**: 
-   - `valid_out` now pulses correctly one cycle after last element
-   - Fixed `vector_done` logic to persist through `valid_in=0`
-   - Removed debug statements for cleaner output
+The verification harnesses model the behavior of the currently shipped RTL:
 
-2. **Fixed testbench race conditions**:
-   - Added `#1` delays before clock edges
-   - Added extra cycle after reset for signal stabilization
+- `valid_out` rises after the terminal input and remains asserted until the
+  first accepted item of the next vector.
+- `acc_out` is registered on the following clock while `valid_out` is high.
+- Hold `valid_in` low for at least one recovery cycle between vectors.
+- Randomized Verilator coverage checks this protocol with bubbles and all four
+  2-bit weight encodings using a reproducible seed.
 
-3. **Added platform-agnostic documentation**
-   - Support for macOS, Linux, Windows (WSL)
-   - Multiple waveform viewer options
-   - Simplified verification without numpy dependency
+Formal cover and bounded proofs check the MAC, dot-product completion, and GEMM
+reference models in CI.
 
 ---
 
@@ -49,13 +48,16 @@ BitNet b1.58 encodes every model weight as {-1, 0, +1}. That collapses matrix mu
 
 ![ternary_dot waveform](docs/waveform_dot.svg)
 
-Eight activations stream in one per clock with weight=+1. `acc_out` holds zero while the MAC cell accumulates internally, then the final result (36) appears in the same cycle `valid_out` pulses.
+Eight activations stream in one per clock with weight=+1. `valid_out` rises on
+the terminal input; the registered result (36) appears on the following clock.
 
 `ternary_gemm` — 4×4 matrix multiply, 16/16 tests passing:
 
 ![ternary_gemm waveform](docs/waveform_gemm.svg)
 
-Four parallel `ternary_dot` instances (col_0–col_3) receive the same activation broadcast per clock, each with its own weight encoding. One result row lands simultaneously across all four columns when `valid_out` pulses.
+Four parallel `ternary_dot` instances (col_0–col_3) receive the same activation
+broadcast per clock, each with its own weight encoding. One registered result
+row lands simultaneously across all four columns while `valid_out` is high.
 
 ---
 
@@ -78,7 +80,7 @@ graph TD
 
     subgraph dot["ternary_dot — streaming dot product"]
         LOOP["× VECTOR_LEN\nmac cells in series"]
-        VREG["result register\n(valid_out pulse)"]
+        VREG["result register\n(valid_out level)"]
         REG1 --> LOOP
         LOOP --> VREG
     end
@@ -95,7 +97,9 @@ Three layers, each building on the last:
 
 **`ternary_mac`** — the atomic cell. Takes one activation, one 2-bit weight, and a running accumulator. Outputs `acc_in ± activation` or `acc_in` (zero weight), registered on the clock edge. No multiplier.
 
-**`ternary_dot`** — streaming dot product over `VECTOR_LEN` elements (default 64). Resets automatically between vectors; asserts `valid_out` for one cycle when the result is ready.
+**`ternary_dot`** — streaming dot product over `VECTOR_LEN` elements (default
+64). Signals completion with `valid_out`; the registered result is available on
+the following clock. A low `valid_in` recovery cycle separates vectors.
 
 **`ternary_gemm`** — matrix multiply using `COLS` parallel `ternary_dot` instances. One activation is broadcast per cycle to all column dots, each receiving its own weight encoding. Produces one output row every `DEPTH` cycles.
 
@@ -106,6 +110,7 @@ Three layers, each building on the last:
 | `2'b00` | 0 | No contribution (skip) |
 | `2'b01` | +1 | `acc_out = acc_in + activation` |
 | `2'b10` | -1 | `acc_out = acc_in - activation` |
+| `2'b11` | -1 | Reserved encoding follows the RTL default subtraction path |
 
 ---
 
@@ -142,7 +147,10 @@ cd ternarycore/sim
 make tb_ternary_mac    # ternary_mac — 8 tests
 make tb_ternary_dot    # ternary_dot — 7 tests (VLEN=8)
 make tb_ternary_gemm   # ternary_gemm — 4×4 matrix multiply
-make all               # run all three
+make all               # run the complete Icarus regression suite
+make extended          # include streaming, INT8 baseline, and AXI-gap tests
+make verilator-all     # run MAC, dot, randomized dot, and GEMM C++ tests
+make formal            # run every SymbiYosys task (requires sby/yosys)
 ```
 
 ### Cross-verify with Python
