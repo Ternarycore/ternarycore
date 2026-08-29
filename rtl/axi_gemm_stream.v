@@ -81,12 +81,17 @@ module axi_gemm_stream #(
     reg        int8_mode;       // latched at START
     reg [2:0]  bslice;          // which bit of the int8 operand, 0..7
     reg        vout_d;
+    reg [10:0] fed;             // count of elements accepted by GEMM
 
     wire busy = (state != S_IDLE);
 
-    wire [10:0] act_addr = k;
+    // The activation BRAM and weight BRAM both have one-cycle read latency.
+    // Keep the address one step behind the issue counter so the data visible
+    // alongside v1 is the element that v1 claims, including element zero.
+    wire [10:0] read_k = (k == 11'd0) ? 11'd0 : (k - 1'b1);
+    wire [10:0] act_addr = read_k;
     // int8 mode walks the bit-slices flat: one 64-bit slice per sub-cycle.
-    assign w_word_addr = int8_mode ? {4'd0, k[9:0]} : {k[9:0], ct};
+    assign w_word_addr = int8_mode ? {4'd0, read_k[9:0]} : {read_k[9:0], ct};
 
     always @(posedge clk) act_q <= act_ram[act_addr[9:0]];
     // Single driver. This was assigned here AND in the FSM's reset branch;
@@ -94,7 +99,7 @@ module axi_gemm_stream #(
     // shift silently vanished on silicon while simulation passed.
     always @(posedge clk or negedge rst_n)
         if (!rst_n) bslice <= 3'd0;
-        else        bslice <= k[2:0];   // aligns with act_q / w_word
+        else        bslice <= read_k[2:0];   // aligns with act_q / w_word
 
     // -- int8 attention path ---------------------------------------------
     // a*b = sum(k=0..6) b_k*(a<<k) - b_7*(a<<7). The weight port carries one
@@ -124,6 +129,12 @@ module axi_gemm_stream #(
     wire gemm_rst_n = rst_n & ~gemm_clr;
     wire [ACC_WIDTH*COLS-1:0] acc_out;
     wire valid_out;
+    // DEPTH is a runtime register because attention and projection tiles do
+    // not all have the maximum inner dimension. Clamp zero to one so a bad
+    // programming value cannot hang the engine forever.
+    wire [10:0] depth_limit = (depth == 11'd0) ? 11'd1 : depth;
+    wire gemm_valid_in = v1 && (fed < depth_limit);
+    wire end_of_vector = gemm_valid_in && (fed == (depth_limit - 1'b1));
 
     ternary_gemm #(
         .DATA_WIDTH (16),
@@ -133,7 +144,8 @@ module axi_gemm_stream #(
     ) u_gemm (
         .clk        (clk),
         .rst_n      (gemm_rst_n),
-        .valid_in   (v1),
+        .valid_in   (gemm_valid_in),
+        .end_of_vector(end_of_vector),
         .activation (act_sel),
         .weight_enc (w_sel),      // 2*64 = 128 bits
         .acc_out    (acc_out),
@@ -143,8 +155,7 @@ module axi_gemm_stream #(
     // element-count-based done: we track accepted elements ourselves so the
     // pass length is the runtime 'depth' register, independent of the
     // compile-time DEPTH parameter inside ternary_gemm.
-    reg [10:0] fed;
-    wire pass_done = (fed == DEPTH_MAX) && !v0 && !v1;
+    wire pass_done = (fed == depth_limit) && !v0 && !v1;
 
     wire start_cmd, clear_cmd, aptr_cmd, int8_cmd;
 
@@ -168,14 +179,14 @@ module axi_gemm_stream #(
                 S_RUN: begin
                     cycles <= cycles + 1;
                     // issue phase
-                    if (k < DEPTH_MAX) begin
+                    if (k < depth_limit) begin
                         k  <= k + 1;
                         v0 <= 1;
                     end else begin
                         v0 <= 0;
                     end
                     v1 <= v0;
-                    if (v1) fed <= fed + 1;
+                    if (gemm_valid_in) fed <= fed + 1;
                     if (pass_done) begin state <= S_WAIT; end
                 end
                 S_WAIT: begin
