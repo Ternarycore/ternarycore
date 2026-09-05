@@ -238,11 +238,32 @@ then reports cycles and speedup over UART.
 
 ## License
 
-RTL source files (`rtl/`, `tb/`) are licensed under the **CERN Open Hardware Licence v2 — Strongly Reciprocal (CERN-OHL-S v2)**. Derivative hardware designs must remain open under the same terms.
+TernaryCore is **dual-licensed**.
 
-Software tools and verification scripts (`sim/verify/*.py`) are licensed under the **MIT License**.
+**Open source:**
+- RTL (`rtl/`, `tb/`) — **CERN Open Hardware Licence v2, Strongly Reciprocal (CERN-OHL-S v2)**. Derivative hardware must remain open under the same terms.
+- Verification scripts (`sim/verify/*.py`) — **MIT License**.
+- See [LICENSE](LICENSE) for full terms.
 
-See [LICENSE](LICENSE) for full terms.
+**Commercial:** if CERN-OHL-S's reciprocity does not fit your product — e.g. combining TernaryCore RTL with proprietary RTL in a closed bitstream, or shipping without the source-availability obligation — a commercial license is available from TernaryCore, Inc. Contact **licensing@ternarycore.io**.
+
+Copyright © 2026 **TernaryCore, Inc.**, sole copyright holder, which reserves the right to license this work under terms other than CERN-OHL-S, including proprietary terms. Publishing under CERN-OHL-S grants *you* the rights above; it does not limit the copyright holder.
+
+### Contributing
+
+Contributions are accepted under the [Contributor License Agreement](CLA.md), which lets us keep the project both open and commercially licensable while you retain copyright in your work. Pull requests without an agreed CLA cannot be merged.
+
+---
+
+## Acknowledgements
+
+**Concept:** David Adebiyi and Abu Mohammed — the conversations that sharpened the idea.
+
+**The spark:** A [comment by @Xcc313r4n7](https://github.com/ggml-org/llama.cpp/discussions/20969#discussioncomment-16349981) on the llama.cpp thread arguing that biological neurons are themselves ternary — selected by evolution for exactly the same reason we're building this. Contested by the community, but it lodged.
+
+**Family & background:** Mr Niyi Olowoyo, Mr Fisayo Bejide, My Uncle Tayo Oladapo, my mother, my wife, and my daughters — each of whom contributed something, knowingly or not, to making this possible.
+
+*Full credits in the [launch article](https://www.linkedin.com/in/ifedayooladapo).*
 
 ---
 
