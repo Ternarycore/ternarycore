@@ -56,9 +56,7 @@ module ternary_dot #(
          if (!rst_n) begin
              acc        <= {ACC_WIDTH{1'b0}};
              count      <= VECTOR_LEN;    // load down-counter (counts VECTOR_LEN down to 1)
-             acc_out    <= {ACC_WIDTH{1'b0}};
              vector_done <= 1'b0;
-             vector_done_delayed <= 1'b0;
               result_latch <= {ACC_WIDTH{1'b0}};
           end else begin
               // Compute weighted value from current inputs

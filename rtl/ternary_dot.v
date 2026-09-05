@@ -77,9 +77,7 @@ module ternary_dot #(
          if (!rst_n) begin
              acc        <= {ACC_WIDTH{1'b0}};
              count      <= VECTOR_LEN;    // load down-counter (counts VECTOR_LEN down to 1)
-             acc_out    <= {ACC_WIDTH{1'b0}};
              vector_done <= 1'b0;
-             vector_done_delayed <= 1'b0;
               result_latch <= {ACC_WIDTH{1'b0}};
              debug_valid_in <= 1'b0;
               debug_activation <= {DATA_WIDTH{1'b0}};
