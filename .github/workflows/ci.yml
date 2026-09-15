@@ -47,6 +47,12 @@ jobs:
         cd sim
         make tb_ternary_gemm
         echo "GEMM tests completed"
+
+    - name: Run Hadamard and INT4 activation tests
+      run: |
+        cd sim
+        make tb_hadamard4 tb_activation_quant_int4
+        echo "Low-bit activation tests completed"
         
     - name: Run AXI GEMM wrapper tests
       run: |
