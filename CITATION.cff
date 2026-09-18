@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below, and cite the associated paper (see preferred-citation)."
+title: "TernaryCore: Multiplier-Free Balanced Ternary GEMM Accelerator for BitNet b1.58 Inference"
+abstract: "Open-source, multiplier-free ternary (-1/0/+1) MAC / dot-product / GEMM microarchitecture for BitNet b1.58 inference on a low-cost FPGA (Xilinx Artix-7, Arty A7-100T). Includes RTL, MicroBlaze firmware, host tooling, same-fabric INT8 baselines, and an inline-current-sensing energy method for reproduction."
+type: software
+authors:
+  - family-names: Oladapo
+    given-names: Ifedayo
+    orcid: "https://orcid.org/0009-0006-7892-9890"
+    affiliation: "TernaryCore, Inc."
+license: CERN-OHL-S-2.0
+repository-code: "https://github.com/Ternarycore/ternarycore"
+keywords:
+  - reconfigurable computing
+  - ternary arithmetic
+  - quantized neural networks
+  - BitNet
+  - open-source hardware
+  - FPGA
+  - energy measurement
+preferred-citation:
+  type: article
+  title: "TernaryCore: Design, Silicon Validation, and Same-Fabric Binary Comparison of a Multiplier-Free Balanced Ternary GEMM Accelerator for BitNet b1.58 Inference"
+  authors:
+    - family-names: Oladapo
+      given-names: Ifedayo
+      orcid: "https://orcid.org/0009-0006-7892-9890"
+    - family-names: Vasilev
+      given-names: Dmitrii
+      orcid: "https://orcid.org/0009-0008-4294-6159"
+    - family-names: Mohammed
+      given-names: Abubakar
+      orcid: "https://orcid.org/0000-0001-7505-7835"
+  journal: "ACM Transactions on Reconfigurable Technology and Systems (TRETS)"
+  year: 2026
