@@ -47,6 +47,12 @@ jobs:
         cd sim
         make tb_ternary_gemm
         echo "GEMM tests completed"
+
+    - name: Run ternary LUT BRAM test
+      run: |
+        cd sim
+        make tb_ternary_lut4_bram
+        echo "Ternary LUT BRAM test completed"
         
     - name: Run AXI GEMM wrapper tests
       run: |
@@ -104,6 +110,9 @@ jobs:
         
         # Lint weight_bram.v
         verilator --lint-only -Wall -Wno-DECLFILENAME rtl/weight_bram.v || echo "Warning: Lint issues in weight_bram.v"
+
+        # Lint ternary_lut4_bram.v
+        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_lut4_bram.v || echo "Warning: Lint issues in ternary_lut4_bram.v"
         
         echo "Linting completed"
         
