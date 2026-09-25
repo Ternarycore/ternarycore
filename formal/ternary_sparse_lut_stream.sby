@@ -1,0 +1,19 @@
+[options]
+mode bmc
+depth 20
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal activation_sparse24.v
+read -formal ternary_lut24_bram.v
+read -formal ternary_sparse_lut_stream.v
+read -formal ternary_sparse_lut_stream_formal.v
+prep -top ternary_sparse_lut_stream_formal
+
+[files]
+../rtl/activation_sparse24.v
+../rtl/ternary_lut24_bram.v
+../rtl/ternary_sparse_lut_stream.v
+ternary_sparse_lut_stream_formal.v

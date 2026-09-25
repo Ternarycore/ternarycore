@@ -1,0 +1,15 @@
+[options]
+mode bmc
+depth 20
+
+[engines]
+smtbmc yices
+
+[script]
+read -formal ternary_lut24_bram.v
+read -formal ternary_lut24_bram_formal.v
+prep -top ternary_lut24_bram_formal
+
+[files]
+../rtl/ternary_lut24_bram.v
+ternary_lut24_bram_formal.v

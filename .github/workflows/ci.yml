@@ -47,6 +47,12 @@ jobs:
         cd sim
         make tb_ternary_gemm
         echo "GEMM tests completed"
+
+    - name: Run ternary LUT BRAM test
+      run: |
+        cd sim
+        make tb_ternary_lut4_bram
+        echo "Ternary LUT BRAM test completed"
         
     - name: Run AXI GEMM wrapper tests
       run: |
@@ -59,6 +65,12 @@ jobs:
         cd sim
         make tb_weight_bram
         echo "BRAM weight cache tests completed"
+
+    - name: Run feature pipeline integration test
+      run: |
+        cd sim
+        make tb_ternary_feature_pipeline
+        echo "Feature pipeline integration test completed"
         
     - name: Run Python verification
       run: |
@@ -104,6 +116,20 @@ jobs:
         
         # Lint weight_bram.v
         verilator --lint-only -Wall -Wno-DECLFILENAME rtl/weight_bram.v || echo "Warning: Lint issues in weight_bram.v"
+
+        # Lint ternary_lut4_bram.v
+        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_lut4_bram.v || echo "Warning: Lint issues in ternary_lut4_bram.v"
+
+        # Lint the compact and streaming sparse ternary blocks
+        verilator --lint-only -Wall -Wno-DECLFILENAME rtl/ternary_lut24_bram.v
+        verilator --lint-only -Wall -Wno-DECLFILENAME \
+          rtl/ternary_sparse_lut_stream.v rtl/activation_sparse24.v \
+          rtl/ternary_lut24_bram.v
+
+        # Lint the connected feature pipeline
+        verilator --lint-only -Wall -Wno-DECLFILENAME \
+          rtl/ternary_feature_pipeline.v rtl/activation_sparse24.v \
+          rtl/ternary_decompress5.v rtl/ternary_lut4_bram.v
         
         echo "Linting completed"
         
@@ -118,6 +144,23 @@ jobs:
         grep -r "reg.*;" rtl/ | grep -v "= " || true
         
         echo "Common issue check completed"
+
+  formal-verification:
+    name: Formal Verification (SymbiYosys)
+    runs-on: ubuntu-latest
+    needs: verify-simulation
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Yosys and SymbiYosys
+      run: sudo apt-get update && sudo apt-get install -y yosys sby
+
+    - name: Prove compact and streaming sparse contracts
+      run: |
+        make -C sim formal-ternary-lut24-bram
+        make -C sim formal-ternary-sparse-lut-stream
         
   check-documentation:
     name: Check Documentation
@@ -172,7 +215,7 @@ jobs:
   enforce-test-results:
     name: Enforce Test Results
     runs-on: ubuntu-latest
-    needs: [verify-simulation, lint-verilog, check-documentation]
+    needs: [verify-simulation, lint-verilog, formal-verification, check-documentation]
     
     steps:
     - name: Check all jobs passed
