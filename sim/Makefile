@@ -6,9 +6,27 @@ IVERILOG = iverilog
 VVP      = vvp
 SIMDIR   = .
 
-.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram clean verify
+.PHONY: all tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_ternary_decompress5 tb_ternary_lut4_bram tb_ternary_feature_pipeline formal-ternary-lut4-bram formal-ternary-feature-pipeline clean verify
 
-all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram
+all: tb_ternary_mac tb_ternary_dot tb_ternary_gemm tb_axi_gemm_wrapper tb_weight_bram tb_ternary_decompress5 tb_ternary_lut4_bram tb_ternary_feature_pipeline
+
+tb_ternary_decompress5: ../tb/tb_ternary_decompress5.v ../rtl/ternary_decompress5.v
+	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_ternary_decompress5 $^
+	$(VVP) $(SIMDIR)/sim_ternary_decompress5
+
+tb_ternary_feature_pipeline: ../tb/tb_ternary_feature_pipeline.v ../rtl/ternary_feature_pipeline.v ../rtl/activation_sparse24.v ../rtl/ternary_decompress5.v ../rtl/ternary_lut4_bram.v
+	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_ternary_feature_pipeline $^
+	$(VVP) $(SIMDIR)/sim_ternary_feature_pipeline
+
+tb_ternary_lut4_bram: ../tb/tb_ternary_lut4_bram.v ../rtl/ternary_lut4_bram.v
+	$(IVERILOG) -g2012 -o $(SIMDIR)/sim_ternary_lut4_bram $^
+	$(VVP) $(SIMDIR)/sim_ternary_lut4_bram
+
+formal-ternary-lut4-bram:
+	cd ../formal && sby -f ternary_lut4_bram.sby
+
+formal-ternary-feature-pipeline:
+	cd ../formal && sby -f ternary_feature_pipeline.sby
 
 # ── MAC unit ──────────────────────────────────────────────────────────────────
 tb_ternary_mac: ../tb/tb_ternary_mac.v ../rtl/ternary_mac.v ../rtl/ternary_weight.v ../rtl/ternary_weight.v
