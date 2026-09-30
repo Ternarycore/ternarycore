@@ -9,6 +9,11 @@ authors:
     orcid: "https://orcid.org/0009-0006-7892-9890"
     affiliation: "TernaryCore, Inc."
 license: CERN-OHL-S-2.0
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.22837568
+    description: Concept DOI - always resolves to the latest archived version
+
 repository-code: "https://github.com/Ternarycore/ternarycore"
 keywords:
   - reconfigurable computing
