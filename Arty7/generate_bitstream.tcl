@@ -39,7 +39,7 @@ if {${wns_synth} < 0.0} {
 }
 
 # ── Implementation ────────────────────────────────────────────────────────────
-set_property strategy Performance_Explore [get_runs impl_1]
+set_property strategy Performance_ExplorePostRoutePhysOpt [get_runs impl_1]
 reset_run impl_1
 launch_runs impl_1 -jobs 4
 wait_on_run impl_1
