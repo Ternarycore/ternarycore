@@ -226,7 +226,7 @@ then reports cycles and speedup over UART.
 - [x] `ternary_dot` — 64-element vector dot product, all tests passing
 - [x] `ternary_gemm` — 4×4 matrix multiply, all tests passing
 - [x] Deploy to Xilinx Artix-7 (Arty A7-100T) — single MAC verified on silicon via ILA, 0 DSPs ([write-up](docs/article-02.md))
-- [x] Timing closure and resource utilisation report (single MAC: ~81 LUTs / 32 FFs)
+- [x] Timing closure and resource utilisation report (single MAC: 38 LUTs / 33 FFs out-of-context; ~81 LUTs / 32 FFs in-context on the Arty7 bring-up)
 - [x] Track A system design: soft CPU (MicroBlaze) + AXI + GEMM array + weight BRAM + Tier 1 A/B benchmark firmware — passing simulation on [`feat/bitnet-accelerator`](https://github.com/Ternarycore/ternarycore/tree/feat/bitnet-accelerator)
 - [x] **Tier 1 on hardware** — `Verification PASS` on the Arty A7 (July 25, 2026): 768→768 ternary projection, accelerator 5.32M cycles/pass vs soft-CPU 19.5M cycles/pass on the same silicon — **3.67× speedup** with the GEMM array at ~3% utilization (CPU-fed AXI is the bottleneck, as designed for Tier 1; see the [bring-up article](https://github.com/Ternarycore/ternarycore/blob/feat/bitnet-accelerator/docs/article-03.md))
 - [ ] Host→board weight streaming (`LOADW`/`LOADA`/`RUN` UART protocol) — run *real* BitNet checkpoints, not synthetic weights

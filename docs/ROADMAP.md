@@ -1,6 +1,6 @@
 # TernaryCore Roadmap: From Single MAC to Silicon Products
 
-> **Current state**: `ternary_mac.v` (81 LUTs, 0 DSPs) passing on both Arty A7-100T (Artix-7) and Tang Nano 9k (GW1NR-9).  
+> **Current state**: `ternary_mac.v` (38 LUTs out-of-context, 0 DSPs) passing on both Arty A7-100T (Artix-7) and Tang Nano 9k (GW1NR-9).  
 > **This document**: Two product tracks branching from the same RTL core.
 
 ---
@@ -14,7 +14,7 @@
 | DSP48E1 | 0 | 240 | 0% | Design uses no DSPs — proof of concept |
 | BRAM36 | ~9 | 135 | 7% | ILA trace buffer (4,096 samples × 81 bits) |
 
-**Key insight**: Strip the ILA debug core and the design is **~200 LUTs (0.3%)**. A single ternary_mac cell occupies ~81 LUTs and 32 FFs. The device is essentially empty — by design.
+**Key insight**: Strip the ILA debug core and the design is **~200 LUTs (0.3%)**. A single ternary_mac cell occupies ~81 LUTs and 32 FFs in that in-context build; a clean out-of-context synthesis of the cell alone gives **38 LUTs and 33 FFs** (see `results/p1-trets/ooc/ternary_mac_util.rpt`). The device is essentially empty — by design.
 
 ---
 
@@ -175,8 +175,8 @@ This is **exactly the ternary MAC operation** — the same `weight_enc` mux (`00
     ┌──────────────────────────────┐
     │  16 × ternary_mac array       │
     │  (instantiated in parallel)   │
-    │  per MAC: 81 LUTs, 0 DSPs    │
-    │  total: 16 × 81 = 1,296 LUTs │
+    │  per MAC: 38 LUTs, 0 DSPs    │
+    │  total: 16 × 38 = 608 LUTs   │
     └──────────────┬───────────────┘
                    ▼
     ┌──────────────────────────────┐
