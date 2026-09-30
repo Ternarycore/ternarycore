@@ -1,0 +1,866 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date         : Wed Sep 30 18:17:18 2026
+| Host         : fort-silicon running 64-bit Ubuntu 24.04.5 LTS
+| Command      : report_timing_summary -file /tmp/tier2_retry_timing.rpt
+| Design       : arty_mb_gemm_wrapper
+| Device       : 7a100t-csg324
+| Speed File   : -1  PRODUCTION 1.23 2018-06-13
+| Design State : Physopt postRoute
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Summary Report
+
+------------------------------------------------------------------------------------------------
+| Timer Settings
+| --------------
+------------------------------------------------------------------------------------------------
+
+  Enable Multi Corner Analysis               :  Yes
+  Enable Pessimism Removal                   :  Yes
+  Pessimism Removal Resolution               :  Nearest Common Node
+  Enable Input Delay Default Clock           :  No
+  Enable Preset / Clear Arcs                 :  No
+  Disable Flight Delays                      :  No
+  Ignore I/O Paths                           :  No
+  Timing Early Launch at Borrowing Latches   :  No
+  Borrow Time for Max Delay Exceptions       :  Yes
+  Merge Timing Exceptions                    :  Yes
+  Inter-SLR Compensation                     :  Conservative
+
+  Corner  Analyze    Analyze    
+  Name    Max Paths  Min Paths  
+  ------  ---------  ---------  
+  Slow    Yes        Yes        
+  Fast    Yes        Yes        
+
+
+------------------------------------------------------------------------------------------------
+| Report Methodology
+| ------------------
+------------------------------------------------------------------------------------------------
+
+Rule       Severity  Description                                             Violations  
+---------  --------  ------------------------------------------------------  ----------  
+LUTAR-1    Warning   LUT drives async reset alert                            3           
+TIMING-9   Warning   Unknown CDC Logic                                       1           
+TIMING-18  Warning   Missing input or output delay                           19          
+XDCC-7     Warning   Scoped Clock constraint overwritten on the same source  1           
+
+Note: This report is based on the most recent report_methodology run and may not be up-to-date. Run report_methodology on the current design for the latest report.
+
+
+
+check_timing report
+
+Table of Contents
+-----------------
+1. checking no_clock (0)
+2. checking constant_clock (0)
+3. checking pulse_width_clock (0)
+4. checking unconstrained_internal_endpoints (0)
+5. checking no_input_delay (6)
+6. checking no_output_delay (13)
+7. checking multiple_clock (0)
+8. checking generated_clocks (0)
+9. checking loops (0)
+10. checking partial_input_delay (0)
+11. checking partial_output_delay (0)
+12. checking latch_loops (0)
+
+1. checking no_clock (0)
+------------------------
+ There are 0 register/latch pins with no clock.
+
+
+2. checking constant_clock (0)
+------------------------------
+ There are 0 register/latch pins with constant_clock.
+
+
+3. checking pulse_width_clock (0)
+---------------------------------
+ There are 0 register/latch pins which need pulse_width check
+
+
+4. checking unconstrained_internal_endpoints (0)
+------------------------------------------------
+ There are 0 pins that are not constrained for maximum delay.
+
+ There are 0 pins that are not constrained for maximum delay due to constant clock.
+
+
+5. checking no_input_delay (6)
+------------------------------
+ There are 6 input ports with no input delay specified. (HIGH)
+
+ There are 0 input ports with no input delay but user has a false path constraint.
+
+
+6. checking no_output_delay (13)
+--------------------------------
+ There are 13 ports with no output delay specified. (HIGH)
+
+ There are 0 ports with no output delay but user has a false path constraint
+
+ There are 0 ports with no output delay but with a timing clock defined on it or propagating through it
+
+
+7. checking multiple_clock (0)
+------------------------------
+ There are 0 register/latch pins with multiple clocks.
+
+
+8. checking generated_clocks (0)
+--------------------------------
+ There are 0 generated clocks that are not connected to a clock source.
+
+
+9. checking loops (0)
+---------------------
+ There are 0 combinational loops in the design.
+
+
+10. checking partial_input_delay (0)
+------------------------------------
+ There are 0 input ports with partial input delay specified.
+
+
+11. checking partial_output_delay (0)
+-------------------------------------
+ There are 0 ports with partial output delay specified.
+
+
+12. checking latch_loops (0)
+----------------------------
+ There are 0 combinational latch loops in the design through latch input
+
+
+
+------------------------------------------------------------------------------------------------
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+      0.137        0.000                      0                30635        0.052        0.000                      0                30635        3.000        0.000                       0                 10546  
+
+
+All user specified timing constraints are met.
+
+
+------------------------------------------------------------------------------------------------
+| Clock Summary
+| -------------
+------------------------------------------------------------------------------------------------
+
+Clock                                                           Waveform(ns)       Period(ns)      Frequency(MHz)
+-----                                                           ------------       ----------      --------------
+arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK    {0.000 16.666}     33.333          30.000          
+arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE  {0.000 16.666}     33.333          30.000          
+sys_clk_pin                                                     {0.000 5.000}      10.000          100.000         
+  clk_out1_arty_mb_gemm_clk_wiz_0_0_1                           {0.000 5.000}      10.000          100.000         
+  clkfbout_arty_mb_gemm_clk_wiz_0_0_1                           {0.000 5.000}      10.000          100.000         
+
+
+------------------------------------------------------------------------------------------------
+| Intra Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+Clock                                                               WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+-----                                                               -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK         12.799        0.000                      0                  222        0.117        0.000                      0                  222       15.686        0.000                       0                   234  
+arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE       11.511        0.000                      0                   46        0.282        0.000                      0                   46       16.166        0.000                       0                    40  
+sys_clk_pin                                                                                                                                                                                                       3.000        0.000                       0                     1  
+  clk_out1_arty_mb_gemm_clk_wiz_0_0_1                                 0.137        0.000                      0                22362        0.052        0.000                      0                22362        3.750        0.000                       0                 10268  
+  clkfbout_arty_mb_gemm_clk_wiz_0_0_1                                                                                                                                                                             7.845        0.000                       0                     3  
+
+
+------------------------------------------------------------------------------------------------
+| Inter Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------    --------          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Other Path Groups Table
+| -----------------------
+------------------------------------------------------------------------------------------------
+
+Path Group                           From Clock                           To Clock                                 WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------                           ----------                           --------                                 -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+**async_default**                    clk_out1_arty_mb_gemm_clk_wiz_0_0_1  clk_out1_arty_mb_gemm_clk_wiz_0_0_1        1.312        0.000                      0                 8005        0.488        0.000                      0                 8005  
+
+
+------------------------------------------------------------------------------------------------
+| Timing Details
+| --------------
+------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+  To Clock:  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+
+Setup :            0  Failing Endpoints,  Worst Slack       12.799ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.117ns,  Total Violation        0.000ns
+PW    :            0  Failing Endpoints,  Worst Slack       15.686ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             12.799ns  (required time - arrival time)
+  Source:                 arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/tdi_shifter_reg[1]/C
+                            (rising edge-triggered cell FDRE clocked by arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK  {rise@0.000ns fall@16.667ns period=33.333ns})
+  Destination:            arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.SYNC_FDRE/Using_FPGA.Native/CE
+                            (falling edge-triggered cell FDRE clocked by arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK  {rise@0.000ns fall@16.667ns period=33.333ns})
+  Path Group:             arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            16.667ns  (arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK fall@16.667ns - arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK rise@0.000ns)
+  Data Path Delay:        3.527ns  (logic 0.704ns (19.962%)  route 2.823ns (80.038%))
+  Logic Levels:           2  (LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.103ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    3.538ns = ( 20.204 - 16.667 ) 
+    Source Clock Delay      (SCD):    3.959ns
+    Clock Pessimism Removal (CPR):    0.318ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK rise edge)
+                                                      0.000     0.000 r  
+    BSCAN_X0Y1           BSCANE2                      0.000     0.000 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+                         net (fo=1, routed)           2.081     2.081    arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/DRCK
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.096     2.177 r  arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/Using_FPGA.Native/O
+                         net (fo=233, routed)         1.782     3.959    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_unisim.MB_SRL16E_I1
+    SLICE_X52Y169        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/tdi_shifter_reg[1]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X52Y169        FDRE (Prop_fdre_C_Q)         0.456     4.415 r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/tdi_shifter_reg[1]/Q
+                         net (fo=4, routed)           1.413     5.828    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I/tdi_shifter[1]
+    SLICE_X51Y169        LUT6 (Prop_lut6_I2_O)        0.124     5.952 r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I/Using_FPGA.Native_i_2/O
+                         net (fo=1, routed)           0.879     6.831    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I/Using_FPGA.Native_i_2_n_0
+    SLICE_X51Y169        LUT5 (Prop_lut5_I0_O)        0.124     6.955 r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I/Using_FPGA.Native_i_1/O
+                         net (fo=1, routed)           0.531     7.486    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.SYNC_FDRE/CE
+    SLICE_X49Y169        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.SYNC_FDRE/Using_FPGA.Native/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK fall edge)
+                                                     16.667    16.667 f  
+    BSCAN_X0Y1           BSCANE2                      0.000    16.667 f  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+                         net (fo=1, routed)           1.784    18.450    arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/DRCK
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.091    18.541 f  arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/Using_FPGA.Native/O
+                         net (fo=233, routed)         1.663    20.204    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.SYNC_FDRE/Using_FPGA.Native_0
+    SLICE_X49Y169        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.SYNC_FDRE/Using_FPGA.Native/C  (IS_INVERTED)
+                         clock pessimism              0.318    20.522    
+                         clock uncertainty           -0.035    20.487    
+    SLICE_X49Y169        FDRE (Setup_fdre_C_CE)      -0.202    20.285    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.SYNC_FDRE/Using_FPGA.Native
+  -------------------------------------------------------------------
+                         required time                         20.285    
+                         arrival time                          -7.486    
+  -------------------------------------------------------------------
+                         slack                                 12.799    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.117ns  (arrival time - required time)
+  Source:                 arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_Serial_Unified_Completion.mb_instr_error_reg/C
+                            (rising edge-triggered cell FDRE clocked by arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK  {rise@0.000ns fall@16.667ns period=33.333ns})
+  Destination:            arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_Serial_Unified_Completion.Completion_Status_Register.sample_1_reg[11]/D
+                            (rising edge-triggered cell FDRE clocked by arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK  {rise@0.000ns fall@16.667ns period=33.333ns})
+  Path Group:             arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK rise@0.000ns - arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK rise@0.000ns)
+  Data Path Delay:        0.438ns  (logic 0.141ns (32.173%)  route 0.297ns (67.827%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.260ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    1.902ns
+    Source Clock Delay      (SCD):    1.498ns
+    Clock Pessimism Removal (CPR):    0.144ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK rise edge)
+                                                      0.000     0.000 r  
+    BSCAN_X0Y1           BSCANE2                      0.000     0.000 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+                         net (fo=1, routed)           0.837     0.837    arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/DRCK
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.026     0.863 r  arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/Using_FPGA.Native/O
+                         net (fo=233, routed)         0.635     1.498    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_unisim.MB_SRL16E_I1
+    SLICE_X48Y170        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_Serial_Unified_Completion.mb_instr_error_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X48Y170        FDRE (Prop_fdre_C_Q)         0.141     1.639 r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_Serial_Unified_Completion.mb_instr_error_reg/Q
+                         net (fo=3, routed)           0.297     1.936    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_Serial_Unified_Completion.mb_instr_error_reg_n_0
+    SLICE_X52Y171        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_Serial_Unified_Completion.Completion_Status_Register.sample_1_reg[11]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK rise edge)
+                                                      0.000     0.000 r  
+    BSCAN_X0Y1           BSCANE2                      0.000     0.000 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+                         net (fo=1, routed)           0.969     0.969    arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/DRCK
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.029     0.998 r  arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/Using_FPGA.Native/O
+                         net (fo=233, routed)         0.904     1.902    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_unisim.MB_SRL16E_I1
+    SLICE_X52Y171        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_Serial_Unified_Completion.Completion_Status_Register.sample_1_reg[11]/C
+                         clock pessimism             -0.144     1.758    
+    SLICE_X52Y171        FDRE (Hold_fdre_C_D)         0.061     1.819    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_Serial_Unified_Completion.Completion_Status_Register.sample_1_reg[11]
+  -------------------------------------------------------------------
+                         required time                         -1.819    
+                         arrival time                           1.936    
+  -------------------------------------------------------------------
+                         slack                                  0.117    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK
+Waveform(ns):       { 0.000 16.667 }
+Period(ns):         33.333
+Sources:            { arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/DRCK }
+
+Check Type        Corner  Lib Pin     Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location       Pin
+Min Period        n/a     BUFG/I      n/a            2.155         33.333      31.178     BUFGCTRL_X0Y0  arty_mb_gemm_i/mdm_1/U0/No_Dbg_Reg_Access.BUFG_DRCK/Using_FPGA.Native/I
+Low Pulse Width   Slow    SRL16E/CLK  n/a            0.980         16.667      15.687     SLICE_X56Y165  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/Use_BSCAN.Config_Reg_reg[12]_srl13_MDM_Core_I1_Use_BSCAN.Config_Reg_reg_c_11/CLK
+High Pulse Width  Slow    SRL16E/CLK  n/a            0.980         16.666      15.686     SLICE_X56Y165  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/Use_BSCAN.Config_Reg_reg[12]_srl13_MDM_Core_I1_Use_BSCAN.Config_Reg_reg_c_11/CLK
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+  To Clock:  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+
+Setup :            0  Failing Endpoints,  Worst Slack       11.511ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.282ns,  Total Violation        0.000ns
+PW    :            0  Failing Endpoints,  Worst Slack       16.166ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             11.511ns  (required time - arrival time)
+  Source:                 arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.command_reg[1]/C
+                            (falling edge-triggered cell FDRE clocked by arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE  {rise@0.000ns fall@16.667ns period=33.333ns})
+  Destination:            arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+                            (rising edge-triggered cell FDCE clocked by arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE  {rise@0.000ns fall@16.667ns period=33.333ns})
+  Path Group:             arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            16.667ns  (arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE rise@33.333ns - arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE fall@16.667ns)
+  Data Path Delay:        4.678ns  (logic 1.148ns (24.539%)  route 3.530ns (75.461%))
+  Logic Levels:           3  (LUT3=1 LUT4=1 LUT5=1)
+  Clock Path Skew:        -0.033ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    3.384ns = ( 36.717 - 33.333 ) 
+    Source Clock Delay      (SCD):    3.787ns = ( 20.453 - 16.667 ) 
+    Clock Pessimism Removal (CPR):    0.369ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE fall edge)
+                                                     16.667    16.667 f  
+    BSCAN_X0Y1           BSCANE2                      0.000    16.667 f  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+                         net (fo=1, routed)           1.900    18.567    arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.096    18.663 f  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0_BUFG_inst/O
+                         net (fo=39, routed)          1.790    20.453    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/CLK
+    SLICE_X50Y168        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.command_reg[1]/C  (IS_INVERTED)
+  -------------------------------------------------------------------    -------------------
+    SLICE_X50Y168        FDRE (Prop_fdre_C_Q)         0.524    20.977 f  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.command_reg[1]/Q
+                         net (fo=7, routed)           0.696    21.674    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I/command[1]
+    SLICE_X50Y168        LUT3 (Prop_lut3_I2_O)        0.146    21.820 f  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I/Dbg_Reg_En_0[1]_INST_0/O
+                         net (fo=2, routed)           0.656    22.476    arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+    SLICE_X48Y168        LUT4 (Prop_lut4_I1_O)        0.328    22.804 f  arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=7, routed)           0.983    23.787    arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+    SLICE_X46Y167        LUT5 (Prop_lut5_I4_O)        0.150    23.937 r  arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+                         net (fo=8, routed)           1.195    25.131    arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+    SLICE_X37Y169        FDCE                                         r  arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+  -------------------------------------------------------------------    -------------------
+
+                         (clock arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE rise edge)
+                                                     33.333    33.333 r  
+    BSCAN_X0Y1           BSCANE2                      0.000    33.333 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+                         net (fo=1, routed)           1.623    34.956    arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.091    35.047 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0_BUFG_inst/O
+                         net (fo=39, routed)          1.670    36.717    arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+    SLICE_X37Y169        FDCE                                         r  arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+                         clock pessimism              0.369    37.087    
+                         clock uncertainty           -0.035    37.051    
+    SLICE_X37Y169        FDCE (Setup_fdce_C_CE)      -0.409    36.642    arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>
+  -------------------------------------------------------------------
+                         required time                         36.642    
+                         arrival time                         -25.131    
+  -------------------------------------------------------------------
+                         slack                                 11.511    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.282ns  (arrival time - required time)
+  Source:                 arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Debug_Rst_i_reg/C
+                            (rising edge-triggered cell FDRE clocked by arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE  {rise@0.000ns fall@16.667ns period=33.333ns})
+  Destination:            arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Debug_Rst_i_reg/D
+                            (rising edge-triggered cell FDRE clocked by arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE  {rise@0.000ns fall@16.667ns period=33.333ns})
+  Path Group:             arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE rise@0.000ns - arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE rise@0.000ns)
+  Data Path Delay:        0.373ns  (logic 0.186ns (49.871%)  route 0.187ns (50.129%))
+  Logic Levels:           1  (LUT6=1)
+  Clock Path Skew:        0.000ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    1.760ns
+    Source Clock Delay      (SCD):    1.365ns
+    Clock Pessimism Removal (CPR):    0.395ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE rise edge)
+                                                      0.000     0.000 r  
+    BSCAN_X0Y1           BSCANE2                      0.000     0.000 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+                         net (fo=1, routed)           0.701     0.701    arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.026     0.727 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0_BUFG_inst/O
+                         net (fo=39, routed)          0.638     1.365    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/CLK
+    SLICE_X48Y167        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Debug_Rst_i_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X48Y167        FDRE (Prop_fdre_C_Q)         0.141     1.506 r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Debug_Rst_i_reg/Q
+                         net (fo=2, routed)           0.187     1.693    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I/Dbg_Rst_0
+    SLICE_X48Y167        LUT6 (Prop_lut6_I5_O)        0.045     1.738 r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I/Debug_Rst_i_i_1/O
+                         net (fo=1, routed)           0.000     1.738    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Use_BSCAN.FDC_I_n_34
+    SLICE_X48Y167        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Debug_Rst_i_reg/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE rise edge)
+                                                      0.000     0.000 r  
+    BSCAN_X0Y1           BSCANE2                      0.000     0.000 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+                         net (fo=1, routed)           0.820     0.820    arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.029     0.849 r  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0_BUFG_inst/O
+                         net (fo=39, routed)          0.911     1.760    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/CLK
+    SLICE_X48Y167        FDRE                                         r  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Debug_Rst_i_reg/C
+                         clock pessimism             -0.395     1.365    
+    SLICE_X48Y167        FDRE (Hold_fdre_C_D)         0.091     1.456    arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Debug_Rst_i_reg
+  -------------------------------------------------------------------
+                         required time                         -1.456    
+                         arrival time                           1.738    
+  -------------------------------------------------------------------
+                         slack                                  0.282    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE
+Waveform(ns):       { 0.000 16.667 }
+Period(ns):         33.333
+Sources:            { arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Use_E2.BSCANE2_I/UPDATE }
+
+Check Type        Corner  Lib Pin  Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location       Pin
+Min Period        n/a     BUFG/I   n/a            2.155         33.333      31.178     BUFGCTRL_X0Y1  arty_mb_gemm_i/mdm_1/U0/Use_E2.BSCAN_I/Dbg_Update_0_BUFG_inst/I
+Low Pulse Width   Slow    FDCE/C   n/a            0.500         16.667      16.167     SLICE_X54Y168  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/Use_BSCAN.PORT_Selector_1_reg[0]/C
+High Pulse Width  Slow    FDCE/C   n/a            0.500         16.666      16.166     SLICE_X54Y168  arty_mb_gemm_i/mdm_1/U0/MDM_Core_I1/Use_BSCAN.PORT_Selector_1_reg[0]/C
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  sys_clk_pin
+  To Clock:  sys_clk_pin
+
+Setup :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+Hold  :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+PW    :            0  Failing Endpoints,  Worst Slack        3.000ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         sys_clk_pin
+Waveform(ns):       { 0.000 5.000 }
+Period(ns):         10.000
+Sources:            { sys_clk }
+
+Check Type        Corner  Lib Pin            Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location         Pin
+Min Period        n/a     MMCME2_ADV/CLKIN1  n/a            1.249         10.000      8.751      MMCME2_ADV_X1Y2  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKIN1
+Max Period        n/a     MMCME2_ADV/CLKIN1  n/a            100.000       10.000      90.000     MMCME2_ADV_X1Y2  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKIN1
+Low Pulse Width   Slow    MMCME2_ADV/CLKIN1  n/a            2.000         5.000       3.000      MMCME2_ADV_X1Y2  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKIN1
+High Pulse Width  Slow    MMCME2_ADV/CLKIN1  n/a            2.000         5.000       3.000      MMCME2_ADV_X1Y2  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKIN1
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  clk_out1_arty_mb_gemm_clk_wiz_0_0_1
+  To Clock:  clk_out1_arty_mb_gemm_clk_wiz_0_0_1
+
+Setup :            0  Failing Endpoints,  Worst Slack        0.137ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.052ns,  Total Violation        0.000ns
+PW    :            0  Failing Endpoints,  Worst Slack        3.750ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.137ns  (required time - arrival time)
+  Source:                 arty_mb_gemm_i/axi_gemm_stream_0/inst/act_ram_reg/CLKBWRCLK
+                            (rising edge-triggered cell RAMB18E1 clocked by clk_out1_arty_mb_gemm_clk_wiz_0_0_1  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/acc_reg[31]/D
+                            (rising edge-triggered cell FDCE clocked by clk_out1_arty_mb_gemm_clk_wiz_0_0_1  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_out1_arty_mb_gemm_clk_wiz_0_0_1
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise@10.000ns - clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise@0.000ns)
+  Data Path Delay:        9.950ns  (logic 5.053ns (50.783%)  route 4.897ns (49.217%))
+  Logic Levels:           10  (CARRY4=6 LUT2=1 LUT5=3)
+  Clock Path Skew:        0.086ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    -1.278ns = ( 8.722 - 10.000 ) 
+    Source Clock Delay      (SCD):    -0.883ns
+    Clock Pessimism Removal (CPR):    0.480ns
+  Clock Uncertainty:      0.074ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.129ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1
+    E3                   IBUF (Prop_ibuf_I_O)         1.482     1.482 r  arty_mb_gemm_i/clk_wiz_0/inst/clkin1_ibufg/O
+                         net (fo=1, routed)           1.233     2.715    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1_arty_mb_gemm_clk_wiz_0_0
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -7.070    -4.355 r  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+                         net (fo=1, routed)           1.719    -2.636    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_arty_mb_gemm_clk_wiz_0_0
+    BUFGCTRL_X0Y31       BUFG (Prop_bufg_I_O)         0.096    -2.540 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf_replica/O
+                         net (fo=2, routed)           1.657    -0.883    arty_mb_gemm_i/axi_gemm_stream_0/inst/clk_out1_repN_alias
+    RAMB18_X1Y30         RAMB18E1                                     r  arty_mb_gemm_i/axi_gemm_stream_0/inst/act_ram_reg/CLKBWRCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB18_X1Y30         RAMB18E1 (Prop_ramb18e1_CLKBWRCLK_DOBDO[5])
+                                                      2.454     1.571 f  arty_mb_gemm_i/axi_gemm_stream_0/inst/act_ram_reg/DOBDO[5]
+                         net (fo=6, routed)           0.979     2.550    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[0].dot_i/u_w/DOBDO[5]
+    SLICE_X60Y75         LUT5 (Prop_lut5_I2_O)        0.124     2.674 f  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[0].dot_i/u_w/i__carry__1_i_12/O
+                         net (fo=2, routed)           0.752     3.425    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[0].dot_i/u_w/i__carry__1_i_12_n_0
+    SLICE_X59Y83         LUT5 (Prop_lut5_I0_O)        0.124     3.549 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[0].dot_i/u_w/i__carry__1_i_7/O
+                         net (fo=128, routed)         1.524     5.074    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/act_sel[9]
+    SLICE_X41Y97         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.674     5.748 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/_inferred__0/i__carry__1/CO[3]
+                         net (fo=1, routed)           0.000     5.748    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/_inferred__0/i__carry__1_n_0
+    SLICE_X41Y98         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.862 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/_inferred__0/i__carry__2/CO[3]
+                         net (fo=3, routed)           1.063     6.925    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/_inferred__0/i__carry__2_n_0
+    SLICE_X29Y99         LUT5 (Prop_lut5_I2_O)        0.124     7.049 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch[19]_i_5/O
+                         net (fo=1, routed)           0.000     7.049    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch[19]_i_5_n_0
+    SLICE_X29Y99         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.550     7.599 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch_reg[19]_i_1__0/CO[3]
+                         net (fo=1, routed)           0.001     7.599    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch_reg[19]_i_1__0_n_0
+    SLICE_X29Y100        CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     7.713 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch_reg[23]_i_1__0/CO[3]
+                         net (fo=1, routed)           0.000     7.713    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch_reg[23]_i_1__0_n_0
+    SLICE_X29Y101        CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     7.827 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch_reg[27]_i_1__0/CO[3]
+                         net (fo=1, routed)           0.000     7.827    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch_reg[27]_i_1__0_n_0
+    SLICE_X29Y102        CARRY4 (Prop_carry4_CI_O[3])
+                                                      0.329     8.156 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/result_latch_reg[31]_i_2__0/O[3]
+                         net (fo=2, routed)           0.579     8.735    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/acc_reg[29][31]
+    SLICE_X29Y103        LUT2 (Prop_lut2_I1_O)        0.332     9.067 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/u_w/acc[31]_i_1__0/O
+                         net (fo=1, routed)           0.000     9.067    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/acc[31]
+    SLICE_X29Y103        FDCE                                         r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/acc_reg[31]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise edge)
+                                                     10.000    10.000 r  
+    E3                                                0.000    10.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000    10.000    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1
+    E3                   IBUF (Prop_ibuf_I_O)         1.411    11.411 r  arty_mb_gemm_i/clk_wiz_0/inst/clkin1_ibufg/O
+                         net (fo=1, routed)           1.162    12.573    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1_arty_mb_gemm_clk_wiz_0_0
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -7.324     5.249 r  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+                         net (fo=1, routed)           1.639     6.888    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_arty_mb_gemm_clk_wiz_0_0
+    BUFGCTRL_X0Y31       BUFG (Prop_bufg_I_O)         0.091     6.979 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf_replica/O
+                         net (fo=2, routed)           0.147     7.126    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_repN
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     7.217 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf/O
+                         net (fo=10264, routed)       1.505     8.722    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/clk
+    SLICE_X29Y103        FDCE                                         r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/acc_reg[31]/C
+                         clock pessimism              0.480     9.203    
+                         clock uncertainty           -0.074     9.129    
+    SLICE_X29Y103        FDCE (Setup_fdce_C_D)        0.075     9.204    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[62].dot_i/acc_reg[31]
+  -------------------------------------------------------------------
+                         required time                          9.204    
+                         arrival time                          -9.067    
+  -------------------------------------------------------------------
+                         slack                                  0.137    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.052ns  (arrival time - required time)
+  Source:                 arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/result_latch_reg[26]/C
+                            (rising edge-triggered cell FDCE clocked by clk_out1_arty_mb_gemm_clk_wiz_0_0_1  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/acc_out_reg[26]/D
+                            (rising edge-triggered cell FDCE clocked by clk_out1_arty_mb_gemm_clk_wiz_0_0_1  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_out1_arty_mb_gemm_clk_wiz_0_0_1
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise@0.000ns - clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise@0.000ns)
+  Data Path Delay:        0.408ns  (logic 0.209ns (51.284%)  route 0.199ns (48.716%))
+  Logic Levels:           1  (LUT2=1)
+  Clock Path Skew:        0.264ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.765ns
+    Source Clock Delay      (SCD):    -0.527ns
+    Clock Pessimism Removal (CPR):    -0.502ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  arty_mb_gemm_i/clk_wiz_0/inst/clkin1_ibufg/O
+                         net (fo=1, routed)           0.440     0.690    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1_arty_mb_gemm_clk_wiz_0_0
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_arty_mb_gemm_clk_wiz_0_0
+    BUFGCTRL_X0Y31       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf_replica/O
+                         net (fo=2, routed)           0.042    -1.122    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_repN
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.026    -1.096 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf/O
+                         net (fo=10264, routed)       0.569    -0.527    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/clk
+    SLICE_X42Y99         FDCE                                         r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/result_latch_reg[26]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y99         FDCE (Prop_fdce_C_Q)         0.164    -0.363 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/result_latch_reg[26]/Q
+                         net (fo=1, routed)           0.199    -0.165    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/result_latch_reg_n_0_[26]
+    SLICE_X43Y102        LUT2 (Prop_lut2_I1_O)        0.045    -0.120 r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/acc_out[26]_i_1__40/O
+                         net (fo=1, routed)           0.000    -0.120    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/acc_out[26]_i_1__40_n_0
+    SLICE_X43Y102        FDCE                                         r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/acc_out_reg[26]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  arty_mb_gemm_i/clk_wiz_0/inst/clkin1_ibufg/O
+                         net (fo=1, routed)           0.480     0.918    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1_arty_mb_gemm_clk_wiz_0_0
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_arty_mb_gemm_clk_wiz_0_0
+    BUFGCTRL_X0Y31       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf_replica/O
+                         net (fo=2, routed)           0.046    -1.627    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_repN
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.029    -1.598 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf/O
+                         net (fo=10264, routed)       0.833    -0.765    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/clk
+    SLICE_X43Y102        FDCE                                         r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/acc_out_reg[26]/C
+                         clock pessimism              0.502    -0.263    
+    SLICE_X43Y102        FDCE (Hold_fdce_C_D)         0.092    -0.171    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[21].dot_i/acc_out_reg[26]
+  -------------------------------------------------------------------
+                         required time                          0.171    
+                         arrival time                          -0.120    
+  -------------------------------------------------------------------
+                         slack                                  0.052    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         clk_out1_arty_mb_gemm_clk_wiz_0_0_1
+Waveform(ns):       { 0.000 5.000 }
+Period(ns):         10.000
+Sources:            { arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0 }
+
+Check Type        Corner  Lib Pin             Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location         Pin
+Min Period        n/a     RAMB18E1/CLKARDCLK  n/a            2.944         10.000      7.056      RAMB18_X1Y30     arty_mb_gemm_i/axi_gemm_stream_0/inst/act_ram_reg/CLKARDCLK
+Max Period        n/a     MMCME2_ADV/CLKOUT0  n/a            213.360       10.000      203.360    MMCME2_ADV_X1Y2  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+Low Pulse Width   Slow    RAMD32/CLK          n/a            1.250         5.000       3.750      SLICE_X30Y164    arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+High Pulse Width  Slow    RAMD32/CLK          n/a            1.250         5.000       3.750      SLICE_X30Y164    arty_mb_gemm_wrapper/arty_mb_gemm/arty_mb_gemm_microblaze_0_0/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>/<hidden>
+
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  clkfbout_arty_mb_gemm_clk_wiz_0_0_1
+  To Clock:  clkfbout_arty_mb_gemm_clk_wiz_0_0_1
+
+Setup :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+Hold  :           NA  Failing Endpoints,  Worst Slack           NA  ,  Total Violation           NA
+PW    :            0  Failing Endpoints,  Worst Slack        7.845ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         clkfbout_arty_mb_gemm_clk_wiz_0_0_1
+Waveform(ns):       { 0.000 5.000 }
+Period(ns):         10.000
+Sources:            { arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKFBOUT }
+
+Check Type  Corner  Lib Pin             Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location         Pin
+Min Period  n/a     BUFG/I              n/a            2.155         10.000      7.845      BUFGCTRL_X0Y17   arty_mb_gemm_i/clk_wiz_0/inst/clkf_buf/I
+Max Period  n/a     MMCME2_ADV/CLKFBIN  n/a            100.000       10.000      90.000     MMCME2_ADV_X1Y2  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKFBIN
+
+
+
+---------------------------------------------------------------------------------------------------
+Path Group:  **async_default**
+From Clock:  clk_out1_arty_mb_gemm_clk_wiz_0_0_1
+  To Clock:  clk_out1_arty_mb_gemm_clk_wiz_0_0_1
+
+Setup :            0  Failing Endpoints,  Worst Slack        1.312ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.488ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             1.312ns  (required time - arrival time)
+  Source:                 arty_mb_gemm_i/rst_clk_wiz_100M/U0/ACTIVE_LOW_PR_OUT_DFF[0].FDRE_PER_N/C
+                            (rising edge-triggered cell FDRE clocked by clk_out1_arty_mb_gemm_clk_wiz_0_0_1  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[36].dot_i/count_reg[13]/CLR
+                            (recovery check against rising-edge clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             **async_default**
+  Path Type:              Recovery (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise@10.000ns - clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise@0.000ns)
+  Data Path Delay:        8.053ns  (logic 0.580ns (7.202%)  route 7.473ns (92.798%))
+  Logic Levels:           1  (LUT2=1)
+  Clock Path Skew:        -0.200ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    -1.190ns = ( 8.810 - 10.000 ) 
+    Source Clock Delay      (SCD):    -0.498ns
+    Clock Pessimism Removal (CPR):    0.492ns
+  Clock Uncertainty:      0.074ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.129ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1
+    E3                   IBUF (Prop_ibuf_I_O)         1.482     1.482 r  arty_mb_gemm_i/clk_wiz_0/inst/clkin1_ibufg/O
+                         net (fo=1, routed)           1.233     2.715    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1_arty_mb_gemm_clk_wiz_0_0
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -7.070    -4.355 r  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+                         net (fo=1, routed)           1.719    -2.636    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_arty_mb_gemm_clk_wiz_0_0
+    BUFGCTRL_X0Y31       BUFG (Prop_bufg_I_O)         0.096    -2.540 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf_replica/O
+                         net (fo=2, routed)           0.154    -2.386    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_repN
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.096    -2.290 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf/O
+                         net (fo=10264, routed)       1.792    -0.498    arty_mb_gemm_i/rst_clk_wiz_100M/U0/slowest_sync_clk
+    SLICE_X53Y156        FDRE                                         r  arty_mb_gemm_i/rst_clk_wiz_100M/U0/ACTIVE_LOW_PR_OUT_DFF[0].FDRE_PER_N/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X53Y156        FDRE (Prop_fdre_C_Q)         0.456    -0.042 r  arty_mb_gemm_i/rst_clk_wiz_100M/U0/ACTIVE_LOW_PR_OUT_DFF[0].FDRE_PER_N/Q
+                         net (fo=25, routed)          2.740     2.698    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[29].dot_i/rst_n
+    SLICE_X47Y115        LUT2 (Prop_lut2_I0_O)        0.124     2.822 f  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[29].dot_i/count[15]_i_3__62/O
+                         net (fo=7296, routed)        4.734     7.556    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[36].dot_i/acc_reg[31]_0
+    SLICE_X80Y69         FDCE                                         f  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[36].dot_i/count_reg[13]/CLR
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise edge)
+                                                     10.000    10.000 r  
+    E3                                                0.000    10.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000    10.000    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1
+    E3                   IBUF (Prop_ibuf_I_O)         1.411    11.411 r  arty_mb_gemm_i/clk_wiz_0/inst/clkin1_ibufg/O
+                         net (fo=1, routed)           1.162    12.573    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1_arty_mb_gemm_clk_wiz_0_0
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -7.324     5.249 r  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+                         net (fo=1, routed)           1.639     6.888    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_arty_mb_gemm_clk_wiz_0_0
+    BUFGCTRL_X0Y31       BUFG (Prop_bufg_I_O)         0.091     6.979 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf_replica/O
+                         net (fo=2, routed)           0.147     7.126    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_repN
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     7.217 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf/O
+                         net (fo=10264, routed)       1.592     8.810    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[36].dot_i/clk
+    SLICE_X80Y69         FDCE                                         r  arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[36].dot_i/count_reg[13]/C
+                         clock pessimism              0.492     9.302    
+                         clock uncertainty           -0.074     9.229    
+    SLICE_X80Y69         FDCE (Recov_fdce_C_CLR)     -0.361     8.868    arty_mb_gemm_i/axi_gemm_stream_0/inst/u_gemm/dot_gen[36].dot_i/count_reg[13]
+  -------------------------------------------------------------------
+                         required time                          8.868    
+                         arrival time                          -7.556    
+  -------------------------------------------------------------------
+                         slack                                  1.312    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.488ns  (arrival time - required time)
+  Source:                 arty_mb_gemm_i/axi_gemm_wrapper_0/inst/ctrl_rst_sw_reg/C
+                            (rising edge-triggered cell FDCE clocked by clk_out1_arty_mb_gemm_clk_wiz_0_0_1  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            arty_mb_gemm_i/axi_gemm_wrapper_0/inst/gemm_i/dot_gen[0].dot_i/result_latch_reg[20]/CLR
+                            (removal check against rising-edge clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             **async_default**
+  Path Type:              Removal (Min at Fast Process Corner)
+  Requirement:            0.000ns  (clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise@0.000ns - clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise@0.000ns)
+  Data Path Delay:        0.773ns  (logic 0.186ns (24.052%)  route 0.587ns (75.948%))
+  Logic Levels:           1  (LUT2=1)
+  Clock Path Skew:        0.352ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    -0.682ns
+    Source Clock Delay      (SCD):    -0.537ns
+    Clock Pessimism Removal (CPR):    -0.497ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1
+    E3                   IBUF (Prop_ibuf_I_O)         0.250     0.250 r  arty_mb_gemm_i/clk_wiz_0/inst/clkin1_ibufg/O
+                         net (fo=1, routed)           0.440     0.690    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1_arty_mb_gemm_clk_wiz_0_0
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.379    -1.689 r  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+                         net (fo=1, routed)           0.499    -1.190    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_arty_mb_gemm_clk_wiz_0_0
+    BUFGCTRL_X0Y31       BUFG (Prop_bufg_I_O)         0.026    -1.164 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf_replica/O
+                         net (fo=2, routed)           0.042    -1.122    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_repN
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.026    -1.096 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf/O
+                         net (fo=10264, routed)       0.559    -0.537    arty_mb_gemm_i/axi_gemm_wrapper_0/inst/s_axi_aclk
+    SLICE_X51Y145        FDCE                                         r  arty_mb_gemm_i/axi_gemm_wrapper_0/inst/ctrl_rst_sw_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X51Y145        FDCE (Prop_fdce_C_Q)         0.141    -0.396 f  arty_mb_gemm_i/axi_gemm_wrapper_0/inst/ctrl_rst_sw_reg/Q
+                         net (fo=3, routed)           0.158    -0.238    arty_mb_gemm_i/axi_gemm_wrapper_0/inst/gemm_i/dot_gen[0].dot_i/p_1_in[0]
+    SLICE_X51Y145        LUT2 (Prop_lut2_I0_O)        0.045    -0.193 f  arty_mb_gemm_i/axi_gemm_wrapper_0/inst/gemm_i/dot_gen[0].dot_i/count[15]_i_3__2/O
+                         net (fo=456, routed)         0.429     0.236    arty_mb_gemm_i/axi_gemm_wrapper_0/inst/gemm_i/dot_gen[0].dot_i/ctrl_rst_sw_reg
+    SLICE_X50Y151        FDCE                                         f  arty_mb_gemm_i/axi_gemm_wrapper_0/inst/gemm_i/dot_gen[0].dot_i/result_latch_reg[20]/CLR
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_out1_arty_mb_gemm_clk_wiz_0_0_1 rise edge)
+                                                      0.000     0.000 r  
+    E3                                                0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1
+    E3                   IBUF (Prop_ibuf_I_O)         0.438     0.438 r  arty_mb_gemm_i/clk_wiz_0/inst/clkin1_ibufg/O
+                         net (fo=1, routed)           0.480     0.918    arty_mb_gemm_i/clk_wiz_0/inst/clk_in1_arty_mb_gemm_clk_wiz_0_0
+    MMCME2_ADV_X1Y2      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.163    -2.245 r  arty_mb_gemm_i/clk_wiz_0/inst/mmcm_adv_inst/CLKOUT0
+                         net (fo=1, routed)           0.544    -1.702    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_arty_mb_gemm_clk_wiz_0_0
+    BUFGCTRL_X0Y31       BUFG (Prop_bufg_I_O)         0.029    -1.673 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf_replica/O
+                         net (fo=2, routed)           0.046    -1.627    arty_mb_gemm_i/clk_wiz_0/inst/clk_out1_repN
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.029    -1.598 r  arty_mb_gemm_i/clk_wiz_0/inst/clkout1_buf/O
+                         net (fo=10264, routed)       0.916    -0.682    arty_mb_gemm_i/axi_gemm_wrapper_0/inst/gemm_i/dot_gen[0].dot_i/s_axi_aclk
+    SLICE_X50Y151        FDCE                                         r  arty_mb_gemm_i/axi_gemm_wrapper_0/inst/gemm_i/dot_gen[0].dot_i/result_latch_reg[20]/C
+                         clock pessimism              0.497    -0.185    
+    SLICE_X50Y151        FDCE (Remov_fdce_C_CLR)     -0.067    -0.252    arty_mb_gemm_i/axi_gemm_wrapper_0/inst/gemm_i/dot_gen[0].dot_i/result_latch_reg[20]
+  -------------------------------------------------------------------
+                         required time                          0.252    
+                         arrival time                           0.236    
+  -------------------------------------------------------------------
+                         slack                                  0.488    
+
+
+
+
+

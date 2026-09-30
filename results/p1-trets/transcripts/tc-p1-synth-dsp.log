@@ -1,0 +1,1213 @@
+
+****** Vivado v2025.2 (64-bit)
+  **** SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+  **** IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+  **** SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+  **** Start of session at: Mon Aug 17 13:45:45 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source synth/int8_dsp_synth.tcl
+# set part xc7a100tcsg324-1
+# read_verilog synth/int8_dot_dsp.v
+# read_verilog rtl/int8_gemm.v
+# synth_design -top int8_gemm -part $part -mode out_of_context -generic COLS=64 -generic DEPTH=768
+Command: synth_design -top int8_gemm -part xc7a100tcsg324-1 -mode out_of_context -generic COLS=64 -generic DEPTH=768
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7a100t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7a100t'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 7 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 113632
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 2080.609 ; gain = 449.828 ; free physical = 24194 ; free virtual = 34187
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'int8_gemm' [/home/yoda/hwsw/tcore/tc-arty/rtl/int8_gemm.v:9]
+	Parameter COLS bound to: 64 - type: integer 
+	Parameter DEPTH bound to: 768 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'int8_dot' [/home/yoda/hwsw/tcore/tc-arty/synth/int8_dot_dsp.v:8]
+	Parameter DATA_WIDTH bound to: 8 - type: integer 
+	Parameter WEIGHT_WIDTH bound to: 8 - type: integer 
+	Parameter ACC_WIDTH bound to: 32 - type: integer 
+	Parameter VECTOR_LEN bound to: 768 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'int8_dot' (0#1) [/home/yoda/hwsw/tcore/tc-arty/synth/int8_dot_dsp.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'int8_gemm' (0#1) [/home/yoda/hwsw/tcore/tc-arty/rtl/int8_gemm.v:9]
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 2166.578 ; gain = 535.797 ; free physical = 24115 ; free virtual = 34109
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 2172.516 ; gain = 541.734 ; free physical = 24113 ; free virtual = 34107
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7a100tcsg324-1
+---------------------------------------------------------------------------------
+INFO: [Device 21-403] Loading part xc7a100tcsg324-1
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 2172.516 ; gain = 541.734 ; free physical = 24113 ; free virtual = 34107
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 2181.422 ; gain = 550.641 ; free physical = 24113 ; free virtual = 34108
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Registers : 
+	               32 Bit    Registers := 192   
+	               16 Bit    Registers := 64    
+	                1 Bit    Registers := 128   
++---Muxes : 
+	   2 Input   32 Bit        Muxes := 64    
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 240 (col length:80)
+BRAMs: 270 (col length: RAMB18 80 RAMB36 40)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A*B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: operator prod is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+DSP Report: Generating DSP count0, operation Mode is: C+A:B.
+DSP Report: operator count0 is absorbed into DSP count0.
+DSP Report: Generating DSP prod, operation Mode is: A*B.
+DSP Report: operator prod is absorbed into DSP prod.
+DSP Report: Generating DSP next_acc, operation Mode is: C+A:B.
+DSP Report: operator next_acc is absorbed into DSP next_acc.
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:07 ; elapsed = 00:00:07 . Memory (MB): peak = 2380.352 ; gain = 749.570 ; free physical = 23933 ; free virtual = 33927
+---------------------------------------------------------------------------------
+ Sort Area is  next_acc_11 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_13 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_15 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_17 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_19 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_1b : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_1d : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_1f : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_2 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_5 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_7 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_9 : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_b : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_d : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  next_acc_f : 0 0 : 566 566 : Used 1 time 100
+ Sort Area is  prod_21 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_26 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_29 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_2c : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_2f : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_32 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_35 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_38 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_3b : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_3e : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_41 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_44 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_47 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_4a : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_4d : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_50 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_53 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_56 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_59 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_5c : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_5f : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_62 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_65 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_68 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_6b : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_6e : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_71 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_74 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_77 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_7a : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_7d : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_80 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_83 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_86 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_89 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_8c : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_8f : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_92 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_95 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_98 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_9b : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_9e : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_a1 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_a4 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_a7 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_aa : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_ad : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_b0 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  prod_b3 : 0 0 : 454 454 : Used 1 time 100
+ Sort Area is  next_acc_23 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_27 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_2a : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_2d : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_30 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_33 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_36 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_39 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_3c : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_3f : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_42 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_45 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_48 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_4b : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_4e : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_51 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_54 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_57 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_5a : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_5d : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_60 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_63 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_66 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_69 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_6c : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_6f : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_72 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_75 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_78 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_7b : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_7e : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_81 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_84 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_87 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_8a : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_8d : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_90 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_93 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_96 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_99 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_9c : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_9f : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_a2 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_a5 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_a8 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_ab : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_ae : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_b1 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  next_acc_b4 : 0 0 : 95 95 : Used 1 time 100
+ Sort Area is  count0_0 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_10 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_12 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_14 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_16 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_18 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_1a : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_1c : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_1e : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_20 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_25 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_28 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_2b : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_2e : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_31 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_34 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_37 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_3a : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_3d : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_4 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_40 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_43 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_46 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_49 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_4c : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_4f : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_52 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_55 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_58 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_5b : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_5e : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_6 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_61 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_64 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_67 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_6a : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_6d : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_70 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_73 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_76 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_79 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_7c : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_7f : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_8 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_82 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_85 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_88 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_8b : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_8e : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_91 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_94 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_97 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_9a : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_9d : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_a : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_a0 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_a3 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_a6 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_a9 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_ac : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_af : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_b2 : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_c : 0 0 : 47 47 : Used 1 time 100
+ Sort Area is  count0_e : 0 0 : 47 47 : Used 1 time 100
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+DSP: Preliminary Mapping Report (see note below. The ' indicates corresponding REG is set)
++------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|Module Name | DSP Mapping | A Size | B Size | C Size | D Size | P Size | AREG | BREG | CREG | DREG | ADREG | MREG | PREG | 
++------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A*B       | 8      | 8      | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 8      | 8      | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
++------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+
+Note: The table above is a preliminary report that shows the DSPs inferred at the current stage of the synthesis flow. Some DSP may be reimplemented as non DSP primitives later in the synthesis flow. Multiple instantiated DSPs are reported only once.
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 2386.289 ; gain = 755.508 ; free physical = 23931 ; free virtual = 33926
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 2390.289 ; gain = 759.508 ; free physical = 23928 ; free virtual = 33922
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.102 ; gain = 905.320 ; free physical = 23825 ; free virtual = 33820
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.102 ; gain = 905.320 ; free physical = 23821 ; free virtual = 33815
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.102 ; gain = 905.320 ; free physical = 23821 ; free virtual = 33815
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.102 ; gain = 905.320 ; free physical = 23821 ; free virtual = 33815
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:11 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.102 ; gain = 905.320 ; free physical = 23821 ; free virtual = 33815
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:11 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.102 ; gain = 905.320 ; free physical = 23821 ; free virtual = 33815
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+DSP Final Report (the ' indicates corresponding REG is set)
++------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|Module Name | DSP Mapping | A Size | B Size | C Size | D Size | P Size | AREG | BREG | CREG | DREG | ADREG | MREG | PREG | 
++------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 30     | 18     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|int8_dot    | A*B         | 30     | 18     | -      | -      | 16     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|int8_dot    | C+A:B       | 14     | 18     | 32     | -      | 32     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
++------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+--------+------+
+|      |Cell    |Count |
++------+--------+------+
+|1     |DSP48E1 |   192|
+|2     |LUT1    |    65|
+|3     |LUT2    |  5120|
+|4     |LUT3    |    64|
+|5     |LUT4    |   384|
+|6     |FDCE    |  7168|
+|7     |FDPE    |   128|
++------+--------+------+
+
+Report Instance Areas: 
++------+----------------------+------------+------+
+|      |Instance              |Module      |Cells |
++------+----------------------+------------+------+
+|1     |top                   |            | 13121|
+|2     |  \dot_gen[0].dot_i   |int8_dot    |   205|
+|3     |  \dot_gen[10].dot_i  |int8_dot_0  |   205|
+|4     |  \dot_gen[11].dot_i  |int8_dot_1  |   205|
+|5     |  \dot_gen[12].dot_i  |int8_dot_2  |   205|
+|6     |  \dot_gen[13].dot_i  |int8_dot_3  |   205|
+|7     |  \dot_gen[14].dot_i  |int8_dot_4  |   205|
+|8     |  \dot_gen[15].dot_i  |int8_dot_5  |   205|
+|9     |  \dot_gen[16].dot_i  |int8_dot_6  |   205|
+|10    |  \dot_gen[17].dot_i  |int8_dot_7  |   205|
+|11    |  \dot_gen[18].dot_i  |int8_dot_8  |   205|
+|12    |  \dot_gen[19].dot_i  |int8_dot_9  |   205|
+|13    |  \dot_gen[1].dot_i   |int8_dot_10 |   205|
+|14    |  \dot_gen[20].dot_i  |int8_dot_11 |   205|
+|15    |  \dot_gen[21].dot_i  |int8_dot_12 |   205|
+|16    |  \dot_gen[22].dot_i  |int8_dot_13 |   205|
+|17    |  \dot_gen[23].dot_i  |int8_dot_14 |   205|
+|18    |  \dot_gen[24].dot_i  |int8_dot_15 |   205|
+|19    |  \dot_gen[25].dot_i  |int8_dot_16 |   205|
+|20    |  \dot_gen[26].dot_i  |int8_dot_17 |   205|
+|21    |  \dot_gen[27].dot_i  |int8_dot_18 |   205|
+|22    |  \dot_gen[28].dot_i  |int8_dot_19 |   205|
+|23    |  \dot_gen[29].dot_i  |int8_dot_20 |   205|
+|24    |  \dot_gen[2].dot_i   |int8_dot_21 |   205|
+|25    |  \dot_gen[30].dot_i  |int8_dot_22 |   205|
+|26    |  \dot_gen[31].dot_i  |int8_dot_23 |   205|
+|27    |  \dot_gen[32].dot_i  |int8_dot_24 |   205|
+|28    |  \dot_gen[33].dot_i  |int8_dot_25 |   205|
+|29    |  \dot_gen[34].dot_i  |int8_dot_26 |   205|
+|30    |  \dot_gen[35].dot_i  |int8_dot_27 |   205|
+|31    |  \dot_gen[36].dot_i  |int8_dot_28 |   205|
+|32    |  \dot_gen[37].dot_i  |int8_dot_29 |   205|
+|33    |  \dot_gen[38].dot_i  |int8_dot_30 |   205|
+|34    |  \dot_gen[39].dot_i  |int8_dot_31 |   205|
+|35    |  \dot_gen[3].dot_i   |int8_dot_32 |   205|
+|36    |  \dot_gen[40].dot_i  |int8_dot_33 |   205|
+|37    |  \dot_gen[41].dot_i  |int8_dot_34 |   205|
+|38    |  \dot_gen[42].dot_i  |int8_dot_35 |   205|
+|39    |  \dot_gen[43].dot_i  |int8_dot_36 |   205|
+|40    |  \dot_gen[44].dot_i  |int8_dot_37 |   205|
+|41    |  \dot_gen[45].dot_i  |int8_dot_38 |   205|
+|42    |  \dot_gen[46].dot_i  |int8_dot_39 |   205|
+|43    |  \dot_gen[47].dot_i  |int8_dot_40 |   205|
+|44    |  \dot_gen[48].dot_i  |int8_dot_41 |   205|
+|45    |  \dot_gen[49].dot_i  |int8_dot_42 |   205|
+|46    |  \dot_gen[4].dot_i   |int8_dot_43 |   205|
+|47    |  \dot_gen[50].dot_i  |int8_dot_44 |   205|
+|48    |  \dot_gen[51].dot_i  |int8_dot_45 |   205|
+|49    |  \dot_gen[52].dot_i  |int8_dot_46 |   205|
+|50    |  \dot_gen[53].dot_i  |int8_dot_47 |   205|
+|51    |  \dot_gen[54].dot_i  |int8_dot_48 |   205|
+|52    |  \dot_gen[55].dot_i  |int8_dot_49 |   205|
+|53    |  \dot_gen[56].dot_i  |int8_dot_50 |   205|
+|54    |  \dot_gen[57].dot_i  |int8_dot_51 |   205|
+|55    |  \dot_gen[58].dot_i  |int8_dot_52 |   205|
+|56    |  \dot_gen[59].dot_i  |int8_dot_53 |   205|
+|57    |  \dot_gen[5].dot_i   |int8_dot_54 |   205|
+|58    |  \dot_gen[60].dot_i  |int8_dot_55 |   205|
+|59    |  \dot_gen[61].dot_i  |int8_dot_56 |   205|
+|60    |  \dot_gen[62].dot_i  |int8_dot_57 |   205|
+|61    |  \dot_gen[63].dot_i  |int8_dot_58 |   206|
+|62    |  \dot_gen[6].dot_i   |int8_dot_59 |   205|
+|63    |  \dot_gen[7].dot_i   |int8_dot_60 |   205|
+|64    |  \dot_gen[8].dot_i   |int8_dot_61 |   205|
+|65    |  \dot_gen[9].dot_i   |int8_dot_62 |   205|
++------+----------------------+------------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:11 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.102 ; gain = 905.320 ; free physical = 23821 ; free virtual = 33815
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 0 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:11 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.102 ; gain = 905.320 ; free physical = 23821 ; free virtual = 33815
+Synthesis Optimization Complete : Time (s): cpu = 00:00:11 ; elapsed = 00:00:11 . Memory (MB): peak = 2536.109 ; gain = 905.320 ; free physical = 23821 ; free virtual = 33815
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00.06 ; elapsed = 00:00:00.06 . Memory (MB): peak = 2553.945 ; gain = 0.000 ; free physical = 23910 ; free virtual = 33904
+INFO: [Netlist 29-17] Analyzing 192 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2704.465 ; gain = 0.000 ; free physical = 23812 ; free virtual = 33807
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: 105fee64
+INFO: [Common 17-83] Releasing license: Synthesis
+16 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:14 ; elapsed = 00:00:13 . Memory (MB): peak = 2704.500 ; gain = 1073.719 ; free physical = 23815 ; free virtual = 33809
+INFO: [Common 17-2834] synth_design peak Physical Memory [PSS] (MB): overall = 2109.322; main = 2109.322; forked = 339.831
+INFO: [Common 17-2834] synth_design peak Virtual Memory [VSS] (MB): overall = 3451.543; main = 2704.469; forked = 994.250
+# create_clock -period 10.000 -name clk [get_ports clk]
+# report_utilization -file synth/int8_gemm64_dsp_util.rpt
+# report_timing_summary -file synth/int8_gemm64_dsp_timing.rpt
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -1, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 8 CPUs
+WARNING: [Timing 38-242] The property HD.CLK_SRC of clock port "clk" is not set. In out-of-context mode, this prevents timing estimation for clock delay/skew
+Resolution: Set the HD.CLK_SRC property of the out-of-context port to the location of the clock buffer instance in the top-level design
+# puts "=== INT8_GEMM DSP-FORCED COLS=64 DEPTH=768 ==="
+=== INT8_GEMM DSP-FORCED COLS=64 DEPTH=768 ===
+# puts "  LUT  : [llength [get_cells -hier -filter {PRIMITIVE_GROUP == LUT}]]"
+  LUT  : 5633
+# puts "  FF   : [llength [get_cells -hier -filter {PRIMITIVE_GROUP == FLOP_LATCH}]]"
+  FF   : 7296
+# puts "  DSP48: [llength [get_cells -hier -filter {REF_NAME =~ DSP48*}]]"
+  DSP48: 192
+# puts "INT8_DSP_SYNTH_DONE"
+INT8_DSP_SYNTH_DONE
+INFO: [Common 17-206] Exiting Vivado at Mon Aug 17 13:46:04 2026...
