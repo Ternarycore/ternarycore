@@ -109,6 +109,27 @@ Three layers, each building on the last:
 
 ---
 
+## Pretrained weights
+
+The distilled ternary student behind the published energy measurements is on the
+Hugging Face Hub:
+
+**[Ternarycore/ternarycore-sst2-student](https://huggingface.co/Ternarycore/ternarycore-sst2-student)**
+- DOI: [10.57967/hf/10696](https://doi.org/10.57967/hf/10696)
+
+A 28-block W1.58A8 student distilled from Qwen3-0.6B for GLUE SST-2 (91.4% vs a
+94.4% teacher). The repository ships three things:
+
+- `model.safetensors` - bf16, loadable with `transformers` (`trust_remote_code=True`),
+  holding the ternary values already multiplied by their per-layer absmean scale.
+- `hardware/layers/` - the 196 packed 2-bit projections this accelerator consumes,
+  `addr = k * GROUPS + g`, four codes per byte LSB-first.
+- `hardware/weights.bin` + `pages.json` - the whole model pre-sliced into 420 pages of
+  256 KB in the order the block executor walks them.
+
+The bf16 tensors were reconstructed *from* the packed layers and verified 196/196
+against the shipped int8 reference, so the published weights are the ones the board ran.
+
 ## Getting Started
 
 ### Prerequisites
