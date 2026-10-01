@@ -1,0 +1,9 @@
+ok   all +1 x 127: 508
+ok   all -1 x 127: -508
+ok   all -1 x -127: 508
+ok   all +1 x -128: -512
+FAIL one -1 x -128: got -128 expected 128
+FAIL all -1 x -128: got -512 expected 512
+FAIL reserved 2'b11 x 5 (ref: 0): got -5 expected 0
+fails=3
+tb_edge.v:60: $finish called at 590000 (1ps)

@@ -1,0 +1,24 @@
+
+4. Printing statistics.
+
+=== ternary_dot ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      190 wires
+      505 wire bits
+       12 public wires
+      128 public wire bits
+        7 ports
+       46 port bits
+      386 cells
+        1   BUFG
+       14   CARRY4
+      113   FDCE
+        1   FDPE
+      137   INV
+       57   LUT2
+        1   LUT3
+        6   LUT4
+       56   LUT5
+

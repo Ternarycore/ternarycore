@@ -1,0 +1,25 @@
+
+6. Printing statistics.
+
+=== xcheck_top ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      239 wires
+      711 wire bits
+       30 public wires
+      310 public wire bits
+        7 ports
+       46 port bits
+      397 cells
+        2   $scopeinfo
+        1   BUFG
+       15   CARRY4
+      113   FDCE
+        1   FDPE
+      137   INV
+       64   LUT2
+        1   LUT3
+       14   LUT4
+       49   LUT5
+

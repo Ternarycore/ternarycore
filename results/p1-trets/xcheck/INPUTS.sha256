@@ -1,0 +1,13 @@
+0789f62313d5ea72b0ce115ce0d039d6dd2427d8cd1bec774207e8eb3fa9b445  ternary.json  (Yosys netlist, not included: 9405 KiB, regenerate from the yosys log)
+cc7a83f0c658848048c7330e71bc294b3d4bf22330868b6070f902f103b003af  int8.json  (Yosys netlist, not included: 9616 KiB, regenerate from the yosys log)
+0789f62313d5ea72b0ce115ce0d039d6dd2427d8cd1bec774207e8eb3fa9b445  pinout-0906/ternary.json  (Yosys netlist, not included: 9405 KiB, regenerate from the yosys log)
+cc7a83f0c658848048c7330e71bc294b3d4bf22330868b6070f902f103b003af  pinout-0906/int8.json  (Yosys netlist, not included: 9616 KiB, regenerate from the yosys log)
+51d3423b958f053ef6d3a2cfd1f04e98fd3e05ff2daaf649555223f60b8af233  tag-rtl/ternary_tag.json  (Yosys netlist, not included: 9427 KiB, regenerate from the yosys log)
+2cf468b8157b38b54f55094d5246828224ab466bde99874e89d645a5ec6b6f3e  src/ternary_dot_nodebug.v
+8896463390d724ece22c59edf3ae5f7dc941f73eb87c92ffd5c9499937018c0c  src/int8_dot.v
+4d4c859ff8f0c0aebc4a2b5fac73c79974ccba6372572374236ee190b5c95159  ../tag-v1.0.1-trets/rtl/int8_dot.v
+87bfea9a395a4763e1eb6ddb6ecd4cb3135701f6df0b2f20c180e10f3533d554  ../tag-v1.0.1-trets/rtl/rmsnorm_quant.v
+322b4433ccb355c3487b47b94b974dfd14c101d44cb7c33c402296f93803535f  ../tag-v1.0.1-trets/rtl/ternary_dot.v
+633a75a6d66cd1ba67d352b680f0f598d5630a2af5b93c89a1c3841115559b64  ../tag-v1.0.1-trets/rtl/ternary_gemm.v
+9c4faacc712070382a5a303621a499b11629895756856c8110bbf2f0d35e7ae5  ../tag-v1.0.1-trets/rtl/ternary_mac.v
+6e51757f92cfa848e08b8f8590e8aa35459143e9784dd20ebdc4c9c747196e7f  ../tag-v1.0.1-trets/rtl/ternary_weight.v

@@ -1,0 +1,285 @@
+Info: Packing constants..
+Info: Inserting IO buffers..
+Info:     Constraining 'clk' to site 'IOB_X1Y124'
+Info:     Tile 'RIOB33_X105Y123'
+Info:     Constraining 'rst_n' to site 'IOB_X1Y115'
+Info:     Tile 'RIOB33_X105Y115'
+Info:     Constraining 'valid_in' to site 'IOB_X1Y197'
+Info:     Tile 'RIOB33_X105Y197'
+Info:     Constraining 'valid_out' to site 'IOB_X1Y127'
+Info:     Tile 'RIOB33_X105Y127'
+Info:     Constraining 'weight_enc[0]' to site 'IOB_X1Y136'
+Info:     Tile 'RIOB33_X105Y135'
+Info:     Constraining 'activation[7]' to site 'IOB_X0Y207'
+Info:     Tile 'LIOB33_X0Y207'
+Info:     Constraining 'weight_enc[1]' to site 'IOB_X1Y131'
+Info:     Tile 'RIOB33_X105Y131'
+Info:     Constraining 'activation[6]' to site 'IOB_X0Y217'
+Info:     Tile 'LIOB33_X0Y217'
+Info:     Constraining 'activation[5]' to site 'IOB_X0Y215'
+Info:     Tile 'LIOB33_X0Y215'
+Info:     Constraining 'activation[4]' to site 'IOB_X0Y216'
+Info:     Tile 'LIOB33_X0Y215'
+Info:     Constraining 'activation[3]' to site 'IOB_X0Y231'
+Info:     Tile 'LIOB33_X0Y231'
+Info:     Constraining 'activation[2]' to site 'IOB_X0Y232'
+Info:     Tile 'LIOB33_X0Y231'
+Info:     Constraining 'activation[1]' to site 'IOB_X0Y229'
+Info:     Tile 'LIOB33_X0Y229'
+Info:     Constraining 'activation[0]' to site 'IOB_X0Y230'
+Info:     Tile 'LIOB33_X0Y229'
+Info:     Constraining 'acc_out[0]' to site 'IOB_X1Y130'
+Info:     Tile 'RIOB33_X105Y129'
+Info:     Constraining 'acc_out[1]' to site 'IOB_X1Y113'
+Info:     Tile 'RIOB33_X105Y113'
+Info:     Constraining 'acc_out[2]' to site 'IOB_X1Y106'
+Info:     Tile 'RIOB33_X105Y105'
+Info:     Constraining 'acc_out[3]' to site 'IOB_X0Y84'
+Info:     Tile 'LIOB33_X0Y83'
+Info:     Constraining 'acc_out[4]' to site 'IOB_X0Y82'
+Info:     Tile 'LIOB33_X0Y81'
+Info:     Constraining 'acc_out[5]' to site 'IOB_X0Y81'
+Info:     Tile 'LIOB33_X0Y81'
+Info:     Constraining 'acc_out[6]' to site 'IOB_X0Y94'
+Info:     Tile 'LIOB33_X0Y93'
+Info:     Constraining 'acc_out[7]' to site 'IOB_X0Y89'
+Info:     Tile 'LIOB33_X0Y89'
+Info:     Constraining 'acc_out[8]' to site 'IOB_X0Y92'
+Info:     Tile 'LIOB33_X0Y91'
+Info:     Constraining 'acc_out[9]' to site 'IOB_X0Y97'
+Info:     Tile 'LIOB33_X0Y97'
+Info:     Constraining 'acc_out[10]' to site 'IOB_X0Y116'
+Info:     Tile 'LIOB33_X0Y115'
+Info:     Constraining 'acc_out[11]' to site 'IOB_X0Y120'
+Info:     Tile 'LIOB33_X0Y119'
+Info:     Constraining 'acc_out[12]' to site 'IOB_X0Y134'
+Info:     Tile 'LIOB33_X0Y133'
+Info:     Constraining 'acc_out[13]' to site 'IOB_X0Y133'
+Info:     Tile 'LIOB33_X0Y133'
+Info:     Constraining 'acc_out[14]' to site 'IOB_X1Y135'
+Info:     Tile 'RIOB33_X105Y135'
+Info:     Constraining 'acc_out[15]' to site 'IOB_X1Y133'
+Info:     Tile 'RIOB33_X105Y133'
+Info:     Constraining 'acc_out[16]' to site 'IOB_X1Y134'
+Info:     Tile 'RIOB33_X105Y133'
+Info:     Constraining 'acc_out[17]' to site 'IOB_X1Y129'
+Info:     Tile 'RIOB33_X105Y129'
+Info:     Constraining 'acc_out[18]' to site 'IOB_X1Y109'
+Info:     Tile 'RIOB33_X105Y109'
+Info:     Constraining 'acc_out[19]' to site 'IOB_X1Y110'
+Info:     Tile 'RIOB33_X105Y109'
+Info:     Constraining 'acc_out[20]' to site 'IOB_X1Y105'
+Info:     Tile 'RIOB33_X105Y105'
+Info:     Constraining 'acc_out[21]' to site 'IOB_X0Y83'
+Info:     Tile 'LIOB33_X0Y83'
+Info:     Constraining 'acc_out[22]' to site 'IOB_X0Y86'
+Info:     Tile 'LIOB33_X0Y85'
+Info:     Constraining 'acc_out[23]' to site 'IOB_X0Y85'
+Info:     Tile 'LIOB33_X0Y85'
+Info:     Constraining 'acc_out[24]' to site 'IOB_X0Y93'
+Info:     Tile 'LIOB33_X0Y93'
+Info:     Constraining 'acc_out[25]' to site 'IOB_X0Y91'
+Info:     Tile 'LIOB33_X0Y91'
+Info:     Constraining 'acc_out[26]' to site 'IOB_X0Y96'
+Info:     Tile 'LIOB33_X0Y95'
+Info:     Constraining 'acc_out[27]' to site 'IOB_X0Y95'
+Info:     Tile 'LIOB33_X0Y95'
+Info:     Constraining 'acc_out[28]' to site 'IOB_X0Y115'
+Info:     Tile 'LIOB33_X0Y115'
+Info:     Constraining 'acc_out[29]' to site 'IOB_X0Y119'
+Info:     Tile 'LIOB33_X0Y119'
+Info:     Constraining 'acc_out[30]' to site 'IOB_X0Y130'
+Info:     Tile 'LIOB33_X0Y129'
+Info:     Constraining 'acc_out[31]' to site 'IOB_X0Y129'
+Info:     Tile 'LIOB33_X0Y129'
+Info: Generating input buffer for 'clk$ibuf$'
+Info: Generating input buffer for 'rst_n$ibuf$'
+Info: Generating input buffer for 'valid_in$ibuf$'
+Info: Generating output buffer for 'valid_out$obuf$'
+Info: Generating input buffer for 'weight_enc[0]$ibuf$'
+Info: Generating input buffer for 'activation[7]$ibuf$'
+Info: Generating input buffer for 'weight_enc[1]$ibuf$'
+Info: Generating input buffer for 'activation[6]$ibuf$'
+Info: Generating input buffer for 'activation[5]$ibuf$'
+Info: Generating input buffer for 'activation[4]$ibuf$'
+Info: Generating input buffer for 'activation[3]$ibuf$'
+Info: Generating input buffer for 'activation[2]$ibuf$'
+Info: Generating input buffer for 'activation[1]$ibuf$'
+Info: Generating input buffer for 'activation[0]$ibuf$'
+Info: Generating output buffer for 'acc_out[0]$obuf$'
+Info: Generating output buffer for 'acc_out[1]$obuf$'
+Info: Generating output buffer for 'acc_out[2]$obuf$'
+Info: Generating output buffer for 'acc_out[3]$obuf$'
+Info: Generating output buffer for 'acc_out[4]$obuf$'
+Info: Generating output buffer for 'acc_out[5]$obuf$'
+Info: Generating output buffer for 'acc_out[6]$obuf$'
+Info: Generating output buffer for 'acc_out[7]$obuf$'
+Info: Generating output buffer for 'acc_out[8]$obuf$'
+Info: Generating output buffer for 'acc_out[9]$obuf$'
+Info: Generating output buffer for 'acc_out[10]$obuf$'
+Info: Generating output buffer for 'acc_out[11]$obuf$'
+Info: Generating output buffer for 'acc_out[12]$obuf$'
+Info: Generating output buffer for 'acc_out[13]$obuf$'
+Info: Generating output buffer for 'acc_out[14]$obuf$'
+Info: Generating output buffer for 'acc_out[15]$obuf$'
+Info: Generating output buffer for 'acc_out[16]$obuf$'
+Info: Generating output buffer for 'acc_out[17]$obuf$'
+Info: Generating output buffer for 'acc_out[18]$obuf$'
+Info: Generating output buffer for 'acc_out[19]$obuf$'
+Info: Generating output buffer for 'acc_out[20]$obuf$'
+Info: Generating output buffer for 'acc_out[21]$obuf$'
+Info: Generating output buffer for 'acc_out[22]$obuf$'
+Info: Generating output buffer for 'acc_out[23]$obuf$'
+Info: Generating output buffer for 'acc_out[24]$obuf$'
+Info: Generating output buffer for 'acc_out[25]$obuf$'
+Info: Generating output buffer for 'acc_out[26]$obuf$'
+Info: Generating output buffer for 'acc_out[27]$obuf$'
+Info: Generating output buffer for 'acc_out[28]$obuf$'
+Info: Generating output buffer for 'acc_out[29]$obuf$'
+Info: Generating output buffer for 'acc_out[30]$obuf$'
+Info: Generating output buffer for 'acc_out[31]$obuf$'
+Info:     Created 46 PAD cells from:
+Info:             46x PAD
+Info: Preparing clocking...
+Info: Packing constants..
+Info: Packing cfg...
+Info: Packing PLLs...
+Info: Packing Gigabit Transceivers..
+Info: Packing global buffers...
+Info:     Constrained BUFGCTRL '$auto$clkbufmap.cc:261:execute$3031' to bel 'BUFGCTRL_X0Y0/BUFGCTRL' based on dedicated routing
+Info: Packing MUX[789]s..
+Info: Packing carries (atomic CARRY4)..
+Info:    Packed 14 CARRY4 cells into 3 chains (atomic).
+Info: router2 PRECYINIT fix: 14 CARRY4 cells, 17 constant carry pins disconnected
+Info: Packing LUTs..
+Info:     Created 321 SLICE_LUTX cells from:
+Info:            201x LUT1
+Info:             57x LUT2
+Info:              1x LUT3
+Info:              6x LUT4
+Info:             56x LUT5
+Info: Packing DRAM..
+Info:    Transformed 0 tied-low DRAM address inputs to be tied-high
+Info: Packing BRAM..
+Info: Packing DSPs..
+Info: Packing flipflops..
+Info:     Created 114 SLICE_FFX cells from:
+Info:            113x FDCE
+Info:              1x FDPE
+Info:     local-const FF control: disconnected 0 SR(=GND) + 33 CE(=VCC) pins from global nets
+Info: Constrained 81 LUTFF pairs.
+
+Info: Annotating ports with timing budgets for target frequency 100.00 MHz
+Info: Checksum: 0x5a4709d8
+
+Info: Device utilisation:
+Info: 	          SLICE_LUTX:   321/269200     0%
+Info: 	           SLICE_FFX:   114/269200     0%
+Info: 	              CARRY4:    14/33650     0%
+Info: 	          PSEUDO_GND:     1/69165     0%
+Info: 	          PSEUDO_VCC:     1/69165     0%
+Info: 	               HARD0:     0/ 3960     0%
+Info: 	            RAMB18E1:     0/  730     0%
+Info: 	            FIFO18E1:     0/  365     0%
+Info: 	        RAMBFIFO36E1:     0/  365     0%
+Info: 	            RAMB36E1:     0/  365     0%
+Info: 	             DSP48E1:     0/  740     0%
+Info: 	                 PAD:    46/ 1062     4%
+Info: 	       IOB33M_OUTBUF:     0/  240     0%
+Info: 	       IOB33S_OUTBUF:     0/  240     0%
+Info: 	        IOB33_OUTBUF:    33/  500     6%
+Info: 	     IOB33M_INBUF_EN:     0/  240     0%
+Info: 	     IOB33S_INBUF_EN:     0/  240     0%
+Info: 	      IOB33_INBUF_EN:    13/  500     2%
+Info: 	IOB33M_TERM_OVERRIDE:     0/  240     0%
+Info: 	IOB33S_TERM_OVERRIDE:     0/  240     0%
+Info: 	 IOB33_TERM_OVERRIDE:     0/  500     0%
+Info: 	       PULL_OR_KEEP1:     0/  980     0%
+Info: 	            IDELAYE2:     0/  500     0%
+Info: 	        OLOGICE3_TFF:     0/  500     0%
+Info: 	      OLOGICE3_OUTFF:     0/  500     0%
+Info: 	       OLOGICE3_MISR:     0/  500     0%
+Info: 	           OSERDESE2:     0/  500     0%
+Info: 	        ILOGICE3_IFF:     0/  500     0%
+Info: 	ILOGICE3_ZHOLD_DELAY:     0/  500     0%
+Info: 	           ISERDESE2:     0/  500     0%
+Info: 	                BUFR:     0/   40     0%
+Info: 	               BUFIO:     0/   40     0%
+Info: 	          IDELAYCTRL:     0/   10     0%
+Info: 	            BUFGCTRL:     1/   32     3%
+Info: 	            PCIE_2_1:     0/    1     0%
+Info: 	               BSCAN:     0/    4     0%
+Info: 	                BUFG:     0/   32     0%
+Info: 	              BUFHCE:     0/  120     0%
+Info: 	            DCIRESET:     0/    1     0%
+Info: 	            DNA_PORT:     0/    1     0%
+Info: 	           EFUSE_USR:     0/    1     0%
+Info: 	           FRAME_ECC:     0/    1     0%
+Info: 	       GTPE2_CHANNEL:     0/   16     0%
+Info: 	        GTPE2_COMMON:     0/    4     0%
+Info: 	         IBUFDS_GTE2:     0/    8     0%
+Info: 	                ICAP:     0/    2     0%
+Info: 	            INVERTER:     0/  240     0%
+Info: 	          MMCME2_ADV:     0/   10     0%
+Info: 	        OLOGICE2_TFF:     0/  500     0%
+Info: 	      OLOGICE2_OUTFF:     0/  500     0%
+Info: 	           PLLE2_ADV:     0/   10     0%
+Info: 	           SELMUX2_1:     0/102950     0%
+Info: 	             STARTUP:     0/    1     0%
+Info: 	          USR_ACCESS:     0/    1     0%
+Info: 	              BUFFER:     0/   82     0%
+Info: 	        ILOGICE2_IFF:     0/  500     0%
+Info: 	       OLOGICE2_MISR:     0/  500     0%
+
+Info: HeAP congestion knobs: beta=0.400 spread_scale=2,1 alpha=0.080
+Info: Placed 93 cells based on constraints.
+Info: Creating initial analytic placement for 244 cells, random placement wirelen = 90307.
+Info:     at initial placer iter 0, wirelen = 10069
+Info:     at initial placer iter 1, wirelen = 8822
+Info:     at initial placer iter 2, wirelen = 8486
+Info:     at initial placer iter 3, wirelen = 8483
+Info: Running main analytical placer.
+Info:     at iteration #1, type ALL: wirelen solved = 8466, spread = 11827, legal = 11547; time = 0.65s
+Info:     at iteration #2, type ALL: wirelen solved = 8705, spread = 10342, legal = 10488; time = 1.08s
+Info: HeAP Placer Time: 5.36s
+Info:   of which solving equations: 1.07s
+Info:   of which spreading cells: 0.59s
+Info:   of which strict legalisation: 0.07s
+
+Info: Running simulated annealing placer for refinement.
+Info:   at iteration #1: temp = 0.000000, timing cost = 64, wirelen = 10488
+Info:   at iteration #5: temp = 0.000000, timing cost = 58, wirelen = 10198
+Info:   at iteration #7: temp = 0.000000, timing cost = 58, wirelen = 10192 
+Info: SA placement time 1.30s
+
+Info: Max frequency for clock '$auto$clkbufmap.cc:294:execute$3033': 66.76 MHz (FAIL at 100.00 MHz)
+
+Info: Slack histogram:
+Info:  legend: * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [ -4979,  -4279) |******* 
+Info: [ -4279,  -3579) |** 
+Info: [ -3579,  -2879) | 
+Info: [ -2879,  -2179) | 
+Info: [ -2179,  -1479) |************* 
+Info: [ -1479,   -779) |********* 
+Info: [  -779,    -79) |************************************************* 
+Info: [   -79,    621) |******** 
+Info: [   621,   1321) |******** 
+Info: [  1321,   2021) |*********** 
+Info: [  2021,   2721) |***** 
+Info: [  2721,   3421) |**** 
+Info: [  3421,   4121) |****** 
+Info: [  4121,   4821) |***************** 
+Info: [  4821,   5521) |************* 
+Info: [  5521,   6221) |********* 
+Info: [  6221,   6921) |**** 
+Info: [  6921,   7621) |***** 
+Info: [  7621,   8321) |***************** 
+Info: [  8321,   9021) |******** 
+Info: Checksum: 0x91a2e8c2
+Info: Running post-placement legalisation...
+Info: post-place repair: relocated 142 stranded cluster(s)/cell(s) to valid bels
+Info: Routing global clocks...
+Info:     routing clock '$auto$clkbufmap.cc:294:execute$3033'
+Info:     routing clock 'clk$auto$IOBUF_O$'

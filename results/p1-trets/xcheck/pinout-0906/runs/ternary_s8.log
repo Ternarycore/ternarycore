@@ -1,0 +1,947 @@
+Info: Packing constants..
+Info: Inserting IO buffers..
+Info:     Constraining 'clk' to site 'IOB_X1Y124'
+Info:     Tile 'RIOB33_X105Y123'
+Info:     Constraining 'rst_n' to site 'IOB_X1Y115'
+Info:     Tile 'RIOB33_X105Y115'
+Info:     Constraining 'valid_in' to site 'IOB_X1Y197'
+Info:     Tile 'RIOB33_X105Y197'
+Info:     Constraining 'valid_out' to site 'IOB_X1Y127'
+Info:     Tile 'RIOB33_X105Y127'
+Info:     Constraining 'weight_enc[0]' to site 'IOB_X1Y136'
+Info:     Tile 'RIOB33_X105Y135'
+Info:     Constraining 'activation[7]' to site 'IOB_X0Y207'
+Info:     Tile 'LIOB33_X0Y207'
+Info:     Constraining 'weight_enc[1]' to site 'IOB_X1Y131'
+Info:     Tile 'RIOB33_X105Y131'
+Info:     Constraining 'activation[6]' to site 'IOB_X0Y217'
+Info:     Tile 'LIOB33_X0Y217'
+Info:     Constraining 'activation[5]' to site 'IOB_X0Y215'
+Info:     Tile 'LIOB33_X0Y215'
+Info:     Constraining 'activation[4]' to site 'IOB_X0Y216'
+Info:     Tile 'LIOB33_X0Y215'
+Info:     Constraining 'activation[3]' to site 'IOB_X0Y231'
+Info:     Tile 'LIOB33_X0Y231'
+Info:     Constraining 'activation[2]' to site 'IOB_X0Y232'
+Info:     Tile 'LIOB33_X0Y231'
+Info:     Constraining 'activation[1]' to site 'IOB_X0Y229'
+Info:     Tile 'LIOB33_X0Y229'
+Info:     Constraining 'activation[0]' to site 'IOB_X0Y230'
+Info:     Tile 'LIOB33_X0Y229'
+Info:     Constraining 'acc_out[0]' to site 'IOB_X1Y130'
+Info:     Tile 'RIOB33_X105Y129'
+Info:     Constraining 'acc_out[1]' to site 'IOB_X1Y113'
+Info:     Tile 'RIOB33_X105Y113'
+Info:     Constraining 'acc_out[2]' to site 'IOB_X1Y106'
+Info:     Tile 'RIOB33_X105Y105'
+Info:     Constraining 'acc_out[3]' to site 'IOB_X0Y84'
+Info:     Tile 'LIOB33_X0Y83'
+Info:     Constraining 'acc_out[4]' to site 'IOB_X0Y82'
+Info:     Tile 'LIOB33_X0Y81'
+Info:     Constraining 'acc_out[5]' to site 'IOB_X0Y81'
+Info:     Tile 'LIOB33_X0Y81'
+Info:     Constraining 'acc_out[6]' to site 'IOB_X0Y94'
+Info:     Tile 'LIOB33_X0Y93'
+Info:     Constraining 'acc_out[7]' to site 'IOB_X0Y89'
+Info:     Tile 'LIOB33_X0Y89'
+Info:     Constraining 'acc_out[8]' to site 'IOB_X0Y92'
+Info:     Tile 'LIOB33_X0Y91'
+Info:     Constraining 'acc_out[9]' to site 'IOB_X0Y97'
+Info:     Tile 'LIOB33_X0Y97'
+Info:     Constraining 'acc_out[10]' to site 'IOB_X0Y116'
+Info:     Tile 'LIOB33_X0Y115'
+Info:     Constraining 'acc_out[11]' to site 'IOB_X0Y120'
+Info:     Tile 'LIOB33_X0Y119'
+Info:     Constraining 'acc_out[12]' to site 'IOB_X0Y134'
+Info:     Tile 'LIOB33_X0Y133'
+Info:     Constraining 'acc_out[13]' to site 'IOB_X0Y133'
+Info:     Tile 'LIOB33_X0Y133'
+Info:     Constraining 'acc_out[14]' to site 'IOB_X1Y135'
+Info:     Tile 'RIOB33_X105Y135'
+Info:     Constraining 'acc_out[15]' to site 'IOB_X1Y133'
+Info:     Tile 'RIOB33_X105Y133'
+Info:     Constraining 'acc_out[16]' to site 'IOB_X1Y134'
+Info:     Tile 'RIOB33_X105Y133'
+Info:     Constraining 'acc_out[17]' to site 'IOB_X1Y129'
+Info:     Tile 'RIOB33_X105Y129'
+Info:     Constraining 'acc_out[18]' to site 'IOB_X1Y109'
+Info:     Tile 'RIOB33_X105Y109'
+Info:     Constraining 'acc_out[19]' to site 'IOB_X1Y110'
+Info:     Tile 'RIOB33_X105Y109'
+Info:     Constraining 'acc_out[20]' to site 'IOB_X1Y105'
+Info:     Tile 'RIOB33_X105Y105'
+Info:     Constraining 'acc_out[21]' to site 'IOB_X0Y83'
+Info:     Tile 'LIOB33_X0Y83'
+Info:     Constraining 'acc_out[22]' to site 'IOB_X0Y86'
+Info:     Tile 'LIOB33_X0Y85'
+Info:     Constraining 'acc_out[23]' to site 'IOB_X0Y85'
+Info:     Tile 'LIOB33_X0Y85'
+Info:     Constraining 'acc_out[24]' to site 'IOB_X0Y93'
+Info:     Tile 'LIOB33_X0Y93'
+Info:     Constraining 'acc_out[25]' to site 'IOB_X0Y91'
+Info:     Tile 'LIOB33_X0Y91'
+Info:     Constraining 'acc_out[26]' to site 'IOB_X0Y96'
+Info:     Tile 'LIOB33_X0Y95'
+Info:     Constraining 'acc_out[27]' to site 'IOB_X0Y95'
+Info:     Tile 'LIOB33_X0Y95'
+Info:     Constraining 'acc_out[28]' to site 'IOB_X0Y115'
+Info:     Tile 'LIOB33_X0Y115'
+Info:     Constraining 'acc_out[29]' to site 'IOB_X0Y119'
+Info:     Tile 'LIOB33_X0Y119'
+Info:     Constraining 'acc_out[30]' to site 'IOB_X0Y130'
+Info:     Tile 'LIOB33_X0Y129'
+Info:     Constraining 'acc_out[31]' to site 'IOB_X0Y129'
+Info:     Tile 'LIOB33_X0Y129'
+Info: Generating input buffer for 'clk$ibuf$'
+Info: Generating input buffer for 'rst_n$ibuf$'
+Info: Generating input buffer for 'valid_in$ibuf$'
+Info: Generating output buffer for 'valid_out$obuf$'
+Info: Generating input buffer for 'weight_enc[0]$ibuf$'
+Info: Generating input buffer for 'activation[7]$ibuf$'
+Info: Generating input buffer for 'weight_enc[1]$ibuf$'
+Info: Generating input buffer for 'activation[6]$ibuf$'
+Info: Generating input buffer for 'activation[5]$ibuf$'
+Info: Generating input buffer for 'activation[4]$ibuf$'
+Info: Generating input buffer for 'activation[3]$ibuf$'
+Info: Generating input buffer for 'activation[2]$ibuf$'
+Info: Generating input buffer for 'activation[1]$ibuf$'
+Info: Generating input buffer for 'activation[0]$ibuf$'
+Info: Generating output buffer for 'acc_out[0]$obuf$'
+Info: Generating output buffer for 'acc_out[1]$obuf$'
+Info: Generating output buffer for 'acc_out[2]$obuf$'
+Info: Generating output buffer for 'acc_out[3]$obuf$'
+Info: Generating output buffer for 'acc_out[4]$obuf$'
+Info: Generating output buffer for 'acc_out[5]$obuf$'
+Info: Generating output buffer for 'acc_out[6]$obuf$'
+Info: Generating output buffer for 'acc_out[7]$obuf$'
+Info: Generating output buffer for 'acc_out[8]$obuf$'
+Info: Generating output buffer for 'acc_out[9]$obuf$'
+Info: Generating output buffer for 'acc_out[10]$obuf$'
+Info: Generating output buffer for 'acc_out[11]$obuf$'
+Info: Generating output buffer for 'acc_out[12]$obuf$'
+Info: Generating output buffer for 'acc_out[13]$obuf$'
+Info: Generating output buffer for 'acc_out[14]$obuf$'
+Info: Generating output buffer for 'acc_out[15]$obuf$'
+Info: Generating output buffer for 'acc_out[16]$obuf$'
+Info: Generating output buffer for 'acc_out[17]$obuf$'
+Info: Generating output buffer for 'acc_out[18]$obuf$'
+Info: Generating output buffer for 'acc_out[19]$obuf$'
+Info: Generating output buffer for 'acc_out[20]$obuf$'
+Info: Generating output buffer for 'acc_out[21]$obuf$'
+Info: Generating output buffer for 'acc_out[22]$obuf$'
+Info: Generating output buffer for 'acc_out[23]$obuf$'
+Info: Generating output buffer for 'acc_out[24]$obuf$'
+Info: Generating output buffer for 'acc_out[25]$obuf$'
+Info: Generating output buffer for 'acc_out[26]$obuf$'
+Info: Generating output buffer for 'acc_out[27]$obuf$'
+Info: Generating output buffer for 'acc_out[28]$obuf$'
+Info: Generating output buffer for 'acc_out[29]$obuf$'
+Info: Generating output buffer for 'acc_out[30]$obuf$'
+Info: Generating output buffer for 'acc_out[31]$obuf$'
+Info:     Created 46 PAD cells from:
+Info:             46x PAD
+Info: Preparing clocking...
+Info: Packing constants..
+Info: Packing cfg...
+Info: Packing PLLs...
+Info: Packing Gigabit Transceivers..
+Info: Packing global buffers...
+Info:     Constrained BUFGCTRL '$auto$clkbufmap.cc:261:execute$3031' to bel 'BUFGCTRL_X0Y0/BUFGCTRL' based on dedicated routing
+Info: Packing MUX[789]s..
+Info: Packing carries (atomic CARRY4)..
+Info:    Packed 14 CARRY4 cells into 3 chains (atomic).
+Info: router2 PRECYINIT fix: 14 CARRY4 cells, 17 constant carry pins disconnected
+Info: Packing LUTs..
+Info:     Created 321 SLICE_LUTX cells from:
+Info:            201x LUT1
+Info:             57x LUT2
+Info:              1x LUT3
+Info:              6x LUT4
+Info:             56x LUT5
+Info: Packing DRAM..
+Info:    Transformed 0 tied-low DRAM address inputs to be tied-high
+Info: Packing BRAM..
+Info: Packing DSPs..
+Info: Packing flipflops..
+Info:     Created 114 SLICE_FFX cells from:
+Info:            113x FDCE
+Info:              1x FDPE
+Info:     local-const FF control: disconnected 0 SR(=GND) + 33 CE(=VCC) pins from global nets
+Info: Constrained 81 LUTFF pairs.
+
+Info: Annotating ports with timing budgets for target frequency 100.00 MHz
+Info: Checksum: 0x5a4709d8
+
+Info: Device utilisation:
+Info: 	          SLICE_LUTX:   321/269200     0%
+Info: 	           SLICE_FFX:   114/269200     0%
+Info: 	              CARRY4:    14/33650     0%
+Info: 	          PSEUDO_GND:     1/69165     0%
+Info: 	          PSEUDO_VCC:     1/69165     0%
+Info: 	               HARD0:     0/ 3960     0%
+Info: 	            RAMB18E1:     0/  730     0%
+Info: 	            FIFO18E1:     0/  365     0%
+Info: 	        RAMBFIFO36E1:     0/  365     0%
+Info: 	            RAMB36E1:     0/  365     0%
+Info: 	             DSP48E1:     0/  740     0%
+Info: 	                 PAD:    46/ 1062     4%
+Info: 	       IOB33M_OUTBUF:     0/  240     0%
+Info: 	       IOB33S_OUTBUF:     0/  240     0%
+Info: 	        IOB33_OUTBUF:    33/  500     6%
+Info: 	     IOB33M_INBUF_EN:     0/  240     0%
+Info: 	     IOB33S_INBUF_EN:     0/  240     0%
+Info: 	      IOB33_INBUF_EN:    13/  500     2%
+Info: 	IOB33M_TERM_OVERRIDE:     0/  240     0%
+Info: 	IOB33S_TERM_OVERRIDE:     0/  240     0%
+Info: 	 IOB33_TERM_OVERRIDE:     0/  500     0%
+Info: 	       PULL_OR_KEEP1:     0/  980     0%
+Info: 	            IDELAYE2:     0/  500     0%
+Info: 	        OLOGICE3_TFF:     0/  500     0%
+Info: 	      OLOGICE3_OUTFF:     0/  500     0%
+Info: 	       OLOGICE3_MISR:     0/  500     0%
+Info: 	           OSERDESE2:     0/  500     0%
+Info: 	        ILOGICE3_IFF:     0/  500     0%
+Info: 	ILOGICE3_ZHOLD_DELAY:     0/  500     0%
+Info: 	           ISERDESE2:     0/  500     0%
+Info: 	                BUFR:     0/   40     0%
+Info: 	               BUFIO:     0/   40     0%
+Info: 	          IDELAYCTRL:     0/   10     0%
+Info: 	            BUFGCTRL:     1/   32     3%
+Info: 	            PCIE_2_1:     0/    1     0%
+Info: 	               BSCAN:     0/    4     0%
+Info: 	                BUFG:     0/   32     0%
+Info: 	              BUFHCE:     0/  120     0%
+Info: 	            DCIRESET:     0/    1     0%
+Info: 	            DNA_PORT:     0/    1     0%
+Info: 	           EFUSE_USR:     0/    1     0%
+Info: 	           FRAME_ECC:     0/    1     0%
+Info: 	       GTPE2_CHANNEL:     0/   16     0%
+Info: 	        GTPE2_COMMON:     0/    4     0%
+Info: 	         IBUFDS_GTE2:     0/    8     0%
+Info: 	                ICAP:     0/    2     0%
+Info: 	            INVERTER:     0/  240     0%
+Info: 	          MMCME2_ADV:     0/   10     0%
+Info: 	        OLOGICE2_TFF:     0/  500     0%
+Info: 	      OLOGICE2_OUTFF:     0/  500     0%
+Info: 	           PLLE2_ADV:     0/   10     0%
+Info: 	           SELMUX2_1:     0/102950     0%
+Info: 	             STARTUP:     0/    1     0%
+Info: 	          USR_ACCESS:     0/    1     0%
+Info: 	              BUFFER:     0/   82     0%
+Info: 	        ILOGICE2_IFF:     0/  500     0%
+Info: 	       OLOGICE2_MISR:     0/  500     0%
+
+Info: HeAP congestion knobs: beta=0.400 spread_scale=2,1 alpha=0.080
+Info: Placed 93 cells based on constraints.
+Info: Creating initial analytic placement for 244 cells, random placement wirelen = 89211.
+Info:     at initial placer iter 0, wirelen = 9668
+Info:     at initial placer iter 1, wirelen = 8721
+Info:     at initial placer iter 2, wirelen = 8471
+Info:     at initial placer iter 3, wirelen = 8411
+Info: Running main analytical placer.
+Info:     at iteration #1, type ALL: wirelen solved = 8423, spread = 10475, legal = 11422; time = 2.52s
+Info:     at iteration #2, type ALL: wirelen solved = 8679, spread = 10261, legal = 10276; time = 1.68s
+Info: HeAP Placer Time: 27.45s
+Info:   of which solving equations: 3.41s
+Info:   of which spreading cells: 1.35s
+Info:   of which strict legalisation: 0.64s
+
+Info: Running simulated annealing placer for refinement.
+Info:   at iteration #1: temp = 0.000000, timing cost = 60, wirelen = 10276
+Info:   at iteration #5: temp = 0.000000, timing cost = 53, wirelen = 9938
+Info:   at iteration #5: temp = 0.000000, timing cost = 53, wirelen = 9938 
+Info: SA placement time 7.34s
+
+Info: Max frequency for clock '$auto$clkbufmap.cc:294:execute$3033': 67.51 MHz (FAIL at 100.00 MHz)
+
+Info: Slack histogram:
+Info:  legend: * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [ -4813,  -4130) |**** 
+Info: [ -4130,  -3447) |***** 
+Info: [ -3447,  -2764) | 
+Info: [ -2764,  -2081) | 
+Info: [ -2081,  -1398) |**** 
+Info: [ -1398,   -715) |******************** 
+Info: [  -715,    -32) |**************************** 
+Info: [   -32,    651) |************************ 
+Info: [   651,   1334) |** 
+Info: [  1334,   2017) |************ 
+Info: [  2017,   2700) |******** 
+Info: [  2700,   3383) |******* 
+Info: [  3383,   4066) |* 
+Info: [  4066,   4749) |*********** 
+Info: [  4749,   5432) |******************** 
+Info: [  5432,   6115) |********** 
+Info: [  6115,   6798) |****** 
+Info: [  6798,   7481) |****** 
+Info: [  7481,   8164) |************** 
+Info: [  8164,   8847) |************* 
+Info: Checksum: 0xe86d0ac8
+Info: Running post-placement legalisation...
+Info: post-place repair: relocated 140 stranded cluster(s)/cell(s) to valid bels
+Info: Routing global clocks...
+Info:     routing clock '$auto$clkbufmap.cc:294:execute$3033'
+Info:     routing clock 'clk$auto$IOBUF_O$'
+Info: Running router2...
+Info: Setting up routing resources...
+Info: Running main router loop...
+Info:     iter=1 wires=6883 overused=112 overuse=115 archfail=NA
+Info:     iter=2 wires=6957 overused=0 overuse=0 archfail=0
+Info: 1000 slowest nets by runtime:
+                                                                     rst_n$auto$IOBUF_O$    114 61373.3ms
+                        $techmap2925$abc$2399$auto$blifparse.cc:557:parse_blif$2511.A[4]     50 29056.6ms
+                                                                 valid_out$auto$IOBUF_I$     35 24301.9ms
+                        $techmap2917$abc$2399$auto$blifparse.cc:557:parse_blif$2518.A[0]     50 20113.8ms
+                        $techmap2917$abc$2399$auto$blifparse.cc:557:parse_blif$2518.A[2]     50 17620.7ms
+                                                                acc_out[0]$auto$IOBUF_I$      1 16848.9ms
+                                                               acc_out[18]$auto$IOBUF_I$      1 16420.2ms
+                                                               acc_out[15]$auto$IOBUF_I$      1 15937.4ms
+                        $techmap2917$abc$2399$auto$blifparse.cc:557:parse_blif$2518.A[3]     50 13994.7ms
+                                  $abc$2399$auto$opt_dff.cc:336:make_patterns_logic$1193     32 12995.6ms
+                                                                acc_out[5]$auto$IOBUF_I$      1 12797.7ms
+                                                                acc_out[1]$auto$IOBUF_I$      1 11754.3ms
+                                                               acc_out[27]$auto$IOBUF_I$      1 10134.8ms
+                                                                acc_out[7]$auto$IOBUF_I$      1 9425.2ms
+                                                               acc_out[14]$auto$IOBUF_I$      1 9011.5ms
+                                                               acc_out[17]$auto$IOBUF_I$      1 7752.7ms
+                        $techmap2917$abc$2399$auto$blifparse.cc:557:parse_blif$2518.A[1]     50 7523.9ms
+                                                                acc_out[2]$auto$IOBUF_I$      1 6801.8ms
+                                                                acc_out[4]$auto$IOBUF_I$      1 6092.0ms
+                                                               acc_out[21]$auto$IOBUF_I$      1 5975.1ms
+                                                               acc_out[19]$auto$IOBUF_I$      1 5589.0ms
+                                                                acc_out[8]$auto$IOBUF_I$      1 5375.2ms
+                                                               acc_out[20]$auto$IOBUF_I$      1 5140.7ms
+                                                                acc_out[9]$auto$IOBUF_I$      1 4572.4ms
+                                                               acc_out[16]$auto$IOBUF_I$      1 4479.7ms
+                                                               acc_out[23]$auto$IOBUF_I$      1 4372.7ms
+                                                                acc_out[3]$auto$IOBUF_I$      1 4337.8ms
+                                                             weight_enc[1]$auto$IOBUF_O$      8 4179.4ms
+                                                             activation[3]$auto$IOBUF_O$      2 3636.5ms
+                                                               acc_out[10]$auto$IOBUF_I$      1 3632.5ms
+                                                             weight_enc[0]$auto$IOBUF_O$      8 3549.4ms
+                                                                  valid_in$auto$IOBUF_O$      1 3177.5ms
+                                                               acc_out[29]$auto$IOBUF_I$      1 3169.9ms
+                                                               acc_out[22]$auto$IOBUF_I$      1 2990.0ms
+                                                               acc_out[12]$auto$IOBUF_I$      1 2563.4ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[19]      2 2528.0ms
+                                                               acc_out[31]$auto$IOBUF_I$      1 2513.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2338      1 2486.5ms
+                                                               acc_out[11]$auto$IOBUF_I$      1 2424.9ms
+                                                               acc_out[28]$auto$IOBUF_I$      1 2412.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2244      1 2383.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[1]      2 2331.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2248      1 2297.1ms
+                                                               acc_out[30]$auto$IOBUF_I$      1 2174.6ms
+                                                               acc_out[26]$auto$IOBUF_I$      1 2113.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2202      1 2049.8ms
+                                                               acc_out[13]$auto$IOBUF_I$      1 1849.8ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[17]      2 1836.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2328      1 1784.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2344      1 1773.3ms
+                                                                     vector_done_delayed      1 1760.7ms
+                                                                acc_out[6]$auto$IOBUF_I$      1 1703.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2298      1 1598.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2200      1 1582.2ms
+                                                                    $0\acc_out[31:0][15]      1 1571.0ms
+                        $techmap2912$abc$2399$auto$blifparse.cc:557:parse_blif$2519.A[0]     25 1555.2ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[16]      2 1492.1ms
+                                                               acc_out[24]$auto$IOBUF_I$      1 1486.8ms
+                                                                                count[4]      3 1461.9ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2342      1 1412.4ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[15]      2 1391.2ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[20]      2 1385.6ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[18]      2 1366.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2266      1 1331.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2250      1 1257.5ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[2]      2 1209.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2290      1 1191.4ms
+                                                             activation[6]$auto$IOBUF_O$      2 1183.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2232      1 1156.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2210      1 1138.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2262      1 1137.9ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2258      1 1134.5ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[4]      2 1111.9ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[28]      2 1103.9ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2196      1 1059.7ms
+                                                               acc_out[25]$auto$IOBUF_I$      1 1054.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2184      1 1019.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2380      1 1006.6ms
+                                                             activation[1]$auto$IOBUF_O$      2 982.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2264      1 968.5ms
+                                                                        result_latch[15]      1 968.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2204      1 947.6ms
+                                                                    $0\acc_out[31:0][17]      1 947.0ms
+                                                                                  acc[1]      2 917.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2394      1 850.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2182      1 835.1ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2236      1 831.1ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2280      1 829.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2274      1 828.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2398      1 828.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2260      1 811.7ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[3]      1 808.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2228      1 806.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2238      1 783.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2302      1 775.1ms
+                                                            $abc$2399$procmux$1137_Y[30]      1 770.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2334      1 769.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2256      1 769.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2216      1 748.6ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[3]      2 739.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2212      1 732.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2276      1 731.4ms
+                                                                     $0\acc_out[31:0][2]      1 723.9ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[2]      1 718.9ms
+                                                                        result_latch[18]      1 718.0ms
+                                                             activation[7]$auto$IOBUF_O$      2 717.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2292      1 704.4ms
+                                                                         result_latch[2]      1 701.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2254      1 699.8ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[25]      2 691.4ms
+                                                             activation[4]$auto$IOBUF_O$      2 684.4ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[30]      2 676.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2310      1 667.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2386      1 665.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2242      1 663.8ms
+                                                                                 acc[20]      2 633.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2198      1 624.2ms
+                                                                         acc[7]$legal$29      1 610.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2336      1 593.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2340      1 593.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2176      1 587.9ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[14]      2 583.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2354      1 582.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2186      1 580.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2286      1 570.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2382      1 565.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2314      1 549.9ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2284      1 529.7ms
+                                                                        result_latch[17]      1 527.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2226      1 525.7ms
+                                                                                  acc[0]      2 516.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2268      1 511.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2230      1 510.2ms
+                                                                        acc[26]$legal$67      1 508.2ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[29]      2 502.6ms
+                                                                                 acc[25]      2 498.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2306      1 497.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2390      1 492.2ms
+                                                     $auto$clkbufmap.cc:294:execute$3033    114 490.5ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[5]      2 488.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2180      1 484.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2278      1 482.0ms
+                                                                    $0\acc_out[31:0][18]      1 467.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2304      1 463.3ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[0]      2 448.1ms
+                                                            $abc$2399$procmux$1137_Y[29]      1 441.1ms
+                                                                                  acc[6]      2 427.1ms
+                                                                                  acc[2]      2 426.6ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[23]      2 424.9ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2370      1 422.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2332      1 420.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2318      1 420.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2252      1 418.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2214      1 414.7ms
+                                                                        result_latch[14]      1 413.9ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2364      1 409.2ms
+                                                                                  acc[8]      2 407.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2288      1 401.8ms
+                                                                         result_latch[1]      1 398.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2322      1 397.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2218      1 394.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2352      1 383.2ms
+                                                                               count[13]      3 376.1ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2312      1 374.4ms
+                                                             activation[5]$auto$IOBUF_O$      2 374.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2358      1 373.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2194      1 371.2ms
+                                                                                  acc[7]      2 361.1ms
+                                                                    $0\acc_out[31:0][19]      1 359.6ms
+                                                             activation[2]$auto$IOBUF_O$      2 358.4ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[9]      2 349.3ms
+                                                             activation[0]$auto$IOBUF_O$      2 349.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2392      1 347.9ms
+                                                                        acc[21]$legal$57      1 347.7ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[8]      1 347.6ms
+                                                                                  acc[5]      2 344.2ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[22]      2 343.5ms
+                                                                               count[10]      3 343.2ms
+                                                                                count[1]      3 341.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2192      1 339.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2384      1 338.2ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[21]      2 337.1ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2234      1 336.8ms
+                                                                    $0\acc_out[31:0][22]      1 332.1ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2190      1 322.2ms
+                                                                     $0\acc_out[31:0][1]      1 320.5ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[7]      2 318.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2246      1 316.7ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[11]      2 314.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[12]      2 312.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.Y[13]      1 309.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2346      1 306.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2206      1 305.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2324      1 302.2ms
+                                                                        result_latch[19]      1 300.3ms
+                                                                      count[8]$legal$113      1 299.8ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[4]      1 297.1ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.Y[15]      1 296.9ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2272      1 296.1ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2356      1 291.9ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[1]      1 290.0ms
+                                                                                count[6]      3 288.2ms
+                                              $auto$alumacc.cc:512:replace_alu$1203.Y[0]      1 286.8ms
+                                                                                 acc[21]      2 286.4ms
+                                                                                  acc[4]      2 285.8ms
+                                                                        acc[11]$legal$37      1 284.9ms
+                                                                       count[1]$legal$99      1 281.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2188      1 277.0ms
+                                                                                 acc[28]      2 272.2ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2350      1 269.7ms
+                                                            $abc$2399$procmux$1137_Y[21]      1 266.2ms
+                                                                         result_latch[5]      1 264.8ms
+                                              $auto$alumacc.cc:512:replace_alu$1203.Y[1]      1 263.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2372      1 263.1ms
+                                                                       clk$auto$IOBUF_O$      1 261.1ms
+                                                                        result_latch[16]      1 261.0ms
+                                                                                 acc[29]      2 257.1ms
+                                                                    $0\acc_out[31:0][10]      1 255.1ms
+                                                            $abc$2399$procmux$1131_Y[11]      1 254.6ms
+                                                                    $0\acc_out[31:0][16]      1 250.3ms
+                                                                        acc[19]$legal$53      1 248.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2378      1 246.9ms
+                                                                                count[7]      3 246.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2326      1 245.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[6]      1 241.7ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[27]      2 241.3ms
+                                                                                count[3]      3 240.7ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[26]      2 238.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2282      1 237.6ms
+                                                                                 acc[17]      2 234.5ms
+                                                                $PACKER_GND_NET$legal$89      1 234.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.Y[12]      1 232.9ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[13]      2 231.8ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[3]      1 231.7ms
+                                                                               count[12]      3 230.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2368      1 222.1ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[10]      2 221.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[24]      2 219.5ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[6]      2 218.8ms
+                                                                                 acc[19]      2 216.9ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.Y[8]      2 216.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.Y[31]      2 211.4ms
+                                                                        result_latch[20]      1 209.6ms
+                                                                    $0\acc_out[31:0][12]      1 205.4ms
+                                                                         acc[5]$legal$23      1 200.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2172      1 199.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2308      1 195.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2224      1 195.1ms
+                                                             $abc$2399$procmux$1131_Y[5]      1 194.8ms
+                                                            $abc$2399$procmux$1131_Y[12]      1 191.8ms
+                                                                        acc[16]$legal$47      1 191.1ms
+                                                                                count[9]      3 191.0ms
+                                                                         result_latch[9]      1 189.4ms
+                                                            $abc$2399$procmux$1131_Y[10]      1 188.6ms
+                                                                               count[14]      3 186.3ms
+                                                                     count[15]$legal$127      1 184.8ms
+                                                            $abc$2399$procmux$1137_Y[20]      1 184.4ms
+                                                                    $0\acc_out[31:0][31]      1 182.4ms
+                                                                $PACKER_GND_NET$legal$81      1 182.4ms
+                                                                    $0\acc_out[31:0][14]      1 178.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2296      1 177.9ms
+                                                             $abc$2399$procmux$1137_Y[3]      1 177.7ms
+                                                                                  acc[9]      2 177.3ms
+                                                                         acc[3]$legal$15      1 174.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2178      1 173.7ms
+                                                                $PACKER_GND_NET$legal$93      1 172.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2366      1 172.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2270      1 170.5ms
+                                                                                 acc[30]      2 164.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2374      1 160.3ms
+                                              $auto$alumacc.cc:512:replace_alu$1203.Y[3]      1 157.3ms
+                                                                                 acc[26]      2 157.3ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2320      1 149.8ms
+                                                                                 acc[15]      2 149.5ms
+                                                                        result_latch[28]      1 149.4ms
+                                                                                 acc[12]      2 148.1ms
+                                                            $abc$2399$procmux$1137_Y[27]      1 147.0ms
+                                                            $abc$2399$procmux$1137_Y[23]      1 141.9ms
+                                                            $abc$2399$procmux$1137_Y[22]      1 141.0ms
+                                                             $abc$2399$procmux$1131_Y[1]      1 139.2ms
+                                                                        acc[25]$legal$65      1 138.7ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[5]      1 137.8ms
+                                                                         result_latch[8]      1 135.8ms
+                                                                        acc[23]$legal$61      1 131.1ms
+                                                                      count[9]$legal$115      1 130.4ms
+                                                                                count[0]      3 130.3ms
+                                                             $abc$2399$procmux$1137_Y[7]      1 129.5ms
+                                                                                 acc[23]      2 129.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2316      1 129.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2222      1 126.0ms
+                                                                               count[11]      3 116.5ms
+                                                                    $0\acc_out[31:0][13]      1 114.8ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.Y[10]      1 113.7ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2396      1 111.8ms
+                                                             $abc$2399$procmux$1137_Y[6]      1 111.2ms
+                                                                        result_latch[27]      1 108.7ms
+                                                                                  acc[3]      2 103.1ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2362      1 100.9ms
+                                             $abc$2399$auto$rtlil.cc:3267:ReduceAnd$1210      1 100.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2348      1 98.7ms
+                                                                                count[8]      3 98.2ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[1]      1 96.3ms
+                                                            $abc$2399$procmux$1137_Y[12]      1 95.8ms
+                                                            $abc$2399$procmux$1137_Y[31]      1 95.6ms
+                                                                        result_latch[23]      1 94.3ms
+                                                                    $0\acc_out[31:0][25]      1 94.1ms
+                                                             $abc$2399$procmux$1131_Y[3]      1 91.2ms
+                                                                        acc[30]$legal$75      1 90.3ms
+                                              $auto$alumacc.cc:512:replace_alu$1203.Y[5]      1 88.8ms
+                                                             $abc$2399$procmux$1131_Y[8]      1 88.4ms
+                                                             $abc$2399$procmux$1137_Y[9]      1 86.8ms
+                                                                    $0\acc_out[31:0][24]      1 84.6ms
+                                                                     $0\acc_out[31:0][3]      1 84.1ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.Y[14]      1 82.5ms
+                                                                     count[10]$legal$117      1 81.4ms
+                                                            $abc$2399$procmux$1137_Y[17]      1 80.9ms
+                                                                     count[12]$legal$121      1 79.9ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[4]      1 79.6ms
+                                                                    $0\acc_out[31:0][20]      1 79.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2208      1 75.4ms
+                                                                    $0\acc_out[31:0][26]      1 74.4ms
+                                                                      count[3]$legal$103      1 73.7ms
+                                                             $abc$2399$procmux$1137_Y[4]      1 72.6ms
+                                                                     $0\acc_out[31:0][4]      1 72.2ms
+                                                                         acc[2]$legal$11      1 72.2ms
+                                                             $abc$2399$procmux$1131_Y[0]      1 71.6ms
+                                                                      count[2]$legal$101      1 71.4ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2294      1 70.7ms
+                                                                        acc[15]$legal$45      1 69.8ms
+                                                                    $0\acc_out[31:0][28]      1 66.5ms
+                                                                                 acc[10]      2 64.0ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2240      1 62.4ms
+                                                                      count[7]$legal$111      1 61.6ms
+                                                                                 acc[11]      2 61.1ms
+                                                                    $0\acc_out[31:0][27]      1 61.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[0]      1 60.7ms
+                                                                $PACKER_GND_NET$legal$91      1 58.7ms
+                                                                               count[15]      3 58.5ms
+                                                                                 acc[31]      2 58.3ms
+                                                                         result_latch[6]      1 57.3ms
+                                                                        result_latch[21]      1 57.2ms
+                                                                     $0\acc_out[31:0][8]      1 56.4ms
+                                                                     $0\acc_out[31:0][9]      1 55.3ms
+                                                                                 acc[14]      2 55.0ms
+                                                                     count[14]$legal$125      1 54.1ms
+                                                            $abc$2399$procmux$1137_Y[19]      1 50.9ms
+                                                                     $0\acc_out[31:0][6]      1 50.3ms
+                                                            $abc$2399$procmux$1131_Y[14]      1 49.0ms
+                                                            $abc$2399$procmux$1137_Y[15]      1 48.5ms
+                                                                        acc[20]$legal$55      1 47.9ms
+                                                             $abc$2399$procmux$1137_Y[2]      1 47.1ms
+                                              $auto$alumacc.cc:512:replace_alu$1203.Y[6]      1 46.8ms
+                                                                                 acc[24]      2 46.4ms
+                                                                     $0\acc_out[31:0][0]      1 44.5ms
+                                                            $abc$2399$procmux$1137_Y[26]      1 44.2ms
+                                                                     $0\acc_out[31:0][7]      1 43.9ms
+                                                                        acc[28]$legal$71      1 43.7ms
+                                                            $abc$2399$procmux$1137_Y[24]      1 43.5ms
+                                                                        result_latch[25]      1 42.1ms
+                                                                         result_latch[0]      1 41.5ms
+                                                             $abc$2399$procmux$1131_Y[9]      1 41.1ms
+                                                                    $0\acc_out[31:0][21]      1 40.9ms
+                                              $auto$alumacc.cc:512:replace_alu$1203.Y[4]      1 40.7ms
+                                                                                 acc[16]      2 39.5ms
+                                                             $abc$2399$procmux$1137_Y[0]      1 39.3ms
+                                                             $abc$2399$procmux$1137_Y[8]      1 38.9ms
+                                                                        result_latch[26]      1 38.8ms
+                                                                         acc[6]$legal$27      1 38.7ms
+                                                                $PACKER_GND_NET$legal$83      1 37.6ms
+                                                                                 acc[22]      2 36.6ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2388      1 36.5ms
+                                                                                count[5]      3 36.3ms
+                                                                     $0\acc_out[31:0][5]      1 34.1ms
+                                                                    $0\acc_out[31:0][23]      1 33.4ms
+                                                             $abc$2399$procmux$1137_Y[5]      1 31.4ms
+                                                                        acc[18]$legal$51      1 29.8ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2174      1 26.7ms
+                                                                        acc[10]$legal$35      1 26.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2360      1 26.1ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2330      1 25.3ms
+                                                            $abc$2399$procmux$1137_Y[13]      1 25.0ms
+                                                                        result_latch[30]      1 24.7ms
+                                                            $abc$2399$procmux$1131_Y[15]      1 24.6ms
+                                                                $PACKER_GND_NET$legal$87      1 24.3ms
+                                                                    $0\acc_out[31:0][30]      1 23.9ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2376      1 23.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2300      1 22.7ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[9]      1 22.6ms
+                                                                              acc_out[2]      1 22.5ms
+                                                            $abc$2399$procmux$1131_Y[13]      1 22.5ms
+                                               $abc$2399$auto$rtlil.cc:3501:NotGate$2220      1 22.3ms
+                                              $auto$alumacc.cc:512:replace_alu$1203.Y[2]      1 22.3ms
+                                                                         result_latch[3]      1 22.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[15]      1 21.1ms
+                                                                        acc[22]$legal$59      1 21.0ms
+                                                                       count[0]$legal$97      1 20.6ms
+                                                                                 acc[13]      2 20.3ms
+                                              $auto$alumacc.cc:512:replace_alu$1203.Y[7]      1 20.0ms
+                                                                         result_latch[7]      1 19.8ms
+                                                                        result_latch[22]      1 18.7ms
+                                                                             acc_out[17]      1 18.3ms
+                                                            $abc$2399$procmux$1137_Y[10]      1 17.9ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[6]      1 16.4ms
+                                                            $abc$2399$procmux$1137_Y[28]      1 16.2ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[19]      1 16.0ms
+                                                             $abc$2399$procmux$1137_Y[1]      1 15.8ms
+                                                                $PACKER_GND_NET$legal$79      1 14.2ms
+                                                             $abc$2399$procmux$1131_Y[7]      1 13.3ms
+                                                                        result_latch[31]      1 13.1ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[5]      1 12.7ms
+                                                            $abc$2399$procmux$1137_Y[25]      1 11.9ms
+                                                             $abc$2399$procmux$1131_Y[6]      1 11.8ms
+                                                                      count[4]$legal$105      1 11.6ms
+                                                                     count[11]$legal$119      1 11.1ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[2]      1 9.7ms
+                                                                             acc_out[31]      1 9.3ms
+                                                                        acc[29]$legal$73      1 9.2ms
+                                                                                 acc[18]      2 9.0ms
+                                                                                count[2]      3 8.2ms
+                                                                        acc[12]$legal$39      1 8.0ms
+                                                             $abc$2399$procmux$1131_Y[2]      1 8.0ms
+                                                            $abc$2399$procmux$1137_Y[18]      1 7.9ms
+                                                                          acc[1]$legal$7      1 7.4ms
+                                                            $abc$2399$procmux$1137_Y[14]      1 7.1ms
+                                                                        result_latch[11]      1 6.8ms
+                                                             $abc$2399$procmux$1131_Y[4]      1 6.8ms
+                                                                         result_latch[4]      1 6.2ms
+                                                                      count[6]$legal$109      1 6.1ms
+                                                                        acc[24]$legal$63      1 5.9ms
+                                                                $PACKER_GND_NET$legal$85      1 5.3ms
+                                                                                 acc[27]      2 5.2ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.Y[11]      1 5.1ms
+                                                                        acc[14]$legal$43      1 5.0ms
+                                                                        result_latch[24]      1 4.6ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[8]      0 4.5ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[0]      1 3.7ms
+                                                                        result_latch[13]      1 3.7ms
+                                     $auto$alumacc.cc:512:replace_alu$1200.X[5]$legal$21      1 3.1ms
+                                                            $abc$2399$procmux$1137_Y[16]      1 3.0ms
+                                                                        result_latch[29]      1 2.8ms
+                                                                        result_latch[10]      1 2.8ms
+                                      $auto$alumacc.cc:512:replace_alu$1200.X[0]$legal$1      1 2.4ms
+                                                                        result_latch[12]      1 2.2ms
+                                                                         acc[8]$legal$31      1 1.7ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[3]      1 1.1ms
+                                                                        acc[27]$legal$69      1 1.1ms
+                                                                             acc_out[21]      1 1.0ms
+                                                                    $0\acc_out[31:0][11]      1 0.9ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.Y[7]      1 0.8ms
+                                                                        acc[31]$legal$77      1 0.8ms
+                                                                      count[5]$legal$107      1 0.7ms
+                                                            $abc$2399$procmux$1137_Y[11]      1 0.6ms
+                                                                     count[13]$legal$123      1 0.6ms
+                                                                        acc[17]$legal$49      1 0.5ms
+                                                                    $0\acc_out[31:0][29]      1 0.5ms
+                                                                          acc[0]$legal$3      1 0.4ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[27]      1 0.3ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[28]      0 0.2ms
+                                                                        acc[13]$legal$41      1 0.1ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[11]      1 0.1ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[23]      1 0.1ms
+                                            $auto$alumacc.cc:512:replace_alu$1206.CO[13]      0 0.1ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[7]      1 0.0ms
+                                                                              acc_out[1]      1 0.0ms
+                                                                              acc_out[0]      1 0.0ms
+                                                                               valid_out      1 0.0ms
+                                                                         acc[4]$legal$19      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[7]      1 0.0ms
+                                                                         acc[9]$legal$33      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.CO[3]      1 0.0ms
+                                                                             acc_out[20]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[8]      1 0.0ms
+                                                                             acc_out[18]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[10]      1 0.0ms
+                                                                       count[0]$legal$95      1 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1206.CO[11]      1 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[29]      0 0.0ms
+                                     $auto$alumacc.cc:512:replace_alu$1200.X[3]$legal$13      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[1]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[7]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[29]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[5]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.CO[4]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[9]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[3]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[28]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[2]      0 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[2]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[3]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[8]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.X[13]      1 0.0ms
+                                      $auto$alumacc.cc:512:replace_alu$1200.X[2]$legal$9      1 0.0ms
+                                                                             acc_out[24]      1 0.0ms
+                                                                             acc_out[13]      1 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[20]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.BB[5]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.BB[2]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[7]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[20]      1 0.0ms
+                                      $auto$alumacc.cc:512:replace_alu$1200.X[1]$legal$5      1 0.0ms
+                                                                             acc_out[30]      1 0.0ms
+                                                                             acc_out[28]      1 0.0ms
+                                                                             acc_out[23]      1 0.0ms
+                                                                             acc_out[15]      1 0.0ms
+                                                                              acc_out[9]      1 0.0ms
+                                                                              acc_out[5]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[0]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[10]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.BB[4]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.BB[0]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.BB[7]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.BB[6]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[6]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.X[14]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[19]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[18]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[17]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[21]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[25]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[13]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[16]      1 0.0ms
+                                     $auto$alumacc.cc:512:replace_alu$1200.X[6]$legal$25      1 0.0ms
+                                     $auto$alumacc.cc:512:replace_alu$1200.X[4]$legal$17      1 0.0ms
+                                                                         $PACKER_VCC_NET     62 0.0ms
+                                                                         $PACKER_GND_NET      8 0.0ms
+                                                                             acc_out[29]      1 0.0ms
+                                                                             acc_out[27]      1 0.0ms
+                                                                             acc_out[26]      1 0.0ms
+                                                                             acc_out[25]      1 0.0ms
+                                                                             acc_out[22]      1 0.0ms
+                                                                             acc_out[19]      1 0.0ms
+                                                                             acc_out[16]      1 0.0ms
+                                                                             acc_out[14]      1 0.0ms
+                                                                             acc_out[12]      1 0.0ms
+                                                                             acc_out[11]      1 0.0ms
+                                                                             acc_out[10]      1 0.0ms
+                                                                              acc_out[8]      1 0.0ms
+                                                                              acc_out[7]      1 0.0ms
+                                                                              acc_out[6]      1 0.0ms
+                                                                              acc_out[4]      1 0.0ms
+                                                                              acc_out[3]      1 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1206.CO[15]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1206.CO[14]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1206.CO[12]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1206.CO[10]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[8]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[6]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[5]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[4]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[2]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.CO[1]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.CO[7]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.CO[6]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.CO[5]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.CO[2]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.CO[1]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.CO[0]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[31]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[30]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[26]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[25]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[24]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[22]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[21]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[18]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[17]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[16]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[14]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[13]      0 0.0ms
+                                            $auto$alumacc.cc:512:replace_alu$1200.CO[12]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[9]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[6]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[4]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[1]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.CO[0]      0 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.BB[1]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1203.BB[3]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.X[15]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[4]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[5]      1 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1206.X[9]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.X[10]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.X[11]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1206.X[12]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[23]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[22]      1 0.0ms
+                                                                           activation[0]      2 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[27]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[30]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[26]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[24]      1 0.0ms
+                                                                           activation[1]      2 0.0ms
+                                                                           activation[2]      2 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[31]      1 0.0ms
+                                                                           activation[3]      2 0.0ms
+                                                                           activation[4]      2 0.0ms
+                                                                           activation[5]      2 0.0ms
+                                                                           activation[6]      2 0.0ms
+                                              $auto$alumacc.cc:512:replace_alu$1200.X[9]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[11]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[12]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[14]      1 0.0ms
+                                             $auto$alumacc.cc:512:replace_alu$1200.X[15]      1 0.0ms
+                                                                           weight_enc[1]      2 0.0ms
+                                                                           activation[7]      2 0.0ms
+                                                                           weight_enc[0]      2 0.0ms
+                                                                                valid_in      2 0.0ms
+                                                                                   rst_n      2 0.0ms
+                                                                                     clk      2 0.0ms
+Info: Router2 time 1057.19s
+Info: Routing $PACKER_VCC_NET connections...
+Info:     $PACKER_VCC_NET: 62/62 sinks bridged (0 left to main router; max BFS 26)
+Info: Routing $PACKER_GND_NET connections...
+Info:     $PACKER_GND_NET: 8/8 sinks bridged (0 left to main router; max BFS 149)
+Info: Running post-routing legalisation...
+
+Info: Critical path report for clock '$auto$clkbufmap.cc:294:execute$3033' (posedge -> posedge):
+Info: curr total
+Info:  0.1  0.1  Source $auto$ff.cc:337:slice$1650.Q
+Info:  4.8  4.9    Net valid_out$auto$IOBUF_I$ budget 0.000000 ns (14,133) -> (247,129)
+Info:                Sink $abc$2399$auto$blifparse.cc:557:parse_blif$2510.A1
+Info:  0.1  5.1  Source $abc$2399$auto$blifparse.cc:557:parse_blif$2510.O6
+Info:  4.5  9.6    Net $techmap2925$abc$2399$auto$blifparse.cc:557:parse_blif$2511.A[4] budget 0.000000 ns (247,129) -> (13,129)
+Info:                Sink $abc$2399$auto$blifparse.cc:557:parse_blif$2511.A3
+Info:  0.1  9.7  Source $abc$2399$auto$blifparse.cc:557:parse_blif$2511.O6
+Info:  4.0 13.7    Net $abc$2399$auto$opt_dff.cc:336:make_patterns_logic$1193 budget 3.184000 ns (13,129) -> (234,141)
+Info:                Sink $auto$ff.cc:337:slice$1739.CE
+Info:  0.1 13.8  Setup $auto$ff.cc:337:slice$1739.CE
+Info: 0.4 ns logic, 13.3 ns routing
+
+Info: Max frequency for clock '$auto$clkbufmap.cc:294:execute$3033': 72.72 MHz (FAIL at 100.00 MHz)
+
+Info: Slack histogram:
+Info:  legend: * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [ -3751,  -3121) |* 
+Info: [ -3121,  -2491) |******* 
+Info: [ -2491,  -1861) |*** 
+Info: [ -1861,  -1231) |*********************** 
+Info: [ -1231,   -601) |******************** 
+Info: [  -601,     29) |*************************** 
+Info: [    29,    659) | 
+Info: [   659,   1289) | 
+Info: [  1289,   1919) |** 
+Info: [  1919,   2549) |* 
+Info: [  2549,   3179) |*** 
+Info: [  3179,   3809) |** 
+Info: [  3809,   4439) |* 
+Info: [  4439,   5069) |************************** 
+Info: [  5069,   5699) |********* 
+Info: [  5699,   6329) |******************* 
+Info: [  6329,   6959) |***************** 
+Info: [  6959,   7589) |******* 
+Info: [  7589,   8219) |************ 
+Info: [  8219,   8849) |*************** 
+Info: Report written to runs/ternary_s8.report.json.
