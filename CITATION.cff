@@ -8,6 +8,14 @@ authors:
     given-names: Ifedayo
     orcid: "https://orcid.org/0009-0006-7892-9890"
     affiliation: "TernaryCore, Inc."
+  - family-names: Vasilev
+    given-names: Dmitrii
+    orcid: "https://orcid.org/0009-0008-4294-6159"
+    affiliation: "TRINITY (t27.ai)"
+  - family-names: Mohammed
+    given-names: Abubakar
+    orcid: "https://orcid.org/0000-0001-7505-7835"
+    affiliation: "Independent Researcher"
 license: CERN-OHL-S-2.0
 identifiers:
   - type: doi
