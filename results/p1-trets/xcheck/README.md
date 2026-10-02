@@ -69,3 +69,16 @@ Ratios on the tag RTL: 269/128 = 2.10x (Yosys synthesis), 471/331 = 1.42x (post-
 
 Speed estimates are nextpnr's timing model on synthetic pins, not Vivado signoff and
 not silicon.
+
+---
+
+## Note added on integration
+
+`ternary.yosys.log` and `int8.yosys.log` are zero bytes as supplied, so the netlists
+left out of this bundle for size cannot be regenerated from them. They are reproducible
+from the Yosys invocations recorded in `README.md` above and the inputs hashed in
+`INPUTS.sha256`. Everything else in the bundle verifies: 203/203 files against
+`SHA256SUMS`.
+
+-- added by the maintainer when committing this bundle; the contributor bears no
+responsibility for this note.
