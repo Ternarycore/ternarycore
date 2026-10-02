@@ -38,3 +38,21 @@ preferred-citation:
       orcid: "https://orcid.org/0000-0001-7505-7835"
   journal: "ACM Transactions on Reconfigurable Technology and Systems (TRETS)"
   year: 2026
+references:
+  - type: data
+    title: "TernaryCore SST-2 Student (W1.58A8)"
+    abstract: "Distilled ternary-weight (W1.58A8) Qwen3-0.6B student for GLUE SST-2, with the packed 2-bit weights consumed by this accelerator. The checkpoint behind the published on-hardware energy measurements."
+    authors:
+      - family-names: Oladapo
+        given-names: Ifedayo
+        orcid: "https://orcid.org/0009-0006-7892-9890"
+      - family-names: Vasilev
+        given-names: Dmitrii
+        orcid: "https://orcid.org/0009-0008-4294-6159"
+      - family-names: Mohammed
+        given-names: Abubakar
+        orcid: "https://orcid.org/0000-0001-7505-7835"
+    doi: 10.57967/hf/10696
+    url: "https://huggingface.co/Ternarycore/ternarycore-sst2-student"
+    year: 2026
+    license: Apache-2.0
