@@ -29,6 +29,12 @@ CKPT  = os.path.expanduser("~/tc-ckpt/d4-student-sst2-r2.pt")
 CACHE = os.path.expanduser("~/tc-ckpt/tc-ref-int8.npz")
 TEACHER = "Qwen/Qwen3-0.6B"
 
+# Defaults only. geometry_from_cache() below overrides every one of these
+# from the checkpoint actually being loaded. They were last hand-edited for
+# the pruned summarizer (NH=8, INTER=2048); the published SST-2 student is
+# NH=16, INTER=3072, and trusting these verbatim made tc_ref.py raise
+#   ValueError: cannot reshape array of size 2048 into shape (8,128)
+# against its own released checkpoint.
 H, NH, NKV, HD, INTER, NB = 1024, 8, 8, 128, 2048, 28
 EPS, THETA, VOCAB = 1e-6, 1e6, 151936
 NREP = NH // NKV
@@ -40,6 +46,26 @@ SUBLN = {"o_proj", "down_proj"}          # nn.Sequential(RMSNorm, BitLinear)
 
 
 # ---------------------------------------------------------------- quantizers
+
+def geometry_from_cache(z):
+    """Set the module geometry from a quantized cache, and return the block count.
+
+    Shapes carry the answer, so nothing here has to be kept in sync by hand:
+    q_proj is (NH*HD, H), k_proj is (NKV*HD, H), gate_proj is (INTER, H), and
+    q_norm is (HD,).
+    """
+    global H, NH, NKV, HD, INTER, NB, NREP, SCALE
+    HD    = int(z["0.q_norm"].shape[0])
+    H     = int(z["0.q_proj.w"].shape[1])
+    NH    = int(z["0.q_proj.w"].shape[0]) // HD
+    NKV   = int(z["0.k_proj.w"].shape[0]) // HD
+    INTER = int(z["0.gate_proj.w"].shape[0])
+    NREP  = NH // NKV
+    SCALE = HD ** -0.5
+    NB    = 1 + max(int(k.split(".")[0]) for k in z.files
+                    if k.split(".")[0].isdigit())
+    return NB
+
 
 def absmean_ternary(w):
     """BitNet b1.58, exactly as training/bitlinear.py does it."""
@@ -68,7 +94,10 @@ def build_cache(ckpt=CKPT, out=CACHE):
 
     blob = {"embed": f("model.embed_tokens.weight").astype(np.float32),
             "final_norm": f("model.norm.weight").astype(np.float32)}
-    for b in range(NB):
+    nb = 1 + max(int(k.split(".")[2]) for k in d
+                 if k.startswith("model.layers."))
+    print(f"  {nb} blocks in this checkpoint", flush=True)
+    for b in range(nb):
         p = f"model.layers.{b}."
         for name in PROJ:
             key = p + ("self_attn." if name[0] in "qkvo" else "mlp.") + name
@@ -93,10 +122,13 @@ def build_cache(ckpt=CKPT, out=CACHE):
 # --------------------------------------------------------------------- model
 
 class Ref:
-    def __init__(self, cache=CACHE, mode="int", nblocks=NB, probs_bits=7):
+    def __init__(self, cache=CACHE, mode="int", nblocks=None, probs_bits=7):
         if not os.path.exists(cache):
             sys.exit(f"no {cache} -- run with --build first")
         self.z = np.load(cache)
+        found = geometry_from_cache(self.z)
+        if nblocks is None:
+            nblocks = found
         self.mode = mode
         self.nb = nblocks
         self.pmax = (1 << probs_bits) - 1
@@ -249,7 +281,8 @@ def main():
     ap.add_argument("--mode", default="int", choices=["int", "float"])
     ap.add_argument("--prompt", default="The capital of France is")
     ap.add_argument("--new", type=int, default=12)
-    ap.add_argument("--blocks", type=int, default=NB)
+    ap.add_argument("--blocks", type=int, default=None,
+                    help="default: every block in the checkpoint")
     ap.add_argument("--probs-bits", type=int, default=7)
     ap.add_argument("--compare", action="store_true")
     ap.add_argument("--dump", default=None,

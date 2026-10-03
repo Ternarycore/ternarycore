@@ -67,6 +67,13 @@ Results:
 
 Ratios on the tag RTL: 269/128 = 2.10x (Yosys synthesis), 471/331 = 1.42x (post-route).
 
+**What counts as a LUT.** The Yosys ratio above is LUT2-LUT6 only. Yosys emits `INV`
+as its own cell type; Vivado has no such primitive and an inverter lands in a LUT1,
+inside the LUT count. Counting INV as a LUT -- the like-for-like comparison against a
+Vivado number -- gives 398/265 = 1.50x on the tag unit and 398/257 = 1.55x on the
+branch unit. The ternary design carries more inverters than the int8 one (137 vs 129),
+so excluding them flatters it. Quote 2.10x only with the cell classes attached.
+
 Speed estimates are nextpnr's timing model on synthetic pins, not Vivado signoff and
 not silicon.
 
@@ -74,11 +81,18 @@ not silicon.
 
 ## Note added on integration
 
-`ternary.yosys.log` and `int8.yosys.log` are zero bytes as supplied, so the netlists
-left out of this bundle for size cannot be regenerated from them. They are reproducible
-from the Yosys invocations recorded in `README.md` above and the inputs hashed in
-`INPUTS.sha256`. Everything else in the bundle verifies: 203/203 files against
-`SHA256SUMS`.
+The three Yosys logs (`ternary.yosys.log`, `int8.yosys.log`, `tag-rtl/yosys.log`) were
+zero bytes as first supplied: those runs used `yosys -q ... > file.log`, and `-q`
+suppresses exactly the output being redirected. They were re-run on 2026-10-02 with
+`-l <log>` instead, same Yosys build (0.67+post, b8e7da6f), same working directories,
+same relative source paths. The re-run reproduces all three netlists byte for byte
+against the hashes in `INPUTS.sha256`, and its `.stat` files are byte-identical to the
+ones already in this bundle -- verified here against the committed copies before these
+logs were added. The logs now present are those re-run logs; the only difference from
+the original runs is the absolute output path on line 9 of each.
 
--- added by the maintainer when committing this bundle; the contributor bears no
-responsibility for this note.
+`YOSYS-LOGS.md` is the contributor's note, mapping each log to the empty file it
+replaces. Logs by D. Vasilev.
+
+With these in place, "regenerate from the yosys log" in `INPUTS.sha256` is true as
+written.
