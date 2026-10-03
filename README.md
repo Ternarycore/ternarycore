@@ -115,7 +115,7 @@ The distilled ternary student behind the published energy measurements is on the
 Hugging Face Hub:
 
 **[Ternarycore/ternarycore-sst2-student](https://huggingface.co/Ternarycore/ternarycore-sst2-student)**
-- DOI: [10.57967/hf/10696](https://doi.org/10.57967/hf/10696)
+- DOI: [10.57967/hf/10741](https://doi.org/10.57967/hf/10741)
 
 A 28-block W1.58A8 student distilled from Qwen3-0.6B for GLUE SST-2 (91.4% vs a
 94.4% teacher). The repository ships three things:
